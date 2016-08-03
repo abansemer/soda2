@@ -18,7 +18,12 @@ FUNCTION decompress_dmt, cimage
 
    ;Advance to the first sync slice (a count byte followed by 8 bytes of '170') before beginning decompression, 
    ; otherwise weird stuff happens.  Checking cipos+1:cipos+8 to retain the leading count byte.
-   WHILE total((cimage[cipos+1:cipos+8] eq bytarr(8)+170)) ne 8 DO cipos=cipos+1 ;8 in a row   
+   sync=bytarr(8)+170  ;Sync is 8 bytes of 170
+   WHILE total((cimage[cipos+1:cipos+8] eq sync)) ne 8 DO BEGIN
+      cipos=cipos+1    
+      ;Check for no syncs
+      IF cipos ge 4000 THEN return, {image:image, bitimage:0, sync_ind:0, time_elap:0, time_sfm:0, particle_count:0, slice_count:0}  
+   ENDWHILE
 
    WHILE cipos lt 4095 and ipos lt 30000 DO BEGIN
       zeroes=0 & ones=0 & dummy=0
