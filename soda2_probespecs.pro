@@ -7,7 +7,7 @@ FUNCTION soda2_probespecs, name=name, id=id
         
    base={probename:'', shortname:'', format:'', subformat:0s, probetype:'', probeid:'', $
          res:0.0, armwidth:0.0, numdiodes:0.0, tau:0.0, firstsliceskip:0, arrayid:0s, $
-         dofthreshold:0.0, wavelength:0.0}
+         dofthreshold:0.0, wavelength:0.0, seatag:[33000,0,0]}
    ;Tau is the response time in seconds as in Baumgardner 1997 JTECH   
       
    x=base
@@ -250,6 +250,66 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.tau=0.051e-6       ;From Bill Dawson email, July 2012
    x.firstsliceskip=0
    x.wavelength=0.658e-6
+   all=[all,x]
+
+   x.probename='NRC CIP (SEA M300)'
+   x.shortname='CIP'
+   x.format='SEA'
+   x.subformat=1
+   x.probetype='CIP'
+   x.probeid=''
+   x.res=15
+   x.armwidth=7.0
+   x.numdiodes=64
+   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.firstsliceskip=0
+   x.wavelength=0.658e-6
+   x.seatag=33000
+   all=[all,x]
+
+   x.probename='NRC PIP (SEA M300)'
+   x.shortname='PIP'
+   x.format='SEA'
+   x.subformat=1
+   x.probetype='CIP'
+   x.probeid=''
+   x.res=100
+   x.armwidth=22.7
+   x.numdiodes=64
+   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.firstsliceskip=0
+   x.wavelength=0.658e-6
+   x.seatag=31000
+   all=[all,x]
+
+   x.probename='NRC 2DC (SEA M300)'
+   x.shortname='2DC'
+   x.format='SEA'
+   x.subformat=1
+   x.probetype='2DC'
+   x.probeid=''
+   x.res=50
+   x.armwidth=7.7
+   x.numdiodes=32
+   x.tau=0.58e-6      ;Mean value from Strapp et al JTECH 2001
+   x.firstsliceskip=1
+   x.wavelength=0.6328e-6
+   x.seatag=[7000, 7006, 7007]
+   all=[all,x]
+
+   x.probename='NRC 2DP (SEA M300)'
+   x.shortname='2DP'
+   x.format='SEA'
+   x.subformat=1
+   x.probetype='2DC'
+   x.probeid=''
+   x.res=200
+   x.armwidth=26.0
+   x.numdiodes=32
+   x.tau=0.58e-6      ;Mean value from Strapp et al JTECH 2001
+   x.firstsliceskip=1
+   x.wavelength=0.6328e-6
+   x.seatag=[8000, 8006, 8007]
    all=[all,x]
 
    x=base

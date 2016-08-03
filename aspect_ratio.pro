@@ -84,14 +84,15 @@ FUNCTION aspect_ratio, img_in, tas_adjust=tas_adjust, makeplot=makeplot, circle=
       z=where(img eq 1, area)  ;these 3 lines get area and indices of each occluded element
       y_ind2=z/s[1]            ;remember that y is along airflow, x along array
       x_ind2=z mod s[1]        ;area here is area of perimeter, not full particle
-      p=plot(x_ind2,y_ind2,'+',xrange=[0,s[1]],yrange=[0,s[1]])
+      p=plot(x_ind2,y_ind2,'+',xrange=[0,s[1]],yrange=[0,s[1]],/buffer)  ;Plot to buffer, remove if want display
       p.aspect_ratio=1
       e=ellipse(circle.center[0],circle.center[1],major=circle.diam/2.0+0.5,/data,$
                 fill_transparency=80,fill_color='blue') 
       p2=plot(x_ind2,y_ind2,'ks',sym_filled=1,/overplot,sym_size=1.1)
       
       anchors=plot(x_ind[circle.corners],y_ind[circle.corners],'ks',sym_filled=1,/overplot,fill_color='red')
-      line=plot(x_ind[circle.corners],y_ind[circle.corners],'r',/overplot,thick=2)
+      ;line=plot(x_ind[circle.corners],y_ind[circle.corners],'r',/overplot,thick=2)  ;Temporarily remove line since ugly if 3 points
+p.save,'aspect_image.png'
    ENDIF
 
 

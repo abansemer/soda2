@@ -17,6 +17,8 @@ PRO soda2_update_op, op
    IF total(where(tag_names(op) eq 'WAVELENGTH')) eq -1 THEN op=create_struct(op,'wavelength',0.658e-6)  
    IF total(where(tag_names(op) eq 'KEEPLARGEST')) eq -1 THEN op=create_struct(op,'keeplargest',0)
    IF total(where(tag_names(op) eq 'CENTERIN')) eq -1 THEN op=create_struct(op,'centerin',1)
+   IF total(where(tag_names(op) eq 'SEATAG')) eq -1 THEN op=create_struct(op,'seatag',[33000,0,0])
    IF total(where(tag_names(op) eq 'YRES')) eq -1 THEN op=create_struct(op,'yres',op.res)  ;A constant y-res, may change to variable
+   IF total(where(tag_names(op) eq 'IGNOREDEADTIME')) eq -1 THEN op=create_struct(op,'ignoredeadtime',0)  ;for SPEC probes, sometimes overload is suspicious
 END
   

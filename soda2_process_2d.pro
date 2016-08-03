@@ -289,7 +289,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    sa=fltarr(numbins)
    FOR i=0,numbins-1 DO sa[i]=soda2_samplearea(midbins[i], op.res, op.armwidth, op.numdiodes, op.reconstruct, op.smethod, op.wavelength, centerin=op.centerin)
 
-   activetime=(fltarr(numrecords)+op.rate-d.deadtime)>0  ;Assume always active, minus deadtime
+   ;Assume probe is always active, minus deadtime
+   IF op.ignoredeadtime eq 1 THEN activetime=fltarr(numrecords)+op.rate ELSE activetime=(fltarr(numrecords)+op.rate-d.deadtime)>0 
    IF (got_pth eq 1) THEN d.tas=pth_tas
    sv=sa*d.tas*activetime
    

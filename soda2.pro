@@ -141,8 +141,8 @@ PRO soda2_event, ev
 
             ;--------Bin Sizes
             arendbins=[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-            IF probe.res lt 50 THEN endbins=[25,75,125,175,225,275,325,400,475,550,625,700,800,900,1000,1200,1400,1600,1800,2000]
-            IF probe.res ge 50 THEN endbins=[200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2200, 2600, 3000, 3400, 3800, 4200, 4600, 5000,6000,7000,8000,9000,10000,15000,20000,25000,30000]
+            IF probe.res le 50 THEN endbins=[25,75,125,175,225,275,325,400,475,550,625,700,800,900,1000,1200,1400,1600,1800,2000]
+            IF probe.res gt 50 THEN endbins=[200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2200, 2600, 3000, 3400, 3800, 4200, 4600, 5000,6000,7000,8000,9000,10000,15000,20000,25000,30000]
             
             ;2D-S bins as special case
             IF probe.res eq 10 THEN endbins=[5,15,25,35,45,55,65,75,85,95,105,125,145,175,225,275,325,400,475,550,625,700,800,900,1000,1200,1400,1600,1800,2000]
@@ -156,7 +156,7 @@ PRO soda2_event, ev
                savfile:savfile, inttime_reject:inttime_reject, reconstruct:reconstruct, stuckbits:stuckbits, water:water,$
                fixedtas:fixedtas, outdir:outdir[0], project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
                numdiodes:probe.numdiodes, probeid:probe.probeid, shortname:probe.shortname, greythresh:greythresh, $
-               wavelength:probe.wavelength}
+               wavelength:probe.wavelength, seatag:probe.seatag}
 
             ;Process housekeeping if flagged
             IF (housefile eq 1) and (probe.format eq 'SPEC') THEN BEGIN
@@ -176,6 +176,8 @@ PRO soda2_event, ev
         'probetype': widget_control,ev.id,set_uvalue=ev.str      ;A workaround to be able to access current index with widget_control later on
         
         'browse': soda2_browse
+
+        'export': soda2_export
         
         'quit': WIDGET_CONTROL, ev.TOP, /DESTROY
 
@@ -219,7 +221,7 @@ PRO soda2, h=h
 
     actionID=widget_button(menubarID, value='Other actions', /menu)
     browseID=widget_button(actionID, value='Browse data...',uname='browse')
-    ;exportID=widget_button(actionID, value='Export data...',uname='export')
+    exportID=widget_button(actionID, value='Export data...',uname='export')
  
 
     ;-----------File names widget block------------------------------------

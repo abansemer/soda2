@@ -62,17 +62,18 @@ FUNCTION soda2_read2dbuffer, lun, pop
    
 
    IF (*pop).format eq 'SEA' THEN BEGIN
+      eofile=0
       CASE 1 OF
         (*pop).probetype eq 'CIP':BEGIN
            q=fstat(lun)
-           eofile=0
            IF (*pop).fixedtas gt 0 THEN tas=(*pop).fixedtas ELSE tas=100.0
-           A=readseabuffer_caps(lun, probetype='CIP') 
+           A=readseabuffer_caps(lun, probetype='CIP', tag=(*pop).seatag[0]) 
         END
         ELSE: BEGIN
            ;Placeholder for legacy 2D-C, untested
-           A=read2dseabuffer(lun,sun=sun,res=res,tags=pversion.tags)
-           IF pversion.tlfix THEN A.image=fix2dimage(A.image)
+           A=read2dseabuffer(lun, res=(*pop).res, probetype=(*pop).probetype, tags=(*pop).seatag)
+           IF a.eof eq 0 THEN tas=a.tas
+           ;IF pversion.tlfix THEN A.image=fix2dimage(A.image)
          END
       ENDCASE
       IF a.eof eq 1 THEN return, nullbuffer
