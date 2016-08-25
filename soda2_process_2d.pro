@@ -101,10 +101,32 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    ;====================================================================================================
    got_pth=0
    IF file_test(op.pth) THEN BEGIN
-      restore,op.pth
-      IF total(d.time - data.time) ne 0 THEN stop,'PTH time does not match.'
-      pth_tas=data.tas
-      got_pth=1
+      suffix=(strsplit(op.pth,'.',/extract))[-1]
+      ;IDL sav files      
+      IF (suffix eq 'dat') or (suffix eq 'sav') THEN BEGIN      
+         restore,op.pth
+         IF total(d.time - data.time) ne 0 THEN stop,'PTH time does not match.'
+         pth_tas=data.tas
+         got_pth=1
+      ENDIF
+      ;ASCII or CSV files, assumes time and tas in first two columns
+      IF (suffix eq 'txt') or (suffix eq 'csv') THEN BEGIN
+         pth_tas=fltarr(numrecords)
+         v=''
+         openr,lun,op.pth,/get_lun
+         on_ioerror, bad  ;Use to suppress type conversion errors
+         REPEAT BEGIN
+            readf,lun,v
+            fields=float(strsplit(v, '[ ,' + STRING(9B) + ']+', /regex, /extract))
+            i=(round(fields[0])-op.starttime)/op.rate ;find index for each variable
+            ;Fill TAS array, don't bother with averaging
+            IF (i ge 0) and (i lt numrecords) and (fields[1] gt 0) and (fields[1] lt 500) THEN pth_tas[i]=fields[1]
+            bad:dummy=0
+         ENDREP UNTIL eof(lun)
+         on_ioerror, null
+         free_lun,lun
+         got_pth=1
+      ENDIF
    ENDIF ELSE BEGIN
       pth_tas=fltarr(numrecords)
       print,'Can not find TAS, using default values'

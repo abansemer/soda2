@@ -76,7 +76,7 @@ PRO soda2_event, ev
 
         'findpthfile': BEGIN ;===========================================================================
             IF ev.value eq 0 THEN BEGIN ;Add a file pressed
-               a=dialog_pickfile(/read,filter=['*.dat'],title='Select flight data file',dialog_parent=widget_info(ev.top,find='process'))
+               a=dialog_pickfile(/read,filter=['*.dat','*.sav','*.txt','*.csv'],title='Select flight data file',dialog_parent=widget_info(ev.top,find='process'))
                IF file_test(a) THEN BEGIN
                   widget_control,widget_info(ev.top,find='pthfile'),set_value=a
                   widget_control,widget_info(ev.top,find='tas'),sensitive=0
@@ -236,7 +236,7 @@ PRO soda2, h=h
     dummy=widget_label(subbase3,value='---Aircraft TAS Data---',/align_left)
     subbase3a=widget_base(subbase3,row=1)
     subbase3b=widget_base(subbase3,row=1)
-    addpthfile=cw_bgroup(subbase3a,['Select...','Clear'], uname='findpthfile',/row,label_left='Flight data file (SODA format):')
+    addpthfile=cw_bgroup(subbase3a,['Select...','Clear'], uname='findpthfile',/row,label_left='Flight data file (SODA or ASCII format):')
     pthfile=widget_text(subbase3,uname='pthfile',/editable,xsize=62,/all_events) 
     tas=cw_field(subbase3,/int, title='or use fixed TAS of (m/s):',uname='tas', value='150', xsize=4)
    
