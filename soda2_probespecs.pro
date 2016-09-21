@@ -9,7 +9,8 @@ FUNCTION soda2_probespecs, name=name, id=id
          res:0.0, armwidth:0.0, numdiodes:0.0, tau:0.0, firstsliceskip:0, arrayid:0s, $
          dofthreshold:0.0, wavelength:0.0, seatag:[33000,0,0]}
    ;Tau is the response time in seconds as in Baumgardner 1997 JTECH   
-      
+   ;Legacy probes use mean value from Strapp et al JTECH 2001, newer probes various communications.
+
    x=base
    
    ;First addition
@@ -22,7 +23,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=25
    x.armwidth=10
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=x   
@@ -37,7 +38,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=15
    x.armwidth=10
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]   
@@ -51,7 +52,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=25
    x.armwidth=6.1
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]   
@@ -65,7 +66,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=25
    x.armwidth=6.1
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]
@@ -79,7 +80,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=100
    x.armwidth=10
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]
@@ -93,7 +94,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=25
    x.armwidth=6.1
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]
@@ -107,7 +108,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=100
    x.armwidth=10
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]
@@ -121,7 +122,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=25
    x.armwidth=10.0
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]
@@ -135,7 +136,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=100
    x.armwidth=26.0
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]
@@ -149,7 +150,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=25
    x.armwidth=10.0
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]
@@ -163,7 +164,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=100
    x.armwidth=40.0
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]
@@ -177,7 +178,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=100
    x.armwidth=7.0
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]
@@ -191,7 +192,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=15
    x.armwidth=4.0
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]   
@@ -205,7 +206,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=25
    x.armwidth=10.0
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]   
@@ -219,7 +220,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=100
    x.armwidth=26.0
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]   
@@ -233,7 +234,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=100
    x.armwidth=26.0
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]   
@@ -245,9 +246,9 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=25
-   x.armwidth=10.0
+   x.armwidth=7.0
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]
@@ -261,7 +262,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=15
    x.armwidth=7.0
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    x.seatag=33000
@@ -276,7 +277,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=100
    x.armwidth=22.7
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    x.seatag=31000
@@ -291,7 +292,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=50
    x.armwidth=7.7
    x.numdiodes=32
-   x.tau=0.58e-6      ;Mean value from Strapp et al JTECH 2001
+   x.tau=0.58e-6
    x.firstsliceskip=1
    x.wavelength=0.6328e-6
    x.seatag=[7000, 7006, 7007]
@@ -306,7 +307,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=200
    x.armwidth=26.0
    x.numdiodes=32
-   x.tau=0.58e-6      ;Mean value from Strapp et al JTECH 2001
+   x.tau=0.58e-6
    x.firstsliceskip=1
    x.wavelength=0.6328e-6
    x.seatag=[8000, 8006, 8007]
@@ -322,7 +323,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=25
    x.armwidth=6.1
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]
@@ -337,7 +338,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=25
    x.armwidth=6.1
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]
@@ -353,7 +354,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=25
    x.armwidth=6.1
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.dofthreshold=66.0
    x.wavelength=0.658e-6
@@ -369,7 +370,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=25
    x.armwidth=6.1
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]
@@ -385,7 +386,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=10
    x.armwidth=6.1
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]
@@ -400,7 +401,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=200
    x.armwidth=26.1
    x.numdiodes=32
-   x.tau=0.6e-6      ;Strapp et al JTECH 2001
+   x.tau=0.6e-6
    x.firstsliceskip=1
    x.wavelength=0.6328e-6
    all=[all,x]
@@ -414,7 +415,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=25
    x.armwidth=6.0
    x.numdiodes=64
-   x.tau=0.051e-6       ;From Bill Dawson email, July 2012
+   x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]
@@ -428,7 +429,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=200
    x.armwidth=26.0
    x.numdiodes=32
-   x.tau=0.6e-6      ;Strapp et al JTECH 2001
+   x.tau=0.6e-6
    x.firstsliceskip=1
    x.wavelength=0.6328e-6
    all=[all,x]
@@ -443,9 +444,9 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=150
    x.armwidth=16.25
    x.numdiodes=128
-   x.tau=41.0e-9    ;From 2DS SPEC document
+   x.tau=41.0e-9
    x.firstsliceskip=0
-   x.wavelength=0.785e-6  ;From Sara L. 
+   x.wavelength=0.785e-6
    all=[all,x]
    
    x=base
@@ -458,9 +459,9 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=10
    x.armwidth=6.3
    x.numdiodes=128
-   x.tau=41.0e-9    ;From 2DS SPEC document
+   x.tau=41.0e-9
    x.firstsliceskip=0
-   x.wavelength=0.785e-6   ;From Sara L. 
+   x.wavelength=0.785e-6
    all=[all,x]
    
    x=base
@@ -473,9 +474,9 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=10
    x.armwidth=6.3
    x.numdiodes=128
-   x.tau=41.0e-9    ;From 2DS SPEC document
+   x.tau=41.0e-9
    x.firstsliceskip=0
-   x.wavelength=0.785e-6   ;From Sara L. 
+   x.wavelength=0.785e-6
    all=[all,x]
    
    x=base
@@ -488,9 +489,9 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=10
    x.armwidth=5.08
    x.numdiodes=128
-   x.tau=41.0e-9    ;From 2DS SPEC document
+   x.tau=41.0e-9
    x.firstsliceskip=0
-   x.wavelength=0.785e-6   ;From Sara L. 
+   x.wavelength=0.785e-6
    all=[all,x]
    
    x=base
@@ -503,9 +504,9 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=50
    x.armwidth=5.08
    x.numdiodes=128
-   x.tau=41.0e-9    ;From 2DS SPEC document
+   x.tau=41.0e-9
    x.firstsliceskip=0
-   x.wavelength=0.785e-6   ;From Sara L. 
+   x.wavelength=0.785e-6
    all=[all,x]
 
    
@@ -519,9 +520,9 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=10
    x.armwidth=5.08
    x.numdiodes=128
-   x.tau=41.0e-9    ;From 2DS SPEC document
+   x.tau=41.0e-9
    x.firstsliceskip=0
-   x.wavelength=0.785e-6   ;From Sara L. 
+   x.wavelength=0.785e-6
    all=[all,x]
    
    x=base
@@ -534,7 +535,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=30
    x.armwidth=6.1
    x.numdiodes=32
-   x.tau=0.6e-6      ;Strapp et al JTECH 2001
+   x.tau=0.6e-6
    x.firstsliceskip=1
    x.wavelength=0.6328e-6
    all=[all,x]
@@ -549,7 +550,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=30
    x.armwidth=7.0
    x.numdiodes=32
-   x.tau=0.6e-6      ;Strapp et al JTECH 2001
+   x.tau=0.6e-6
    x.firstsliceskip=1
    x.wavelength=0.6328e-6
    all=[all,x]
@@ -564,7 +565,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.res=25
    x.armwidth=6.1
    x.numdiodes=32
-   x.tau=0.58e-6      ;Mean value from Strapp et al JTECH 2001
+   x.tau=0.58e-6
    x.firstsliceskip=1
    x.wavelength=0.6328e-6
    all=[all,x]

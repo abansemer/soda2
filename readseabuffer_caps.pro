@@ -45,14 +45,18 @@ function readseabuffer_caps,lun,sun=sun,tag=tag,probetype=probetype
    ENDREP UNTIL gotdata  ; repeat until one of the sea buffers contains 2d data
    
    point_lun,lun,timepoint   ;READ IN THE DATA
-   readu,lun,time
+   readu,lun,time  ;First is start time
    year=time[0]+ishft(fix(time[1]),8)
    month=time[2]+ishft(time[3],8)
    day=time[4]+ishft(time[5],8)
    IF time[13] ne 0 then stop
    hhmmss=(time[6]+ishft(time[7],8))*10000d + (time[8]+ishft(time[9],8))*100d + (time[10]+ishft(time[11],8)) + $
       (time[12]+ishft(time[13],8))/double(time[14]+ishft(time[15],8))  ;see SEA manual
- 
+  
+   readu,lun,time  ;Next is stop time
+   hhmmss_stop=(time[6]+ishft(time[7],8))*10000d + (time[8]+ishft(time[9],8))*100d + (time[10]+ishft(time[11],8)) + $
+      (time[12]+ishft(time[13],8))/double(time[14]+ishft(time[15],8))  ;see SEA manual
+
    point_lun,lun,imagepoint
    readu,lun,image
    
@@ -62,7 +66,7 @@ function readseabuffer_caps,lun,sun=sun,tag=tag,probetype=probetype
    probetime=0
    IF probetype eq 'CIP1D' THEN probetime=ishft(image.hourmin and 1984,-6)*10000d + (image.hourmin and 63)*100d + $
        ishft(image.secmsec and 64512,-10) + (image.secmsec and 1023)/1000d
-   return,{starttime:hhmmss, image:image, difftime:0, eof:0, pointer:q.cur_ptr, tas:100, probetime:probetime,$
+   return,{starttime:hhmmss, stoptime:hhmmss_stop, image:image, difftime:0, eof:0, pointer:q.cur_ptr, tas:100, probetime:probetime,$
            year:year, month:month, day:day, imagepoint:imagepoint}
 END
           

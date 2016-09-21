@@ -117,6 +117,12 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           bitimage[0:63,x.sync_ind+1]=0 ;eliminate time lines         
           restore_slice=0
           missed=0  ;Might want to implement same algorithm as in CIPG here....
+
+          ;Assign the first particle in each buffer as an overload for SEA files.  
+          ;This is to account for deadtime between buffers in SEA data throttling.
+          ;Commented out for now, comparisons with SODA-1 were only so-so.
+          ;overload=bytarr(num_images)
+          ;IF ((*pop).format eq 'SEA') THEN overload[0]=1 
        END
       
        ((*pop).probetype eq 'CIPG'): BEGIN   

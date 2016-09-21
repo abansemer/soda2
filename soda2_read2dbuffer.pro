@@ -78,7 +78,7 @@ FUNCTION soda2_read2dbuffer, lun, pop
       ENDCASE
       IF a.eof eq 1 THEN return, nullbuffer
       IF a.year gt 0 THEN date=julday(a.month,a.day,a.year) ELSE date=0
-      return, {time:hms2sfm(a.starttime)+(*pop).timeoffset, image:a.image, difftime:0.0, eof:eofile, tas:tas, pointer:pointer, date:date, overload:0}
+      return, {time:hms2sfm(a.starttime)+(*pop).timeoffset, stoptime:hms2sfm(a.stoptime)+(*pop).timeoffset, image:a.image, difftime:0.0, eof:eofile, tas:tas, pointer:pointer, date:date, overload:0}
    ENDIF
    
    IF (*pop).format eq 'DMT' THEN BEGIN

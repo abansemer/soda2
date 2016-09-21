@@ -271,8 +271,6 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
         ;x[istart:istop].nsep=p.nsep  ;now using keeplargest option for detection of multi-particles
    
         ;Feedback to user
-        ;IF lastbuffertime ne long(b.time) THEN print,long(b.time)
-        ;lastbuffertime=long(b.time)
         percentcomplete=fix(float(i-firstbuff)/(lastbuff-firstbuff)*100)
         IF percentcomplete ne lastpercentcomplete THEN BEGIN
             infoline=strtrim(string(percentcomplete))+'%'

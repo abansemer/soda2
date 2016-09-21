@@ -36,10 +36,12 @@ PRO soda2_export_event, ev
             widget_control,widget_info(ev.top,find='process'),set_value='Processing...'
             infoline=['Exported files:']
             FOR i=0,n_elements(fn)-1 DO BEGIN
-               restore,fn[i]
-               outfile=(str_sep(file_basename(fn[i]), '.dat'))[0] + '.nc'
-               soda2_export_ncdf,data,outfile=outdir + outfile
-               infoline=[infoline, outdir+outfile]
+               IF file_test(fn[i]) THEN BEGIN
+                  restore,fn[i]
+                  outfile=(str_sep(file_basename(fn[i]), '.dat'))[0] + '.nc'
+                  soda2_export_ncdf,data,outfile=outdir + outfile
+                  infoline=[infoline, outdir+outfile]
+               ENDIF
             ENDFOR
             dummy=dialog_message(infoline,dialog_parent=ev.id,/info)
             widget_control,widget_info(ev.top,find='process'),set_value='EXPORT to netCDF'
