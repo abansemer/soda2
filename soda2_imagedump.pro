@@ -100,7 +100,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
          FOR sec=0,59,rate DO BEGIN
             ind=where(data.ind eq i,buffcount)
             IF buffcount gt 0 THEN BEGIN
-               buff=soda2_bitimage(op.fn[data.currentfile[ind[0]]], data.pointer[ind[0]], pop, pmisc)
+               buff=soda2_bitimage(op.fn[data.currentfile[ind[0]]], data.pointer[ind[0]], pop, pmisc, divider=showdividers)
                finalimage=buff.bitimage
                ;Make sure there are at least 2 slices, if not just use empty image
                IF n_elements(finalimage) gt op.numdiodes THEN gotimage=1 ELSE finalimage = emptyimage
@@ -161,7 +161,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
       remainder=0  ;flag for long buffers
       
       FOR i=framestart,framestop,skip DO BEGIN
-         buff=soda2_bitimage(op.fn[data.currentfile[i]], data.pointer[i], pop, pmisc)
+         buff=soda2_bitimage(op.fn[data.currentfile[i]], data.pointer[i], pop, pmisc, divider=showdividers)
          finalimage=buff.bitimage
          
          IF max(finalimage) gt 0 THEN BEGIN ;skip empty images

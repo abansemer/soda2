@@ -1,4 +1,4 @@
-FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divder
+FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
    ;Return an image of a buffer from a SODA2 file.
    ;Send in file, pointer location, and pointer to the 'op' structure.
    ;AB 2015
@@ -20,13 +20,14 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divder
       c=0  
       imsize=0    
       WHILE (c lt framep.n) and (imsize lt maxslices) DO BEGIN   
-         im=spec_read_frame(lun,framep.ap[c],(*pop).probeid)
+         IF (*pop).probetype eq '3VCPI' THEN im=tvcpi_read_frame(lun,framep.ap[c],(*pop).probeid) ELSE $
+            im=spec_read_frame(lun,framep.ap[c],(*pop).probeid)
          slices=n_elements(im.image)/128
          IF imsize+slices lt maxslices THEN bitimage[0:127,imsize:imsize+slices-1]=im.image
          
          ;Add a divider
-         IF (divider eq 1) and (imsize+slices lt (maxslices-1)) THEN BEGIN
-            bitimage[0:127,imsize+slices]=indgen(128) mod 2
+         IF (divider eq 1) and (imsize+slices lt (maxslices-1)) and (total(im.image) gt 0) THEN BEGIN
+            bitimage[0:127,imsize+slices]=(indgen(128) mod 4 / 3)*2
             imsize=imsize+1
          ENDIF
          
