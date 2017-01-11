@@ -93,6 +93,13 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    numbuffsaccepted=intarr(numrecords)
    numbuffsrejected=intarr(numrecords)
    dhist=lonarr(numrecords,op.numdiodes)
+
+   ;Set up the particle structure.  
+   num2process=10000000L ;Limit to reduce memory consumption
+   basestruct={bufftime:0d, probetime:0d, reftime:0d, size:0.0, xsize:0.0, ysize:0.0, ar:0.0, aspr:0.0, area:0.0, $
+               allin:0b, tas:0s, zd:0.0, missed:0.0, overloadflag:0b, orientation:0.0, perimeterarea:0.0}
+   x=replicate(basestruct, num2process)
+ 
    
    ;====================================================================================================
    ;====================================================================================================
@@ -163,7 +170,50 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    
    ;Set up particlefile
    lun_pbp=2
-   IF op.particlefile THEN BEGIN
+   ncdf_offset=0L
+   IF op.particlefile eq 1 THEN BEGIN
+      fn_pbp=soda2_filename(op,op.shortname,extension='.pbp.nc')
+      id=ncdf_create(fn_pbp,/clobber)
+      ;Define the x-dimension, should be used in all variables
+      xdimid=ncdf_dimdef(id,'Time',/unlimited)
+      
+      ;These are for ncplot compatibility
+      opnames=tag_names(op)
+      flightdate=strmid(op.date,0,2)+'/'+strmid(op.date,2,2)+'/'+strmid(op.date,4,4)
+      
+      tb='0000'+strtrim(string(sfm2hms(op.starttime)),2)
+      te='0000'+strtrim(string(sfm2hms(op.stoptime)),2)
+      starttimestr=strmid(tb,5,2,/r)+':'+strmid(tb,3,2,/r)+':'+strmid(tb,1,2,/r)
+      stoptimestr=strmid(te,5,2,/r)+':'+strmid(te,3,2,/r)+':'+strmid(te,1,2,/r)
+      intervalstr=starttimestr+'-'+stoptimestr
+      
+      ;Create global attributes
+      ncdf_attput,id,'Source','SODA-2 OAP Processing Software',/global
+      ncdf_attput,id,'FlightDate',flightdate[0],/global
+      ncdf_attput,id,'DateProcessed',systime(),/global
+      ncdf_attput,id,'TimeInterval',intervalstr,/global
+      opnames=tag_names(op)                  
+      FOR i=0,n_elements(opnames)-1 DO BEGIN
+         IF size(op.(i), /type) eq 7 THEN BEGIN  ;Look for strings, must be handled differently
+            IF string(op.(i)[0]) eq '' THEN op.(i)[0]='none' ;To avoid an ncdf error (empty string)
+            ncdf_attput,id,opnames[i],op.(i)[0],/global  ;Only put first element for string
+         ENDIF ELSE ncdf_attput,id,opnames[i],op.(i),/global   ;Non-strings, all elements      
+      ENDFOR
+      
+      tagnames=['time', 'ipt', 'diam', 'xsize', 'ysize', 'arearatio', 'aspectratio', 'area', 'perimeterarea','allin', $
+                'zd', 'missed', 'overload','orientation']
+      longname=['UTC time','Interarrival Time','Particle Diameter','X-size (across array)','Y-size (along airflow)',$
+                'Area Ratio','Aspect Ratio','Pixel Area','Perimeter Pixel Area','All-in Flag','Z position','Missed Particles','Overload Flag','Orientation']
+      units=['seconds','seconds','microns','microns','microns','unitless','unitless','pixels','pixels','boolean','microns','number','degrees','boolean']
+      FOR i=0,n_elements(tagnames)-1 DO BEGIN
+         varid=ncdf_vardef(id,tagnames[i],xdimid,/float)
+         ncdf_attput,id,varid,'longname',longname[i]
+         ncdf_attput,id,varid,'units',units[i]
+      ENDFOR
+      ncdf_control,id,/endef                ;put in data mode 
+      lun_pbp=id
+   ENDIF
+   IF op.particlefile eq 2 THEN BEGIN
       fn_pbp=soda2_filename(op,op.shortname,extension='.pbp')
       close,lun_pbp
       openw,lun_pbp,fn_pbp
@@ -205,12 +255,6 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    ENDIF
    currentfile=-1
    
-   ;Set up the particle structure.  
-   num2process=10000000 ;Limit to reduce memory consumption
-   basestruct={bufftime:0d, probetime:0d, reftime:0d, size:0s, ar:0.0, aspr:0.0, allin:0b, tas:0s, zd:0.0, $
-               missed:0.0, overloadflag:0b, orientation:0.0}
-   x=replicate(basestruct, num2process)
- 
    ;lastbuffertime=0   
    lastpercentcomplete=0
    istop=-1L
@@ -260,8 +304,12 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
         x[istart:istop].probetime=p.probetime
         x[istart:istop].reftime=p.reftime
         x[istart:istop].size=p.size
+        x[istart:istop].xsize=p.xsize
+        x[istart:istop].ysize=p.ysize
         x[istart:istop].ar=p.ar
         x[istart:istop].aspr=p.aspr
+        x[istart:istop].area=p.area_orig 
+        x[istart:istop].perimeterarea=p.perimeterarea 
         x[istart:istop].allin=p.allin
         x[istart:istop].tas=b.tas
         x[istart:istop].zd=p.zd
@@ -282,7 +330,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
       ENDELSE
       IF (istop+500) gt num2process THEN BEGIN
          ;Memory limit reached, process particles and reset arrays
-         soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp
+         soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset
+         ncdf_offset=ncdf_offset + istop + 1
          istop=-1L         
       ENDIF
       
@@ -291,7 +340,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    IF istop lt 0 THEN return
    infoline='Sorting Particles...'
    IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
-   soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp
+   soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset
    close,1
 
 
@@ -358,8 +407,9 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
       IF textwidgetid ne 0 THEN dummy=dialog_message(infoline,dialog_parent=textwidgetid,/info) ELSE print,infoline
    ENDIF
    
-   IF op.particlefile eq 1 THEN BEGIN
-      close,lun_pbp
+   IF op.particlefile ne 0 THEN BEGIN
+      IF op.particlefile eq 1 THEN ncdf_close,lun_pbp
+      IF op.particlefile eq 2 THEN close,lun_pbp
       infoline='Saved file '+fn_pbp
       IF textwidgetid ne 0 THEN dummy=dialog_message(infoline,dialog_parent=textwidgetid,/info) ELSE print,infoline
    ENDIF
