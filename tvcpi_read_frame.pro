@@ -5,6 +5,8 @@ FUNCTION tvcpi_read_frame, lun, bpoint, id
    ;'id' is 1=Horizontal, 2=Vertical
    ;AB 5/2011
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
+
+
    
    point_lun,lun,bpoint
    x=spec_readint(lun,3)  ;Get size of frame
@@ -38,10 +40,11 @@ FUNCTION tvcpi_read_frame, lun, bpoint, id
    ;Have decided to skip this time word entirely for now
    
    IF (nh gt 3) and (id eq 'H') THEN BEGIN
+      nh=nh-1 ;For some reason the 3VCPI is different here, this needs to be cleaned up...
       himageraw=buff[2:nh-1]                  ;Skip last two words (otherwise nh+1)
       hcounter=ulong(buff[nh:nh+1])           ;Last two words is a counter
       time=ishft(hcounter[1],16)+hcounter[0] ;Assemble timeword
-      time=hcounter[0]  ;Skip hcounter[0] until fixed, rollovers taken care of in processbuffer
+      ;time=hcounter[0]  ;Skip hcounter[0] until fixed, rollovers taken care of in processbuffer
       image=spec_decompress(himageraw,overloadh)   
       error=0
       IF missingtwh THEN error=1
@@ -52,7 +55,6 @@ FUNCTION tvcpi_read_frame, lun, bpoint, id
       nv=nv-1 ;For some reason the 3VCPI is different here, this needs to be cleaned up...
       vimageraw=buff[nh+2:nh+nv-1]            ;Skip last two words (otherwise nv+1)
       vcounter=ulong(buff[nh+nv:nh+nv+1])     ;Last two words is a counter
-;print,vcounter      
       time=ishft(vcounter[1],16)+vcounter[0]  ;Assemble timeword
       ;time=vcounter[0]  ;Skip vcounter[0] until fixed, rollovers taken care of in processbuffer
       image=spec_decompress(vimageraw,overloadv)   
