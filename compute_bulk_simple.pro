@@ -50,5 +50,5 @@ FUNCTION compute_bulk_simple, conc1d, endbins, binstart=binstart, acoeff=a, bcoe
    mvd=mvdiam(u[*,binstart:binstop],midbins[binstart:binstop],/interp)
    mnd=meandiam(u[*,binstart:binstop],midbins[binstart:binstop])
 
-   return, {iwc:iwc, lwc:lwc, dmass:dmass, dmassw:dmassw, dbz:10*(alog10(z))-7.2, nt:nt, mvd:mvd, mnd:mnd} 
+   return, {iwc:iwc, lwc:lwc, dmass:dmass, dmassw:dmassw, dbz:10*(alog10(z))-7.2, dbzw:10*(alog10(z)), nt:nt, mvd:mvd, mnd:mnd} 
 END
