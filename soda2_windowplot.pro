@@ -243,6 +243,23 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                    xyouts, barposx, barposy[1]+0.01, string(zrange, form='(f3.1)'),/norm,align=0.5
                    xyouts, mean(barposx), barposy[1]+0.01, bartitle ,/norm,align=0.5
                END
+               'Color Aspect Ratio':BEGIN
+                   conc=(*p1).meanaspr[a:b,*]
+                   zrange=[0,0.9]
+                   bartitle='Aspect Ratio'
+                   contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/yl,/ys,yr=sizerange,zr=zrange,c_colors=c_colors
+                   
+                   barposx=[0.05,0.35]*(!x.window[1]-!x.window[0]) + !x.window[0]
+                   barposy=[0.85,0.9]*(!y.window[1]-!y.window[0]) + !y.window[0]
+                   bar=findgen(nlevels+1)/nlevels*(zrange[1]-zrange[0])+zrange[0]
+                   xsave=!x
+                   contour,[[bar],[bar]],findgen(nlevels+1),[0,1],/cell,nlevels=nlevels,$
+                      position=[barposx[0],barposy[0],barposx[1],barposy[1]],$
+                      xtickname=['4','12'] ,xstyle=5,ystyle=5,zr=zrange,/noerase,noclip=0,c_colors=c_colors
+                   !x=xsave
+                   xyouts, barposx, barposy[1]+0.01, string(zrange, form='(f3.1)'),/norm,align=0.5
+                   xyouts, mean(barposx), barposy[1]+0.01, bartitle ,/norm,align=0.5
+               END
                'Color Orientation':BEGIN
                    conc=(*p1).orientation_index[a:b,*]
                    zrange=[0,0.4]
