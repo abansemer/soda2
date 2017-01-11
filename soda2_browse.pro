@@ -68,6 +68,11 @@ PRO soda2_browse_event, ev
                sodaversion=2
                count_rejected_total=long(total(data.count_rejected,2))
                data=create_struct(data,bulk,'count_rejected_total',count_rejected_total,'meanar',meanar,'sodaversion',sodaversion)
+               ;Add in aspect ratio if it is in the dat file
+               IF total(tag_names(data) eq 'SPEC2D_ASPR') ne 0 THEN BEGIN
+                  meanaspr=(compute_meanar(data.spec2d_aspr, armidbins)) * binary  ;Uses same bins as area ratio
+                  data=create_struct(data, 'meanaspr', meanaspr)
+               ENDIF
             ENDELSE
             p1=ptr_new(data)
             pop=ptr_new(op)
@@ -468,7 +473,7 @@ PRO soda2_browse
     drawbase5b=widget_base(drawbase5,row=1)
     plottypes=['Total Concentration','IWC','dBZ','Diameter',$
         'Color Concentration','Color Interarrival', 'Color Interarrival Accepted','Color Diode Histogram',$
-       'Color Area Ratio','Color Orientation','Rejection Codes',$
+       'Color Area Ratio','Color Aspect Ratio','Color Orientation','Rejection Codes',$
        'Particle Counts']
     ts_type1=widget_droplist(drawbase5b,uname='ts_type1',value=plottypes,title='Plot 1',/frame)
     ts_type2=widget_droplist(drawbase5b,uname='ts_type2',value=plottypes,title='Plot 2',/frame)
