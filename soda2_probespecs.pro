@@ -377,7 +377,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    
    
    x=base
-   x.probename='NCAR Fast-2DC (10um)'
+   x.probename='NCAR Fast-2DC [C6] (10um)'
    x.shortname='F2DC10'
    x.format='RAF'
    x.subformat=3
