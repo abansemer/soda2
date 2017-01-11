@@ -250,10 +250,14 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    IF max(diodetotal)/mean(diodetotal) gt 3 THEN streak=1 ELSE streak=0
 
    size=fltarr(num_images)
+   xsize=fltarr(num_images)
+   ysize=fltarr(num_images)
    allin=bytarr(num_images)
    area_ratio=fltarr(num_images)
    aspr=fltarr(num_images)
    orientation=fltarr(num_images)
+   area_orig=fltarr(num_images)
+   perimeterarea=fltarr(num_images)  ;Number of pixels on the border, for water detection
    zd=fltarr(num_images)
    nsep=intarr(num_images)
    dhist=intarr((*pop).numdiodes)
@@ -301,22 +305,25 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
 
       ;Water processing
       zeed=0
+      area_orig[i]=total(roi)
       IF ((*pop).water eq 1) and (*pop).smethod ne 'areasize' THEN BEGIN
-         area_orig=total(roi)
-         roi=fillholes(roi)     ;fills in poisson spots for liquid water drops
-         ps_correction = poisson_spot_correct(area_orig, total(roi), zd=zeed) ; as in Korolev 2007 
+         roi=fillholes(roi)     ;fills in poisson spots for liquid water drops, change roi so soda2_findsize get right area ratio, +40% processing time
+         ps_correction = poisson_spot_correct(area_orig[i], total(roi), zd=zeed) ; as in Korolev 2007 
       ENDIF ELSE ps_correction=1.0
          
       part=soda2_findsize(roi,pop,pmisc)
       size[i]=part.diam/ps_correction
+      xsize[i]=part.xsize
+      ysize[i]=part.ysize
       area_ratio[i]=part.ar
       aspr[i]=part.aspr
       allin[i]=part.allin        
       zd[i]=zeed
       orientation[i]=part.orientation
+      perimeterarea[i]=part.perimeterarea
    ENDFOR   ;image loop end
 
-   return,{size:size,probetime:time_sfm,reftime:reftime,ar:area_ratio,aspr:aspr,rejectbuffer:0,bitimage:bitimage,$
+   return,{size:size,xsize:xsize,ysize:ysize,probetime:time_sfm,reftime:reftime,ar:area_ratio,aspr:aspr,rejectbuffer:0,bitimage:bitimage,$
            allin:allin,streak:streak,zd:zd,dhist:dhist,nslices:nslices,missed:missed,nsep:nsep,overloadflag:overloadflag,$
-           orientation:orientation}  
+           orientation:orientation, area_orig:area_orig, perimeterarea:perimeterarea}  
 END
