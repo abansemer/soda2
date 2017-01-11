@@ -1,4 +1,4 @@
-PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp
+PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset
    ;Sorts particle-by-particle data into the various accumulation arrays.
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
@@ -39,19 +39,47 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp
          IF ni gt 0 THEN d.deadtime[i]=total(deadtimes[w]) < op.rate
       ENDFOR
    ENDIF
-  
-   
+    
    ;Print particles if flagged
-   ;showpbp=0
-   ;IF showpbp THEN FOR i=0L,numparticles-1 DO print,long(truetime[i]),interarrival[i],x[i].size,x[i].allin,x[i].zd
-   IF op.particlefile THEN BEGIN
+   IF op.particlefile eq 1 THEN BEGIN   ;NetCDF version, now default
+      varid=ncdf_varid(lun_pbp,'time')
+      ncdf_varput,lun_pbp,varid,truetime[0:istop],count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(lun_pbp,'ipt')
+      ncdf_varput,lun_pbp,varid,interarrival[0:istop],count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(lun_pbp,'diam')
+      ncdf_varput,lun_pbp,varid,x[0:istop].size,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(lun_pbp,'xsize')
+      ncdf_varput,lun_pbp,varid,x[0:istop].xsize,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(lun_pbp,'ysize')
+      ncdf_varput,lun_pbp,varid,x[0:istop].ysize,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(lun_pbp,'arearatio')
+      ncdf_varput,lun_pbp,varid,x[0:istop].ar,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(lun_pbp,'aspectratio')
+      ncdf_varput,lun_pbp,varid,x[0:istop].aspr,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(lun_pbp,'area')
+      ncdf_varput,lun_pbp,varid,x[0:istop].area,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(lun_pbp,'perimeterarea')
+      ncdf_varput,lun_pbp,varid,x[0:istop].perimeterarea,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(lun_pbp,'allin')
+      ncdf_varput,lun_pbp,varid,x[0:istop].allin,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(lun_pbp,'zd')
+      ncdf_varput,lun_pbp,varid,x[0:istop].zd,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(lun_pbp,'missed')
+      ncdf_varput,lun_pbp,varid,x[0:istop].missed,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(lun_pbp,'orientation')
+      ncdf_varput,lun_pbp,varid,x[0:istop].orientation,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(lun_pbp,'overload')
+      ncdf_varput,lun_pbp,varid,x[0:istop].overloadflag,count=numparticles,offset=ncdf_offset
+   ENDIF
+   IF op.particlefile eq 2 THEN BEGIN   ;ASCII version
       FOR i=0L,numparticles-1 DO printf,lun_pbp,truetime[i],interarrival[i],x[i].size,x[i].ar,x[i].allin,x[i].zd,x[i].missed,form='(f12.3,e12.3,2f12.3,i4,f12.3,i5)'
    ENDIF
+
    ;Loop through all the unique indices found
    FOR i=1L,n_elements(u)-1 DO BEGIN
-      istart=(u[i-1]+1)
-      istop=(u[i])
-      iparticles=s[istart:istop]                   ;Index to each particle in this step
+      indstart=(u[i-1]+1)
+      indstop=(u[i])
+      iparticles=s[indstart:indstop]                   ;Index to each particle in this step
       itime=timeindex[iparticles[0]]               ;Time index of this step
       
       IF (itime ge 0) and (itime lt d.numrecords) THEN BEGIN                     ;Make sure in time range  
