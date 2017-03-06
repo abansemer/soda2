@@ -64,15 +64,15 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile
    
    attname=['long_name','units']
    attvalue=['Elapsed time','seconds since '+year+'-'+month+'-'+day+' '+starttime+' +0000']
-   timeid=ncdf_vardef(id,'elapsed_time',xdimid,/long) 
+   timeid=ncdf_vardef(id,'elapsed_time',xdimid,/double) 
    FOR k=0,n_elements(attname)-1 DO ncdf_attput,id,timeid,attname[k],attvalue[k]
    
    attvalue=['Base time','seconds since 01/01/1970']
-   baseid=ncdf_vardef(id,'base_time',/long)
+   baseid=ncdf_vardef(id,'base_time',/double)
    FOR k=0,n_elements(attname)-1 DO ncdf_attput,id,baseid,attname[k],attvalue[k]
    
    attvalue=['UTC time','seconds from midnight of start date']
-   utcid=ncdf_vardef(id,'utc_time',xdimid,/long)
+   utcid=ncdf_vardef(id,'utc_time',xdimid,/double)
    FOR k=0,n_elements(attname)-1 DO ncdf_attput,id,utcid,attname[k],attvalue[k]
    
             

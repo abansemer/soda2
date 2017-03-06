@@ -126,8 +126,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
             readf,lun,v
             fields=float(strsplit(v, '[ ,' + STRING(9B) + ']+', /regex, /extract))
             i=(round(fields[0])-op.starttime)/op.rate ;find index for each variable
-            ;Fill TAS array, don't bother with averaging
-            IF (i ge 0) and (i lt numrecords) and (fields[1] gt 0) and (fields[1] lt 500) THEN pth_tas[i]=fields[1]
+            ;Fill TAS array, don't bother with averaging.  Note use of i:*, which makes sure gaps are filled in for hirate data.
+            IF (i ge 0) and (i lt numrecords) and (fields[1] gt 0) and (fields[1] lt 500) THEN pth_tas[i:*]=fields[1]
             bad:dummy=0
          ENDREP UNTIL eof(lun)
          on_ioerror, null
@@ -171,11 +171,12 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    ;Set up particlefile
    lun_pbp=2
    ncdf_offset=0L
-   IF op.particlefile eq 1 THEN BEGIN
-      fn_pbp=soda2_filename(op,op.shortname,extension='.pbp.nc')
-      id=ncdf_create(fn_pbp,/clobber)
+   ncdf_id=0L
+   IF op.ncdfparticlefile eq 1 THEN BEGIN
+      fn_ncdf=soda2_filename(op,op.shortname,extension='.pbp.nc')
+      ncdf_id=ncdf_create(fn_ncdf,/clobber)
       ;Define the x-dimension, should be used in all variables
-      xdimid=ncdf_dimdef(id,'Time',/unlimited)
+      xdimid=ncdf_dimdef(ncdf_id,'Time',/unlimited)
       
       ;These are for ncplot compatibility
       opnames=tag_names(op)
@@ -188,16 +189,16 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
       intervalstr=starttimestr+'-'+stoptimestr
       
       ;Create global attributes
-      ncdf_attput,id,'Source','SODA-2 OAP Processing Software',/global
-      ncdf_attput,id,'FlightDate',flightdate[0],/global
-      ncdf_attput,id,'DateProcessed',systime(),/global
-      ncdf_attput,id,'TimeInterval',intervalstr,/global
+      ncdf_attput,ncdf_id,'Source','SODA-2 OAP Processing Software',/global
+      ncdf_attput,ncdf_id,'FlightDate',flightdate[0],/global
+      ncdf_attput,ncdf_id,'DateProcessed',systime(),/global
+      ncdf_attput,ncdf_id,'TimeInterval',intervalstr,/global
       opnames=tag_names(op)                  
       FOR i=0,n_elements(opnames)-1 DO BEGIN
          IF size(op.(i), /type) eq 7 THEN BEGIN  ;Look for strings, must be handled differently
             IF string(op.(i)[0]) eq '' THEN op.(i)[0]='none' ;To avoid an ncdf error (empty string)
-            ncdf_attput,id,opnames[i],op.(i)[0],/global  ;Only put first element for string
-         ENDIF ELSE ncdf_attput,id,opnames[i],op.(i),/global   ;Non-strings, all elements      
+            ncdf_attput,ncdf_id,opnames[i],op.(i)[0],/global  ;Only put first element for string
+         ENDIF ELSE ncdf_attput,ncdf_id,opnames[i],op.(i),/global   ;Non-strings, all elements      
       ENDFOR
       
       tagnames=['time', 'ipt', 'diam', 'xsize', 'ysize', 'arearatio', 'aspectratio', 'area', 'perimeterarea','allin', $
@@ -206,14 +207,13 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
                 'Area Ratio','Aspect Ratio','Pixel Area','Perimeter Pixel Area','All-in Flag','Z position','Missed Particles','Overload Flag','Orientation']
       units=['seconds','seconds','microns','microns','microns','unitless','unitless','pixels','pixels','boolean','microns','number','degrees','boolean']
       FOR i=0,n_elements(tagnames)-1 DO BEGIN
-         varid=ncdf_vardef(id,tagnames[i],xdimid,/float)
-         ncdf_attput,id,varid,'longname',longname[i]
-         ncdf_attput,id,varid,'units',units[i]
+         varid=ncdf_vardef(ncdf_id,tagnames[i],xdimid,/float)
+         ncdf_attput,ncdf_id,varid,'longname',longname[i]
+         ncdf_attput,ncdf_id,varid,'units',units[i]
       ENDFOR
-      ncdf_control,id,/endef                ;put in data mode 
-      lun_pbp=id
+      ncdf_control,ncdf_id,/endef                ;put in data mode 
    ENDIF
-   IF op.particlefile eq 2 THEN BEGIN
+   IF op.particlefile eq 1 THEN BEGIN
       fn_pbp=soda2_filename(op,op.shortname,extension='.pbp')
       close,lun_pbp
       openw,lun_pbp,fn_pbp
@@ -330,7 +330,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
       ENDELSE
       IF (istop+500) gt num2process THEN BEGIN
          ;Memory limit reached, process particles and reset arrays
-         soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset
+         soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id
          ncdf_offset=ncdf_offset + istop + 1
          istop=-1L         
       ENDIF
@@ -340,7 +340,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    IF istop lt 0 THEN return
    infoline='Sorting Particles...'
    IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
-   soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset
+   soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id
    close,1
 
 
@@ -407,10 +407,15 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
       IF textwidgetid ne 0 THEN dummy=dialog_message(infoline,dialog_parent=textwidgetid,/info) ELSE print,infoline
    ENDIF
    
-   IF op.particlefile ne 0 THEN BEGIN
-      IF op.particlefile eq 1 THEN ncdf_close,lun_pbp
-      IF op.particlefile eq 2 THEN close,lun_pbp
+   IF op.particlefile eq 1 THEN BEGIN
+      close,lun_pbp
       infoline='Saved file '+fn_pbp
+      IF textwidgetid ne 0 THEN dummy=dialog_message(infoline,dialog_parent=textwidgetid,/info) ELSE print,infoline
+   ENDIF
+   
+   IF op.ncdfparticlefile eq 1 THEN BEGIN
+      ncdf_close,ncdf_id
+      infoline='Saved file '+fn_ncdf
       IF textwidgetid ne 0 THEN dummy=dialog_message(infoline,dialog_parent=textwidgetid,/info) ELSE print,infoline
    ENDIF
    

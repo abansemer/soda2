@@ -37,11 +37,12 @@ PRO soda2_event, ev
             widget_control,id,set_value=checkboxarray
 
             ;--------Output checkboxes
-            checkboxarray=[0,0]
+            checkboxarray=[0,0,0,0]
             id=widget_info(ev.top,find='outputflags')
             widget_control,id,get_uvalue=values
             IF op.savfile THEN checkboxarray[where(values eq 'IDL sav')]=1
             IF op.particlefile THEN checkboxarray[where(values eq 'Particle-by-Particle')]=1
+            IF op.ncdfparticlefile THEN checkboxarray[where(values eq 'Particle-by-Particle(netCDF)')]=1
             widget_control,id,set_value=checkboxarray
 
             ;--------Filenames
@@ -129,6 +130,7 @@ PRO soda2_event, ev
             widget_control,id,get_value=iadv
             IF iadv[where(values eq 'IDL sav')] eq 1 THEN savfile=1 ELSE savfile=0
             IF iadv[where(values eq 'Particle-by-Particle')] eq 1 THEN particlefile=1 ELSE particlefile=0
+            IF iadv[where(values eq 'Particle-by-Particle(netCDF)')] eq 1 THEN ncdfparticlefile=1 ELSE ncdfparticlefile=0
             IF iadv[where(values eq 'Housekeeping')] eq 1 THEN housefile=1 ELSE housefile=0
 
             ;--------Probe Details
@@ -158,7 +160,7 @@ PRO soda2_event, ev
                savfile:savfile, inttime_reject:inttime_reject, reconstruct:reconstruct, stuckbits:stuckbits, water:water,$
                fixedtas:fixedtas, outdir:outdir[0], project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
                numdiodes:probe.numdiodes, probeid:probe.probeid, shortname:probe.shortname, greythresh:greythresh, $
-               wavelength:probe.wavelength, seatag:probe.seatag}
+               wavelength:probe.wavelength, seatag:probe.seatag, ncdfparticlefile:ncdfparticlefile}
 
             ;Process housekeeping if flagged
             IF (housefile eq 1) and (probe.format eq 'SPEC') THEN BEGIN
@@ -273,7 +275,7 @@ PRO soda2, h=h
     ;subbase4b=widget_base(subbase4a,row=1)
     
     subbase4a=widget_base(subbase4,row=1)
-    vals=['IDL sav','Particle-by-Particle','Housekeeping']
+    vals=['IDL sav','Particle-by-Particle','Particle-by-Particle(netCDF)','Housekeeping']
     outputflags=cw_bgroup(subbase4a,vals,uname='outputflags',/row,/nonexclusive,uval=vals,set_value=[1,0,0])
 
     subbase4b=widget_base(subbase4,row=1)

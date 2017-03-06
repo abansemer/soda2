@@ -11,6 +11,7 @@ PRO soda2_update_op, op
    IF total(where(tag_names(op) eq 'ARMWIDTH')) eq -1 THEN op=create_struct(op,'armwidth',0.0)
    IF total(where(tag_names(op) eq 'NUMDIODES')) eq -1 THEN op=create_struct(op,'numdiodes',64)
    IF total(where(tag_names(op) eq 'PARTICLEFILE')) eq -1 THEN op=create_struct(op,'particlefile',0)
+   IF total(where(tag_names(op) eq 'NCDFPARTICLEFILE')) eq -1 THEN op=create_struct(op,'ncdfparticlefile',0)
    IF total(where(tag_names(op) eq 'CLUSTERTHRESH')) eq -1 THEN op=create_struct(op,'clusterthresh',0.0)   
    IF total(where(tag_names(op) eq 'SAVFILE')) eq -1 THEN op=create_struct(op,'savfile',1)  
    IF total(where(tag_names(op) eq 'SHORTNAME')) eq -1 THEN op=create_struct(op,'shortname',op.probetype)  
