@@ -47,9 +47,13 @@ FUNCTION aspect_ratio, img_in, tas_adjust=tas_adjust, makeplot=makeplot, circle=
       cy2=y_ind[circle.corners[1]]
    ENDELSE
    
-   ;Compute orientation, in degrees
-   orientation=atan(float(cy2-cy1)/(cx2-cx1)) * 180/!pi
-   
+   ;Compute orientation, in degrees, range is -180 to +180
+   orientation=atan(float(cy2-cy1), float(cx2-cx1)) * 180/!pi
+
+   ;Get angle in format of -90 to +90 degrees with respect to x-axis (across array), since otherwise can be ambiguous
+   ;Tricky math, but this works (tested using make_column.pro at all angles):
+   orientation=((orientation - 360 - 90) mod 180) + 90
+
    ;Use line in form of Ax+By+C=0 
    ;Use this formula to compute A, B, and C: (y1 – y2)x + (x2 – x1)y + (x1y2 – x2y1) = 0
    ;Got from https://bobobobo.wordpress.com/2008/01/07/solving-linear-equations-ax-by-c-0/
@@ -57,7 +61,7 @@ FUNCTION aspect_ratio, img_in, tas_adjust=tas_adjust, makeplot=makeplot, circle=
    b=cx2-cx1
    c=cx1*cy2 - cx2*cy1
    
-   den=sqrt(a^2+b^2)  ;Denominator in distance formula
+   den=sqrt(a^2+b^2) > 1  ;Denominator in distance formula
    
    distmajor=(a*x_ind +  b*y_ind + c)/den
    
