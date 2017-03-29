@@ -203,15 +203,6 @@ PRO soda2, h=h
    ;Main GUI for SODA-2
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
-    ;------CHANGE DEFAULT VALUES HERE--------------------------------------
-    ;----------------------------------------------------------------------
-    defaultgain=1.4
-    defaultrate=5
-    defaultinterarrival=1.0e-6
-    defaultsaturation=10
-    ;----------------------------------------------------------------------
-    ;----------------------------------------------------------------------
-    
     IF keyword_set(h) THEN print,'=======Parameter /h successfully passed to soda2.pro========='
     IF !version.os_family eq 'windows' THEN widget_control,default_font='Helvetica*fixed*12'
     IF !version.os_family eq 'unix' THEN widget_control,default_font='-adobe-helvetica-medium-r-normal--12-120-75-75-p-67-iso8859-1'
@@ -261,8 +252,8 @@ PRO soda2, h=h
     probetype=widget_combobox(subbase2b,value=specs.probename,uname='probetype',uvalue=specs[0].probename)
     
     subbase2a=widget_base(subbase2,row=1)  
-    rate=cw_field(subbase2a,/int, title='Averaging Time (s):',uname='rate' , xsize=4, value=defaultrate)
-    timeoffset=cw_field(subbase2a,/float, title='Clock Correction (s):',uname='timeoffset' , xsize=5, value=0.00)
+    rate=cw_field(subbase2a,/float, title='Averaging Time (s):',uname='rate' , xsize=6, value=5.0)
+    timeoffset=cw_field(subbase2a,/float, title='Clock Correction (s):',uname='timeoffset' , xsize=6, value=0.0)
    
     subbase2c=widget_base(subbase2,row=1)
     vals=['Shatter Correct','All-In','Water Processing','Stuck Bit Correct','Area Size']
