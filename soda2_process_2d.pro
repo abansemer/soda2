@@ -201,11 +201,12 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
          ENDIF ELSE ncdf_attput,ncdf_id,opnames[i],op.(i),/global   ;Non-strings, all elements      
       ENDFOR
       
-      tagnames=['time', 'ipt', 'diam', 'xsize', 'ysize', 'arearatio', 'aspectratio', 'area', 'perimeterarea','allin', $
-                'zd', 'missed', 'overload','orientation']
+      tagnames=['time', 'ipt', 'diam', 'xsize', 'ysize', 'arearatio', 'aspectratio', 'area', 'perimeterarea', 'allin', $
+                'zd', 'missed', 'overload', 'orientation']
       longname=['UTC time','Interarrival Time','Particle Diameter','X-size (across array)','Y-size (along airflow)',$
-                'Area Ratio','Aspect Ratio','Pixel Area','Perimeter Pixel Area','All-in Flag','Z position','Missed Particles','Overload Flag','Orientation']
-      units=['seconds','seconds','microns','microns','microns','unitless','unitless','pixels','pixels','boolean','microns','number','degrees','boolean']
+                'Area Ratio','Aspect Ratio','Pixel Area','Perimeter Pixel Area','All-in Flag','Z position',$
+                'Missed Particles','Overload Flag','Particle Orientation Relative to Array Axis']
+      units=['seconds','seconds','microns','microns','microns','unitless','unitless','pixels','pixels','boolean','microns','number','boolean','degrees']
       FOR i=0,n_elements(tagnames)-1 DO BEGIN
          varid=ncdf_vardef(ncdf_id,tagnames[i],xdimid,/float)
          ncdf_attput,ncdf_id,varid,'longname',longname[i]
@@ -215,9 +216,25 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    ENDIF
    IF op.particlefile eq 1 THEN BEGIN
       fn_pbp=soda2_filename(op,op.shortname,extension='.pbp')
-      close,lun_pbp
-      openw,lun_pbp,fn_pbp
-      printf,lun_pbp,'Timestamp(UTC)  IPT(s)  Diam(um)  AreaRatio  Allin(bool)  zd  missed'
+      close, lun_pbp
+      openw, lun_pbp, fn_pbp
+      ;printf,lun_pbp, ['Time(UTC)', 'IPT(s)', 'Diam(um)', 'XSize(um)', 'YSize(um)', 'AreaRatio', 'AspectRatio', 'Allin(bool)', $
+      ;                'Missed', 'Overload', 'Orientation'], format='(99a14)'
+      printf, lun_pbp, 'Source: SODA-2 OAP Processing Software'
+      printf, lun_pbp, 'Flight Date: ', strmid(op.date,0,2)+'/'+strmid(op.date,2,2)+'/'+strmid(op.date,4,4)
+      printf, lun_pbp, 'Data output for each column: '
+      printf, lun_pbp, '  1: Particle time [seconds from midnight]'
+      printf, lun_pbp, '  2: Interparticle time [seconds]'
+      printf, lun_pbp, '  3: Particle diameter from circle sizing [microns]'
+      printf, lun_pbp, '  4: X-size (across array) [microns]'
+      printf, lun_pbp, '  5: Y-size (along airflow) [microns]'
+      printf, lun_pbp, '  6: Area ratio [unitless]'
+      printf, lun_pbp, '  7: Aspect ratio [unitless]'
+      printf, lun_pbp, '  8: Particle orientation relative to array axis [degrees]'
+      printf, lun_pbp, '  9: All-in flag [boolean]'
+      printf, lun_pbp, '  10: Overload flag [boolean]'
+      printf, lun_pbp, '  11: Missed particles [number]'
+      printf, lun_pbp, '-------------------------------------------'
    ENDIF
     
    ;====================================================================================================
