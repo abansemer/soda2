@@ -55,6 +55,8 @@ function read2dseabuffer,lun,res=res,sun=sun,tags=tags,probetype=probetype
    ;hhmmss=(time[6]+ishft(time[7],8))*10000d + (time[8]+ishft(time[9],8))*100d + (time[10]+ishft(time[11],8)) + $
    ;   (time[12]+ishft(time[13],8))/100d  ;see SEA manual
    hhmmss=time[3]*10000d + time[4]*100d + time[5] + time[6]/100d
+   readu,lun,time
+   hhmmss_stop=time[3]*10000d + time[4]*100d + time[5] + time[6]/100d
    
    point_lun,lun,imagepoint
    readu,lun,image
@@ -72,6 +74,6 @@ function read2dseabuffer,lun,res=res,sun=sun,tags=tags,probetype=probetype
 
    nextbuffer=buf.dataoffset+lastpointer+buf.parameter1*65536l   ; the 999 tag points to the start of next buffer
    point_lun,lun,nextbuffer ; position the file pointer at the start of next buffer
-   return,{starttime:hhmmss,year:time[0], month:time[1], day:time[2], image:image,difftime:elapsedtime,tas:tas2,eof:0,pointer:q.cur_ptr}
+   return,{starttime:hhmmss, stoptime:hhmmss_stop, year:time[0], month:time[1], day:time[2], image:image,difftime:elapsedtime,tas:tas2,eof:0,pointer:q.cur_ptr}
 END
           
