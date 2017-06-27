@@ -1,5 +1,6 @@
 PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime, $
-              all=all, skip=skip, showdividers=showdividers, maxwidth=maxwidth, nofile=nofile
+              all=all, skip=skip, showdividers=showdividers, maxwidth=maxwidth, nofile=nofile,$
+              textwidgetid=textwidgetid
    ;Make a series of particle image png files from processed OAP data.
    ;Uses the SODA2 '.dat' files to find raw data locations and pointers.
    ;File: the processed SODA2 file for flight of interest
@@ -18,6 +19,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    IF n_elements(outdir) eq 0 THEN outdir=''
    IF n_elements(maxwidth) eq 0 THEN maxwidth=1024
    IF n_elements(nofile) eq 0 THEN nofile=0
+   IF n_elements(textwidgetid) eq 0 THEN textwidgetid=0
 
    IF nofile eq 1 THEN data=file ELSE restore, file
    op=data.op
@@ -84,7 +86,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
       emptyimage=bytarr(op.numdiodes,700)
       FOR minute=0,numframes DO BEGIN
          imagetime=string(sfm2hms(data.time[i]),form='(i06)')
-         print,imagetime
+         IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=imagetime,/append ELSE print,imagetime
          gotimage=0                          ;flag to write only if there are some images.
          device,/close
          device,set_resolution=[1600,imheight]
@@ -195,7 +197,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
                device,/close
                device,set_resolution=[imwidth,imheight]
                panelcount=0
-               print,imagetime
+               IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=imagetime,/append ELSE print,imagetime
             ENDIF
          ENDIF
       ENDFOR
