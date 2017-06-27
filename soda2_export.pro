@@ -32,7 +32,8 @@ PRO soda2_export_event, ev
             ;--------Filenames
             widget_control,widget_info(ev.top,find='filelist'),get_value=fn
             widget_control,widget_info(ev.top,find='outdir'),get_value=outdir
-            
+            IF strmid(outdir, strlen(outdir)-1, 1) ne path_sep() THEN outdir=outdir+path_sep()
+           
             widget_control,widget_info(ev.top,find='process'),set_value='Processing...'
             infoline=['Exported files:']
             FOR i=0,n_elements(fn)-1 DO BEGIN
@@ -47,6 +48,25 @@ PRO soda2_export_event, ev
             widget_control,widget_info(ev.top,find='process'),set_value='EXPORT to netCDF'
         END
 
+        'processimages':BEGIN ;===========================================================================
+            ;Collect data from the GUI
+
+            ;--------Filenames
+            widget_control,widget_info(ev.top,find='filelist'),get_value=fn
+            widget_control,widget_info(ev.top,find='outdir'),get_value=outdir
+            IF strmid(outdir, strlen(outdir)-1, 1) ne path_sep() THEN outdir=outdir+path_sep()
+            
+            FOR i=0,n_elements(fn)-1 DO BEGIN
+               IF file_test(fn[i]) THEN BEGIN
+                  widget_control,widget_info(ev.top,find='processimages'),set_value='Indexing: '+file_basename(fn[i])
+                  soda2_imagedump, fn[i], all=all, outdir=outdir, textwidgetid=widget_info(ev.top,find='processimages')
+               ENDIF
+            ENDFOR
+            dummy=dialog_message('Image export complete',dialog_parent=ev.id,/info)
+            widget_control,widget_info(ev.top,find='processimages'),set_value='WRITE IMAGES'
+        END
+
+        
         'quit': WIDGET_CONTROL, ev.TOP, /DESTROY
 
         ELSE: dummy=0
@@ -55,7 +75,11 @@ END
 
 
 PRO soda2_export
-    widget_control,default_font='Courier*10'
+    IF !version.os_family eq 'windows' THEN widget_control,default_font='Helvetica*fixed*12'
+    IF !version.os_family eq 'unix' THEN widget_control,default_font='-adobe-helvetica-medium-r-normal--12-120-75-75-p-67-iso8859-1' ;use xlsfonts to see more
+    ;IF !version.os_family eq 'unix' THEN widget_control,default_font='-adobe-helvetica-bold-r-normal--14-100-100-100-p-82-iso8859-1'
+    ;widget_control,default_font='Courier*10'
+    
     base = WIDGET_BASE(COLUMN=1,title='Export Data',MBar=menubarID)
 
     fileID=widget_button(menubarID, value='File', /menu)
@@ -69,12 +93,13 @@ PRO soda2_export
     filelist= widget_text(subbase5,/scroll,uname='filelist',/editable,ysize=6)
 	 subbase5a=widget_base(subbase5,row=1)
     cd,current=currentdir
-    outdirID=cw_field(subbase5a,/string, title='Output dir:         ', value=currentdir+path_sep(), uname='outdir', xsize=52)
+    outdirID=cw_field(subbase5a,/string, title='Output directory: ', value=currentdir+path_sep(), uname='outdir', xsize=52)
     browse2=widget_button(subbase5a,value='Select...',uname='findoutdir')
 
 
 
     process = WIDGET_BUTTON(base, value='EXPORT to netCDF', uname='process')
+    process = WIDGET_BUTTON(base, value='WRITE IMAGES', uname='processimages')
     WIDGET_CONTROL, base, /REALIZE
     XMANAGER, 'soda2_export', base, /no_block
 END
