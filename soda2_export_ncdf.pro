@@ -1,4 +1,4 @@
-PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile
+PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
    ;PRO to export a netCDF file with the variables contained in a data structure.
    ;Similar to soda2_export_ncdf_raf, but follows a simpler format, 
    ;   without the 'SPS' dimension, PSD padding, reversed dimensions, etc.
@@ -6,7 +6,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
 
-   
+   IF n_elements(lite) eq 0 THEN lite=0  ;Option to avoid writing 2D matrices
    !quiet=1  ;Suppress annoying messages from ncdf routines
    
    ;-----------Create new file instead-----------------
@@ -153,7 +153,8 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile
          END
          ELSE:skiptag=1  
       ENDCASE
-        
+
+      IF (lite eq 1) and (n_elements(dims) gt 1) THEN skiptag=1
       IF not(skiptag) THEN BEGIN                                              
          varid=ncdf_varid(id,tagname)  ;Check if this variable already exists
          IF varid eq -1 THEN varid=ncdf_vardef(id,tagname,dims,/float)         
@@ -241,6 +242,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile
       ELSE:skiptag=1  
       ENDCASE
         
+      IF (lite eq 1) and (n_elements(dims) gt 1) THEN skiptag=1
       IF not(skiptag) THEN BEGIN                                      
          varid=ncdf_varid(id,tagname)  ;Check if this variable already exists
          IF varid eq -1 THEN varid=ncdf_vardef(id,tagname,dims,/float) 

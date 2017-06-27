@@ -35,7 +35,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    ;Initialize variables.  
    ;====================================================================================================
    ;====================================================================================================
-   numrecords=(op.stoptime-op.starttime)/op.rate + 1   ;Number of records that will be saved
+   numrecords=long((op.stoptime-op.starttime)/op.rate + 1)   ;Number of records that will be saved
    numbins=n_elements(op.endbins)-1 
    numarbins=n_elements(op.arendbins)-1 
    

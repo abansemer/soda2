@@ -538,6 +538,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.tau=0.6e-6
    x.firstsliceskip=1
    x.wavelength=0.6328e-6
+   x.seatag=[5000, 5001, 5002]
    all=[all,x]
    
    x=base
@@ -553,6 +554,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.tau=0.6e-6
    x.firstsliceskip=1
    x.wavelength=0.6328e-6
+   x.seatag=[5000, 5001, 5002]
    all=[all,x]
    
    x=base

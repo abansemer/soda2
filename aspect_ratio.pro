@@ -96,7 +96,7 @@ FUNCTION aspect_ratio, img_in, tas_adjust=tas_adjust, makeplot=makeplot, circle=
       
       anchors=plot(x_ind[circle.corners],y_ind[circle.corners],'ks',sym_filled=1,/overplot,fill_color='red')
       ;line=plot(x_ind[circle.corners],y_ind[circle.corners],'r',/overplot,thick=2)  ;Temporarily remove line since ugly if 3 points
-p.save,'aspect_image.png'
+      ;p.save,'aspect_image.png'
    ENDIF
 
 
