@@ -16,7 +16,8 @@ PRO soda2_browse_event, ev
     CASE 1 OF
         ;====================================================================================================
         uname eq 'load':BEGIN
-            fn=dialog_pickfile(/read,filter=['*.dat'],dialog_parent=widget_info(ev.top,find='tab'))
+            IF ptr_valid(pinfo) THEN path=(*pinfo).outdir ELSE path=''
+            fn=dialog_pickfile(/read,filter=['*.dat'],dialog_parent=widget_info(ev.top,find='tab'),path=path)
             IF (file_test(fn) eq 0) or (file_test(fn,/directory) eq 1) THEN return
             
             ;Get window IDs to store in pinfo
@@ -429,7 +430,7 @@ PRO soda2_browse
     
     IF !version.os_family eq 'windows' THEN widget_control,default_font='Helvetica*fixed*12'
     IF !version.os_family eq 'unix' THEN widget_control,default_font='-adobe-helvetica-medium-r-normal--12-120-75-75-p-67-iso8859-1' ;use xlsfonts to see more
-    IF !version.os_family eq 'unix' THEN widget_control,default_font='-adobe-helvetica-bold-r-normal--14-100-100-100-p-82-iso8859-1'
+    ;IF !version.os_family eq 'unix' THEN widget_control,default_font='-adobe-helvetica-bold-r-normal--14-100-100-100-p-82-iso8859-1'
     !except=0  ;Suppress floating point error messages
     
     ;Make sure GUI will fit on the screen
