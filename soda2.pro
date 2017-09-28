@@ -73,7 +73,7 @@ PRO soda2_event, ev
                 a=dialog_pickfile(/read,/multiple,path=(*pinfo).rawpath,title='Use [Ctrl] or [Shift] to Select Multiple Files',dialog_parent=widget_info(ev.top,find='process'))
 
                 widget_control,widget_info(ev.top,find='filelist'),set_value=a 
-                (*pinfo).rawpath=file_dirname(a)
+                (*pinfo).rawpath=file_dirname(a[0])
                 IF !version.os_family ne 'unix' THEN widget_control,widget_info(ev.top,find='outdir'),set_value=file_dirname(a[0])+path_sep()      
             ENDIF
             IF ev.value eq 1 THEN BEGIN ;Clear files pressed
@@ -178,8 +178,8 @@ PRO soda2_event, ev
             
             ;-------Bin size checks
             warn=0 & go='Yes'
-            IF probe.res gt 100 and mean(endbins) lt 2000 THEN warn=1
-            IF probe.res le 100 and mean(endbins) ge 2000 THEN warn=1
+            IF probe.res ge 100 and mean(endbins) lt 2000 THEN warn=1
+            IF probe.res lt 100 and mean(endbins) ge 2000 THEN warn=1
             IF warn THEN go=dialog_message('The bin sizes seem strange for this probe... Continue?',/question,dialog_parent=widget_info(ev.top,find='process'))
             IF go eq 'No' THEN return
             dendbins=endbins[1:*]-endbins
