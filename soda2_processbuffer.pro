@@ -127,15 +127,14 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
       
        ((*pop).probetype eq 'CIPG'): BEGIN   
           x=decompress_dmt_grey(buffer.image)
-          num_images=n_elements(x.particle_count)-1   ; the number of particles in the buffer
-          IF num_images lt 3 THEN return, nullbuffer  ; This is a bad buffer
+          IF n_elements(x.time_sfm) lt 4 THEN return, nullbuffer  ; This is a bad buffer
           
           bitimage=(3-x.bitimage)    ;make background 0, 1,2,3 grey levels
           bitimage[*,x.sync_ind]=0   ;eliminate sync lines
           startline=x.sync_ind+1     ;This will skip particle fragments starting a buffer
           stopline=x.sync_ind[1:*]-1
-          time_sfm=x.time_sfm
-          particle_count=x.particle_count
+          ;time_sfm=x.time_sfm
+          ;particle_count=x.particle_count
                     
           ;Trying a new way to filter bad particles.  There are lots of them.
           ;Also account for missed/skipped images too, also LOTS of them.
@@ -144,39 +143,24 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           previoustime=[(*pmisc).lastclock, x.time_sfm]
           difftime=x.time_sfm-previoustime
           deadtime=difftime-difftime/diffcount
+          greymax=intarr(n_elements(x.time_sfm))
+          ;Eliminate particles that don't have at least 1 level-2 pixel.  Iterating to n-2 will automatically eliminate final incomplete image.
+          FOR i=0, n_elements(x.time_sfm)-2 DO greymax[i]=max(bitimage[*,startline[i]:stopline[i]])
           
-          good=where((diffcount gt 0) and (diffcount lt 50) and (difftime gt 0),ngood)
-          num_images=ngood-1
-          IF num_images lt 3 THEN return, nullbuffer  ; This is a bad buffer after num_images updated
+          good=where((diffcount gt 0) and (diffcount lt 50) and (difftime gt 0) and $
+                     (x.slice_count ne 0) and (x.slice_count lt 150) and (greymax ge 2),num_images)
+          IF num_images lt 4 THEN return, nullbuffer  ; This is a bad buffer after num_images updated
           startline=startline[good]
           stopline=stopline[good]
-          time_sfm=time_sfm[good]
-          particle_count=particle_count[good]
+          time_sfm=x.time_sfm[good]
+          particle_count=x.particle_count[good]
           deadtime=deadtime[good]
           missed=diffcount[good]-1
           
-          (*pmisc).lastparticlecount=particle_count[num_images]
-          (*pmisc).lastclock=time_sfm[num_images]
-    
-          ;truetime=buffer.time + (time_sfm[0:num_images-1] - time_sfm[num_images-1]) + (*pop).timeoffset
-          reftime=time_sfm[num_images]  ;This is the time that -should- match the buffer time          
-             
-          ;Eliminate particles that don't have at least 1 level-2 pixel
-          keep=intarr(num_images)
-          FOR i=0,num_images-1 DO BEGIN
-             greymax=max(bitimage[*,startline[i]:stopline[i]]) 
-             IF greymax ge 2 THEN keep[i]=1  
-          ENDFOR
-          good=where(keep eq 1,num_images)
-          IF num_images eq 0 THEN return, nullbuffer
-          startline=startline[good]
-          stopline=stopline[good]
-          time_sfm=time_sfm[good]
-          deadtime=deadtime[good]
-          missed=missed[good]
-             
-          
-          ;print,buffer.time, min(truetime), max(truetime), num_images, max(x.particle_count)-min(x.particle_count)                                         
+          (*pmisc).lastparticlecount=particle_count[num_images-1]
+          (*pmisc).lastclock=time_sfm[num_images-1]
+                 
+          reftime=time_sfm[num_images-1]  ;This is the time that -should- match the buffer time          
           restore_slice=0      
        END
 

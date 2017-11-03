@@ -29,21 +29,23 @@ FUNCTION decompress_dmt_grey, cimage
          blankdetect=0
          pairs=[(cimage[i] and 64b)/64, (cimage[i] and 48b)/16, (cimage[i] and 12b)/4, cimage[i] and 3b]
          ;This is a data byte
-         IF pairs[2] THEN BEGIN
-            im[next]=pairs[3]
-            n=1
-         ENDIF 
-         IF pairs[1] THEN BEGIN
-            im[next]=pairs[2]
-            im[next+1]=pairs[3]
-            n=2
-         ENDIF
-         IF pairs[0] THEN BEGIN
-            im[next]=pairs[1]
-            im[next+1]=pairs[2]
-            im[next+2]=pairs[3]
-            n=3
-         ENDIF
+         CASE 1 OF
+            pairs[0] eq 1: BEGIN
+               im[next]=pairs[1]
+               im[next+1]=pairs[2]
+               im[next+2]=pairs[3]
+               n=3
+            END
+            pairs[1] eq 1: BEGIN
+               im[next]=pairs[2]
+               im[next+1]=pairs[3]
+               n=2
+            END
+            pairs[2] eq 1 :BEGIN
+               im[next]=pairs[3]
+               n=1
+            END 
+         ENDCASE
       ENDELSE
       IF repcount gt 256 THEN BEGIN
        ;  print,repcount
