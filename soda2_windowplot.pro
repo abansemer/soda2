@@ -71,6 +71,7 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
          buffermargin=10
          panelwidth=(*pop).numdiodes+buffermargin
          num2plot=!d.x_size/fix(panelwidth)
+         charsize=((*pop).numdiodes/50.0) < 1.4 > 0.8  ;Character size for the timestamp depends on buffer width
          
          ibuffer=0
          panelstart=(*pinfo).panelstart
@@ -86,7 +87,7 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
             b=soda2_bitimage(fn[(*p1).currentfile[ind[i]]], (*p1).pointer[ind[i]], pop, pmisc)
             IF b.rejectbuffer eq 0 THEN BEGIN
                tv,b.bitimage+1,panelwidth*ibuffer+buffermargin,20
-               xyouts,panelwidth*ibuffer+buffermargin,10,string(b.time,format='(f8.2)'),/device
+               xyouts,panelwidth*ibuffer+buffermargin,10,string(b.time,format='(f8.2)'),/device,charsize=charsize
             ENDIF
             ibuffer=ibuffer+1
          ENDFOR

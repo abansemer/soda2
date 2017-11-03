@@ -29,7 +29,7 @@ FUNCTION soda2_samplearea, diam, res, armwidth, numdiodes, reconstruct, smethod,
    IF centerin eq 1 THEN eff_wid=res*numdiodes    ;Assume center-in for this sizing
    IF reconstruct eq 0 THEN eff_wid=res*(numdiodes-1)-diam   ;All-in, from eq 6 in HP78
    
-   sa=dof*eff_wid * 1e-12  ;compute sa and convert to m^2 
+   sa=(dof*eff_wid * 1e-12) > 0  ;compute sa and convert to m^2, don't allow negative SA 
    return,sa
 END
    
