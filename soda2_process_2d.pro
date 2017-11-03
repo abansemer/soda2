@@ -136,7 +136,16 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
       ENDIF
    ENDIF ELSE BEGIN
       pth_tas=fltarr(numrecords)
-      print,'Can not find TAS, using default values'
+      IF op.pth ne '' THEN BEGIN  ;Extra warning if a filename was actually entered
+         infoline='TAS file does not exist.  Use default air speed instead?'
+         IF textwidgetid ne 0 THEN BEGIN 
+            dummy=dialog_message(infoline,dialog_parent=textwidgetid,/question)
+            IF dummy eq 'No' THEN return
+         ENDIF ELSE BEGIN
+            print,'TAS file '+op.pth+' does not exist. Stopping.'
+            stop
+         ENDELSE
+      ENDIF ELSE print,'No TAS file entered, using default values'
    ENDELSE
       
    ;====================================================================================================
@@ -196,17 +205,17 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
       opnames=tag_names(op)                  
       FOR i=0,n_elements(opnames)-1 DO BEGIN
          IF size(op.(i), /type) eq 7 THEN BEGIN  ;Look for strings, must be handled differently
-            IF string(op.(i)[0]) eq '' THEN op.(i)[0]='none' ;To avoid an ncdf error (empty string)
-            ncdf_attput,ncdf_id,opnames[i],op.(i)[0],/global  ;Only put first element for string
+            IF string(op.(i)[0]) eq '' THEN attdata='none' ELSE attdata=op.(i)[0] ;To avoid a ncdf error (empty string)
+            ncdf_attput,ncdf_id,opnames[i],attdata,/global  ;Only put first element for string
          ENDIF ELSE ncdf_attput,ncdf_id,opnames[i],op.(i),/global   ;Non-strings, all elements      
       ENDFOR
       
-      tagnames=['time', 'ipt', 'diam', 'xsize', 'ysize', 'arearatio', 'aspectratio', 'area', 'perimeterarea', 'allin', $
+      tagnames=['time', 'probetime', 'buffertime', 'ipt', 'diam', 'xsize', 'ysize', 'arearatio', 'aspectratio', 'area', 'perimeterarea', 'allin', $
                 'zd', 'missed', 'overload', 'orientation']
-      longname=['UTC time','Interarrival Time','Particle Diameter','X-size (across array)','Y-size (along airflow)',$
+      longname=['UTC time','Unadjusted Probe Particle Time','Buffer Time','Interarrival Time','Particle Diameter','X-size (across array)','Y-size (along airflow)',$
                 'Area Ratio','Aspect Ratio','Pixel Area','Perimeter Pixel Area','All-in Flag','Z position',$
                 'Missed Particles','Overload Flag','Particle Orientation Relative to Array Axis']
-      units=['seconds','seconds','microns','microns','microns','unitless','unitless','pixels','pixels','boolean','microns','number','boolean','degrees']
+      units=['seconds','seconds','seconds','seconds','microns','microns','microns','unitless','unitless','pixels','pixels','boolean','microns','number','boolean','degrees']
       FOR i=0,n_elements(tagnames)-1 DO BEGIN
          varid=ncdf_vardef(ncdf_id,tagnames[i],xdimid,/float)
          ncdf_attput,ncdf_id,varid,'longname',longname[i]
@@ -224,16 +233,18 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
       printf, lun_pbp, 'Flight Date: ', strmid(op.date,0,2)+'/'+strmid(op.date,2,2)+'/'+strmid(op.date,4,4)
       printf, lun_pbp, 'Data output for each column: '
       printf, lun_pbp, '  1: Particle time [seconds from midnight]'
-      printf, lun_pbp, '  2: Interparticle time [seconds]'
-      printf, lun_pbp, '  3: Particle diameter from circle sizing [microns]'
-      printf, lun_pbp, '  4: X-size (across array) [microns]'
-      printf, lun_pbp, '  5: Y-size (along airflow) [microns]'
-      printf, lun_pbp, '  6: Area ratio [unitless]'
-      printf, lun_pbp, '  7: Aspect ratio [unitless]'
-      printf, lun_pbp, '  8: Particle orientation relative to array axis [degrees]'
-      printf, lun_pbp, '  9: All-in flag [boolean]'
-      printf, lun_pbp, '  10: Overload flag [boolean]'
-      printf, lun_pbp, '  11: Missed particles [number]'
+      printf, lun_pbp, '  2: Raw unadjusted probe particle time [seconds from midnight]'
+      printf, lun_pbp, '  3: Buffer time [seconds from midnight]'
+      printf, lun_pbp, '  4: Interparticle time [seconds]'
+      printf, lun_pbp, '  5: Particle diameter from circle sizing [microns]'
+      printf, lun_pbp, '  6: X-size (across array) [microns]'
+      printf, lun_pbp, '  7: Y-size (along airflow) [microns]'
+      printf, lun_pbp, '  8: Area ratio [unitless]'
+      printf, lun_pbp, '  9: Aspect ratio [unitless]'
+      printf, lun_pbp, '  10: Particle orientation relative to array axis [degrees]'
+      printf, lun_pbp, '  11: All-in flag [boolean]'
+      printf, lun_pbp, '  12: Overload flag [boolean]'
+      printf, lun_pbp, '  13: Missed particles [number]'
       printf, lun_pbp, '-------------------------------------------'
    ENDIF
     
