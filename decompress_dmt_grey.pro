@@ -45,6 +45,7 @@ FUNCTION decompress_dmt_grey, cimage
                im[next]=pairs[3]
                n=1
             END 
+            ELSE:dummy=0
          ENDCASE
       ENDELSE
       IF repcount gt 256 THEN BEGIN
