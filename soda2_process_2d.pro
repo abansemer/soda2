@@ -97,7 +97,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    ;Set up the particle structure.  
    num2process=10000000L ;Limit to reduce memory consumption
    basestruct={bufftime:0d, probetime:0d, reftime:0d, size:0.0, xsize:0.0, ysize:0.0, ar:0.0, aspr:0.0, area:0.0, $
-               allin:0b, tas:0s, zd:0.0, missed:0.0, overloadflag:0b, orientation:0.0, perimeterarea:0.0}
+               allin:0b, tas:0s, zd:0.0, missed:0.0, overloadflag:0b, orientation:0.0, perimeterarea:0.0, particle_count:0L}
    x=replicate(basestruct, num2process)
  
    
@@ -211,11 +211,11 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
       ENDFOR
       
       tagnames=['time', 'probetime', 'buffertime', 'ipt', 'diam', 'xsize', 'ysize', 'arearatio', 'aspectratio', 'area', 'perimeterarea', 'allin', $
-                'zd', 'missed', 'overload', 'orientation']
+                'zd', 'missed', 'overload', 'particle_counter', 'orientation']
       longname=['UTC time','Unadjusted Probe Particle Time','Buffer Time','Interarrival Time','Particle Diameter','X-size (across array)','Y-size (along airflow)',$
                 'Area Ratio','Aspect Ratio','Pixel Area','Perimeter Pixel Area','All-in Flag','Z position',$
-                'Missed Particles','Overload Flag','Particle Orientation Relative to Array Axis']
-      units=['seconds','seconds','seconds','seconds','microns','microns','microns','unitless','unitless','pixels','pixels','boolean','microns','number','boolean','degrees']
+                'Missed Particles','Overload Flag','Particle Counter','Particle Orientation Relative to Array Axis']
+      units=['seconds','seconds','seconds','seconds','microns','microns','microns','unitless','unitless','pixels','pixels','boolean','microns','number','boolean','number','degrees']
       FOR i=0,n_elements(tagnames)-1 DO BEGIN
          varid=ncdf_vardef(ncdf_id,tagnames[i],xdimid,/float)
          ncdf_attput,ncdf_id,varid,'longname',longname[i]
@@ -245,6 +245,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
       printf, lun_pbp, '  11: All-in flag [boolean]'
       printf, lun_pbp, '  12: Overload flag [boolean]'
       printf, lun_pbp, '  13: Missed particles [number]'
+      printf, lun_pbp, '  14: Particle counter [number]'
       printf, lun_pbp, '-------------------------------------------'
    ENDIF
     
@@ -342,6 +343,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
         x[istart:istop].tas=b.tas
         x[istart:istop].zd=p.zd
         x[istart:istop].missed=p.missed
+        x[istart:istop].particle_count=p.particle_count
         x[istart:istop].overloadflag=p.overloadflag
         x[istart:istop].orientation=p.orientation
         ;x[istart:istop].nsep=p.nsep  ;now using keeplargest option for detection of multi-particles

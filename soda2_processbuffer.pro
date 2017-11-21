@@ -16,7 +16,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    
    ;Define the structure to return for bad buffers   
    nullbuffer= {size:0,probetime:0,reftime:0,ar:0, aspr:0, rejectbuffer:1,bitimage:0,$
-                allin:0,streak:0,zd:0,dhist:0,nslices:0,missed:0,overloadflag:0}
+                allin:0,streak:0,zd:0,dhist:0,nslices:0,missed:0,overloadflag:0,particle_count:0L}
       
    CASE 1 OF
       ;-----------------------------------------------------------------------------------------------      
@@ -55,6 +55,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
         
           restore_slice=0   ;These probes do not skip the first slice
           missed=0       
+          particle_count=intarr(num_images)  ;No counter
           
           ;Set up remainder for the next buffer
           nremainder=bufflength-max(sync_ind)
@@ -96,6 +97,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           stopline=time_ind < 1023
           restore_slice=1
           missed=0
+          particle_count=intarr(num_images)  ;No counter
        END
        
        (((*pop).probetype eq 'CIP') or ((*pop).probetype eq 'PIP')): BEGIN   
@@ -116,8 +118,14 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           bitimage[0:63,x.sync_ind]=0   ;eliminate sync lines
           bitimage[0:63,x.sync_ind+1]=0 ;eliminate time lines         
           restore_slice=0
-          missed=0  ;Might want to implement same algorithm as in CIPG here....
-
+          
+          previouscount=[(*pmisc).lastparticlecount, x.particle_count]
+          diffcount=x.particle_count-previouscount
+          missed=diffcount[0:num_images-1]-1
+          ;The num_images-1 is tricky here since -1 also taken above. The last timeline is a partial image, so really taking num_timelines-2.
+          (*pmisc).lastparticlecount=x.particle_count[num_images-1] 
+          particle_count=x.particle_count[0:num_images-1]
+          
           ;Assign the first particle in each buffer as an overload for SEA files.  
           ;This is to account for deadtime between buffers in SEA data throttling.
           ;Commented out for now, comparisons with SODA-1 were only so-so.
@@ -221,6 +229,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           
           restore_slice=0
           missed=0
+          particle_count=intarr(num_images)  ;No counter
           (*pmisc).maxsfm=max(time_sfm)
           (*pmisc).lastbufftime=buffer.time       
        END
@@ -309,5 +318,5 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
 
    return,{size:size,xsize:xsize,ysize:ysize,probetime:time_sfm,reftime:reftime,ar:area_ratio,aspr:aspr,rejectbuffer:0,bitimage:bitimage,$
            allin:allin,streak:streak,zd:zd,dhist:dhist,nslices:nslices,missed:missed,nsep:nsep,overloadflag:overloadflag,$
-           orientation:orientation, area_orig:area_orig, perimeterarea:perimeterarea}  
+           orientation:orientation, area_orig:area_orig, perimeterarea:perimeterarea, particle_count:particle_count}  
 END

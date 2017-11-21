@@ -74,10 +74,12 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       ncdf_varput,ncdf_id,varid,x[0:istop].orientation,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'overload')
       ncdf_varput,ncdf_id,varid,x[0:istop].overloadflag,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'particle_counter')
+      ncdf_varput,ncdf_id,varid,x[0:istop].particle_count,count=numparticles,offset=ncdf_offset
    ENDIF
    IF op.particlefile eq 1 THEN BEGIN   ;ASCII version
       FOR i=0L,numparticles-1 DO printf, lun_pbp, truetime[i], x[i].probetime, x[i].bufftime, interarrival[i], x[i].size, x[i].xsize, x[i].ysize, x[i].ar, $
-          x[i].aspr, x[i].orientation, x[i].allin, x[i].overloadflag, x[i].missed, form='(3f13.5,e13.5,3f12.3,2f6.2,f8.1,2i3,i5)'
+          x[i].aspr, x[i].orientation, x[i].allin, x[i].overloadflag, x[i].missed, x[i].particle_count, form='(3f13.5,e13.5,3f12.3,2f6.2,f8.1,2i3,i7,i7)'
    ENDIF
 
    ;Loop through all the unique indices found
