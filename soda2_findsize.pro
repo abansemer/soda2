@@ -10,13 +10,14 @@ FUNCTION soda2_findsize, img, pop, pmisc
    ;IF xres ne yres THEN print,'Square pixels required for fastcircle sizing, using x-resolution only.'
    area_original=total(img) * (yres/xres) ;area of particle
    s=size(img)
+   ndims=size(img,/n_dim)
    
    ;xsize
-   IF s[2] gt 1 THEN w=where(total(img,2) gt 0) ELSE w=where(img gt 0)
+   IF ndims gt 1 THEN w=where(total(img,2) gt 0) ELSE w=where(img gt 0)
    xsize=(max(w)-min(w)+1)*xres
 
    ;ysize
-   IF s[2] gt 1 THEN w=where(total(img,1) gt 0) ELSE w=0
+   IF ndims gt 1 THEN w=where(total(img,1) gt 0) ELSE w=0
    ysize=(max(w)-min(w)+1)*yres
        
    ;Fastcircle is used within aspect_ratio routine, so don't repeat here
