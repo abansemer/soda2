@@ -115,7 +115,10 @@ FUNCTION spec_index, lun, lite=lite, minimagesize=minimagesize, pointerstart=poi
         thisbuffer=nextbuffer
         
    ENDFOR
-   
+   ;for the last header
+   bufftime[numbuffs-1]=header.hour*3600D + header.minute*60D + header.second + header.millisecond/1000D
+   date[numbuffs-1]=julday(header.month,header.day,header.year)
+  
    ;firstp=[1,lastimage+1]  ;Shift the index to the first particle in each buffer
    IF lite eq 1 THEN return,{bufftime:bufftime, buffpoint:buffpoint, firstp:firstp}   
    imagep=temporary(imagep[0:(imagec-1)>0])
