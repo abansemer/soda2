@@ -10,7 +10,7 @@ FUNCTION decompress_dmt_grey, cimage
    blankdetect=0
    partcount=0
    timeline=lonarr(300)
-   badbuffer={particle_count:0,bitimage:bytarr(64,1000),sync_ind:0, time_elap:0, time_sfm:0, slice_count:0}
+   badbuffer={particle_count:0,bitimage:bytarr(64,1000),sync_ind:0, time_elap:0, time_sfm:0, slice_count:0, error:1}
    FOR i=0,n_elements(cimage)-1 DO BEGIN
       IF cimage[i] eq 255 THEN blankdetect=1
       IF cimage[i] ge 128 THEN BEGIN

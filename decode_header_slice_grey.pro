@@ -19,16 +19,6 @@ FUNCTION decode_header_slice_grey, header
    fullslice[ind*2+1]=(header and 2b)/2
    fullslice[ind*2]=header and 1b
 
-   ;tas=bin2dec(reverse(fullslice[56:63]))
-   ;particle_count=bin2dec(reverse(fullslice[64:79]))
-   ;counter=bin2dec(reverse(fullslice[80:82])) ; this is in 125 ns increments (8MHz for all probes)
-   ;microsecond=bin2dec(reverse(fullslice[83:92]))
-   ;millisecond=bin2dec(reverse(fullslice[93:102]))
-   ;second=bin2dec(reverse(fullslice[103:108]))
-   ;minute=bin2dec(reverse(fullslice[109:114]))
-   ;hour=bin2dec(reverse(fullslice[115:119]))
-   ;slice_count=bin2dec(reverse(fullslice[120:127]))
-   
    powerof2=2L^indgen(15)
    ;From 128-bit slice:
    tas=total(fullslice[56:63]*powerof2)
