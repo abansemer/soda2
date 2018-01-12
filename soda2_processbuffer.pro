@@ -125,7 +125,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           ;The num_images-1 is tricky here since -1 also taken above. The last timeline is a partial image, so really taking num_timelines-2.
           (*pmisc).lastparticlecount=x.particle_count[num_images-1] 
           particle_count=x.particle_count[0:num_images-1]
-          
+
           ;Assign the first particle in each buffer as an overload for SEA files.  
           ;This is to account for deadtime between buffers in SEA data throttling.
           ;Commented out for now, comparisons with SODA-1 were only so-so.
@@ -164,7 +164,6 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           particle_count=x.particle_count[good]
           deadtime=deadtime[good]
           missed=diffcount[good]-1
-          
           (*pmisc).lastparticlecount=particle_count[num_images-1]
           (*pmisc).lastclock=time_sfm[num_images-1]
                  
@@ -215,17 +214,20 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           time_sfm=dblarr(c)
           
           ;Count backward from buffer time to get time_sfm
-          ;elaptime=0d
-          ;totalelapsed=total(inttime)
-          ;FOR i=0,c-1 DO BEGIN
-          ;   elaptime=elaptime+inttime[i]
-          ;   time_sfm[i]=reftime - (totalelapsed - elaptime)
-          ;ENDFOR
+          ;This seems to be the correct method.  Use line below to test, 
+          ;noting that elapsed particle time in the current buffer is closely
+          ;matched to the difference between current buffer time and last buffer time:
+          ;print, (*pmisc).lastbufftime, buffer.time, buffer.time-(*pmisc).lastbufftime, totalelapsed
+          elaptime=0d
+          totalelapsed=total(inttime)
+          FOR i=0,c-1 DO BEGIN
+             elaptime=elaptime+inttime[i]
+             time_sfm[i]=reftime - (totalelapsed - elaptime)
+          ENDFOR
           
-          ;Counting forward seems to work a little better, not perfect
-          ;To test, plot truetime in soda2_process2d
-          time_sfm[0]=reftime
-          FOR i=1,c-1 DO time_sfm[i]=time_sfm[i-1]+inttime[i] 
+          ;Counting forward, ignore this unless new info
+          ;time_sfm[0]=reftime
+          ;FOR i=1,c-1 DO time_sfm[i]=time_sfm[i-1]+inttime[i] 
           
           restore_slice=0
           missed=0
@@ -246,6 +248,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    xsize=fltarr(num_images)
    ysize=fltarr(num_images)
    allin=bytarr(num_images)
+   edge_touch=bytarr(num_images)
    area_ratio=fltarr(num_images)
    aspr=fltarr(num_images)
    orientation=fltarr(num_images)
@@ -310,7 +313,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
       ysize[i]=part.ysize
       area_ratio[i]=part.ar
       aspr[i]=part.aspr
-      allin[i]=part.allin        
+      allin[i]=part.allin   
+      edge_touch[i]=part.edge_touch 
       zd[i]=zeed
       orientation[i]=part.orientation
       perimeterarea[i]=part.perimeterarea
@@ -318,5 +322,5 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
 
    return,{size:size,xsize:xsize,ysize:ysize,probetime:time_sfm,reftime:reftime,ar:area_ratio,aspr:aspr,rejectbuffer:0,bitimage:bitimage,$
            allin:allin,streak:streak,zd:zd,dhist:dhist,nslices:nslices,missed:missed,nsep:nsep,overloadflag:overloadflag,$
-           orientation:orientation, area_orig:area_orig, perimeterarea:perimeterarea, particle_count:particle_count}  
+           orientation:orientation, area_orig:area_orig, perimeterarea:perimeterarea, particle_count:particle_count, edge_touch:edge_touch}  
 END
