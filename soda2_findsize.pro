@@ -40,6 +40,12 @@ FUNCTION soda2_findsize, img, pop, pmisc
    
    ;if (phi+theta) gt 0 then allin=0 else allin=1
    IF  (total(img[0,*])+total(img[s[1]-1,*]) ne 0) THEN allin=0b ELSE allin=1b
+   
+   ;Add in edge_touch to eventually replace 'allin', 0=allin, 1=left edge, 2=right edge, 3=both edges
+   edge_touch=0b
+   IF (total(img[0,*]) gt 0) THEN edge_touch=edge_touch+1
+   IF (total(img[s[1]-1,*]) gt 0) THEN edge_touch=edge_touch+2
+   
    return, {diam:diam, xsize:xsize, ysize:ysize, ar:ar, aspr:aspr, allin:allin, c:circle.center, centerin:centerin, $
-            orientation:orientation, perimeterarea:circle.area}  
+            orientation:orientation, perimeterarea:circle.area, edge_touch:edge_touch}  
 END
