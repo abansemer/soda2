@@ -97,7 +97,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    ;Set up the particle structure.  
    num2process=10000000L ;Limit to reduce memory consumption
    basestruct={bufftime:0d, probetime:0d, reftime:0d, size:0.0, xsize:0.0, ysize:0.0, ar:0.0, aspr:0.0, area:0.0, $
-               allin:0b, tas:0s, zd:0.0, missed:0.0, overloadflag:0b, orientation:0.0, perimeterarea:0.0, particle_count:0L}
+               allin:0b, edge_touch:0b, tas:0s, zd:0.0, missed:0.0, overloadflag:0b, orientation:0.0, perimeterarea:0.0, particle_count:0L}
    x=replicate(basestruct, num2process)
  
    
@@ -211,13 +211,15 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
       ENDFOR
       
       tagnames=['time', 'probetime', 'buffertime', 'ipt', 'diam', 'xsize', 'ysize', 'arearatio', 'aspectratio', 'area', 'perimeterarea', 'allin', $
-                'zd', 'missed', 'overload', 'particle_counter', 'orientation']
+                'edgetouch','zd', 'missed', 'overload', 'particle_counter', 'orientation']
       longname=['UTC time','Unadjusted Probe Particle Time','Buffer Time','Interarrival Time','Particle Diameter','X-size (across array)','Y-size (along airflow)',$
-                'Area Ratio','Aspect Ratio','Pixel Area','Perimeter Pixel Area','All-in Flag','Z position',$
+                'Area Ratio','Aspect Ratio','Pixel Area','Perimeter Pixel Area','All-in Flag','Edge Touch (1=left, 2=right, 3=both)','Z position',$
                 'Missed Particles','Overload Flag','Particle Counter','Particle Orientation Relative to Array Axis']
-      units=['seconds','seconds','seconds','seconds','microns','microns','microns','unitless','unitless','pixels','pixels','boolean','microns','number','boolean','number','degrees']
+      units=['seconds','seconds','seconds','seconds','microns','microns','microns','unitless','unitless','pixels','pixels','boolean','unitless','microns','number','boolean','number','degrees']
       FOR i=0,n_elements(tagnames)-1 DO BEGIN
-         varid=ncdf_vardef(ncdf_id,tagnames[i],xdimid,/float)
+         IF (tagnames[i] eq 'time') or (tagnames[i] eq 'probetime') or (tagnames[i] eq 'buffertime') THEN $
+            varid=ncdf_vardef(ncdf_id,tagnames[i],xdimid,/double) ELSE $    ;Use double precision for time variables
+            varid=ncdf_vardef(ncdf_id,tagnames[i],xdimid,/float)
          ncdf_attput,ncdf_id,varid,'longname',longname[i]
          ncdf_attput,ncdf_id,varid,'units',units[i]
       ENDFOR
@@ -320,7 +322,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
       ENDIF    
       p=soda2_processbuffer(b,pop,pmisc)
       dhist[timeindex,*]=dhist[timeindex,*]+p.dhist
-   
+
       IF p.rejectbuffer eq 0 THEN BEGIN
         numbuffsaccepted[timeindex]=numbuffsaccepted[timeindex]+1
         ;Write data to structure
@@ -340,6 +342,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
         x[istart:istop].area=p.area_orig 
         x[istart:istop].perimeterarea=p.perimeterarea 
         x[istart:istop].allin=p.allin
+        x[istart:istop].edge_touch=p.edge_touch
         x[istart:istop].tas=b.tas
         x[istart:istop].zd=p.zd
         x[istart:istop].missed=p.missed
