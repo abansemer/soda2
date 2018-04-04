@@ -178,10 +178,12 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
    bulk100=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=i100)
    armidbins=(data.op.arendbins+data.op.arendbins[1:*])/2.0
    meanar=compute_meanar(data.spec2d,armidbins)
+   meanaspr=compute_meanar(data.spec2d_aspr,armidbins)
    area=compute_area(data)
    area100=compute_area(data, binstart=i100)
    bulk=create_struct(bulkall, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
-        'iwc100', bulk100.iwc, 'area', area, 'area100', area100, 'lwc100', bulk100.lwc)
+        'iwc100', bulk100.iwc, 'area', area, 'area100', area100, 'lwc100', bulk100.lwc, 'meanar', $
+        meanar, 'meanaspr', meanaspr)
    tags=tag_names(bulk)     
    FOR j=0,n_elements(tags)-1 DO BEGIN
       ;Write each variable
@@ -239,6 +241,13 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
             dims=[xdimid, ydimid_size]
             tagname='MEAN_AREARATIO'
          END
+         'MEANASPR':BEGIN
+            attname=['long_name','units','Bin_endpoints','Bin_units']
+            attvalue={a0:'Mean Aspect Ratio Per Size Bin',a1:'unitless',$
+                        a2:data.op.endbins,a3:'micrometers'}
+            dims=[xdimid, ydimid_size]
+            tagname='MEAN_ASPECTRATIO'
+         END
       ELSE:skiptag=1  
       ENDCASE
         
@@ -284,6 +293,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
                'P_ALT':attvalue={a1:'Pressure Altitude',a2:'m'}
                'GALT':attvalue={a1:'GPS/Geopotential Altitude',a2:'m'}
                'GPS_ALT':attvalue={a1:'GPS/Geopotential Altitude',a2:'m'}
+               'W':attvalue={a1:'Vertical Wind',a2:'m/s'}
                'T': BEGIN 
                   attvalue={a1:'Temperature',a2:'C'}
                   tagname='TEMP'  ;Make consistent
