@@ -3,7 +3,7 @@ FUNCTION decompress_dmt_grey, cimage
    ;AB, 2/2008
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
    
-   im=bytarr(64,2000);     ,2000)       
+   im=bytarr(64,3000)
    next=0l
    pairs=bytarr(4)
    repcount=0
@@ -48,10 +48,6 @@ FUNCTION decompress_dmt_grey, cimage
             ELSE:dummy=0
          ENDCASE
       ENDELSE
-      IF repcount gt 256 THEN BEGIN
-       ;  print,repcount
-         return,badbuffer  ;indicates a bad buffer, exit now
-      ENDIF
       next=next+n
    ENDFOR
  
