@@ -56,7 +56,21 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.firstsliceskip=0
    x.wavelength=0.658e-6
    all=[all,x]   
-        
+
+   x.probename='CAPS-Grey (DLR)'
+   x.shortname='CIP_DLR'
+   x.format='DMT'
+   x.subformat=1
+   x.probetype='CIPG'
+   x.probeid=''
+   x.res=25
+   x.armwidth=4.0
+   x.numdiodes=64
+   x.tau=0.051e-6
+   x.firstsliceskip=0
+   x.wavelength=0.658e-6
+   all=[all,x]
+       
    x.probename='CIRPAS CIP (PACS)'
    x.shortname='CIP'
    x.format='DMT'
