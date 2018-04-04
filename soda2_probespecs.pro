@@ -328,6 +328,20 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.seatag=36000
    all=[all,x]
 
+   x.probename='NIMS CCP (15um)'
+   x.shortname='CIP'
+   x.format='DMT'
+   x.subformat=1
+   x.probetype='CIP'
+   x.probeid=''
+   x.res=15         ;Guess for now
+   x.armwidth=4.0   ;Just a guess, looks like they have Korolev tips/shoes
+   x.numdiodes=64
+   x.tau=0.051e-6
+   x.firstsliceskip=0
+   x.wavelength=0.658e-6
+   all=[all,x]
+
    x=base
    x.probename='NCAR Fast-2DC [C4] (25um)'
    x.shortname='F2DC'
@@ -418,6 +432,21 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.numdiodes=32
    x.tau=0.6e-6
    x.firstsliceskip=1
+   x.wavelength=0.6328e-6
+   all=[all,x]
+   
+   x=base
+   x.probename='NCAR Fast-2DP [P4] (150um)'
+   x.shortname='F2DP'
+   x.format='RAF'
+   x.subformat=3
+   x.probetype='F2DP'
+   x.probeid='P4'
+   x.res=150
+   x.armwidth=26.1
+   x.numdiodes=64
+   x.tau=0.6e-6
+   x.firstsliceskip=0
    x.wavelength=0.6328e-6
    all=[all,x]
    
