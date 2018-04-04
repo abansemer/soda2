@@ -189,7 +189,7 @@ PRO soda2_event, ev
             ENDIF
             
             ;-------Grey Threshold
-            IF probe.shortname eq 'CIPG' THEN greythresh=2 ELSE greythresh=0
+            IF probe.probetype eq 'CIPG' THEN greythresh=2 ELSE greythresh=0
             
             ;Can add bindistribution to this structure if desired
             op={fn:fn, date:date[0], starttime:hms2sfm(starttime), stoptime:hms2sfm(stoptime), format:probe.format, $
