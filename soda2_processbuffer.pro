@@ -309,8 +309,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
          
       part=soda2_findsize(roi,pop,pmisc)
       size[i]=part.diam/ps_correction
-      xsize[i]=part.xsize
-      ysize[i]=part.ysize
+      xsize[i]=part.xsize/ps_correction
+      ysize[i]=part.ysize/ps_correction
       area_ratio[i]=part.ar
       aspr[i]=part.aspr
       allin[i]=part.allin   
