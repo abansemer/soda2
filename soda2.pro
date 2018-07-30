@@ -35,6 +35,7 @@ PRO soda2_event, ev
             IF total(where(tag_names(op) eq 'TIMEREJECT')) ne -1 THEN IF op.timereject eq 'variable' THEN checkboxarray[where(values eq 'Shatter Correct')]=1
             IF op.water eq 1 THEN checkboxarray[where(values eq 'Water Processing')]=1
             IF op.stuckbits eq 1 THEN checkboxarray[where(values eq 'Stuck Bit Correct')]=1
+            IF op.juelichfilter eq 1 THEN checkboxarray[where(values eq 'Pixel Noise Filter')]=1
             IF op.smethod eq 'areasize' THEN checkboxarray[where(values eq 'Area Size')]=1
             widget_control,id,set_value=checkboxarray
 
@@ -138,6 +139,7 @@ PRO soda2_event, ev
             IF iadv[where(values eq 'All-In')] eq 1 THEN reconstruct=0 ELSE reconstruct=1
             IF iadv[where(values eq 'Water Processing')] eq 1 THEN water=1 ELSE water=0
             IF iadv[where(values eq 'Stuck Bit Correct')] eq 1 THEN stuckbits=1 ELSE stuckbits=0
+            IF iadv[where(values eq 'Pixel Noise Filter')] eq 1 THEN juelichfilter=1 ELSE juelichfilter=0
             IF iadv[where(values eq 'Area Size')] eq 1 THEN smethod='areasize' ELSE smethod='fastcircle'
            
             ;--------Output Flag Checkboxes
@@ -184,6 +186,7 @@ PRO soda2_event, ev
             IF go eq 'No' THEN return
             dendbins=endbins[1:*]-endbins
             IF min(dendbins) le 0 THEN BEGIN
+            stop
                dummy=dialog_message('Bin end-points must be increasing',dialog_parent=widget_info(ev.top,find='process'))
                return
             ENDIF
@@ -195,7 +198,7 @@ PRO soda2_event, ev
             op={fn:fn, date:date[0], starttime:hms2sfm(starttime), stoptime:hms2sfm(stoptime), format:probe.format, $
                subformat:probe.subformat, probetype:probe.probetype, res:probe.res, endbins:endbins, $
                arendbins:arendbins, rate:rate, smethod:smethod, pth:pthfile[0], particlefile:particlefile, $
-               savfile:savfile, inttime_reject:inttime_reject, reconstruct:reconstruct, stuckbits:stuckbits, water:water,$
+               savfile:savfile, inttime_reject:inttime_reject, reconstruct:reconstruct, stuckbits:stuckbits, juelichfilter:juelichfilter, water:water,$
                fixedtas:fixedtas, outdir:outdir[0], project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
                numdiodes:probe.numdiodes, probeid:probe.probeid, shortname:probe.shortname, greythresh:greythresh, $
                wavelength:probe.wavelength, seatag:probe.seatag, ncdfparticlefile:ncdfparticlefile}
@@ -300,7 +303,7 @@ PRO soda2
     timeoffset=cw_field(subbase2a,/float, title='Clock Correction (s):',uname='timeoffset' , xsize=6, value=0.0)
    
     subbase2c=widget_base(subbase2,row=1)
-    vals=['Shatter Correct','All-In','Water Processing','Stuck Bit Correct','Area Size']
+    vals=['Shatter Correct','All-In','Water Processing','Stuck Bit Correct','Pixel Noise Filter','Area Size']
     advanced=cw_bgroup(subbase2c,vals,uname='options',/row,/nonexclusive,uval=vals,set_value=[1,0,0,0,0])
 
 
