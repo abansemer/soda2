@@ -16,7 +16,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    
    ;Define the structure to return for bad buffers   
    nullbuffer= {size:0,probetime:0,reftime:0,ar:0, aspr:0, rejectbuffer:1,bitimage:0,$
-                allin:0,streak:0,zd:0,dhist:0,nslices:0,missed:0,overloadflag:0,particle_count:0L}
+                allin:0,streak:0,zd:0,dhist:0,nslices:0,missed:0,overloadflag:0,dof:0b,particle_count:0L}
       
    CASE 1 OF
       ;-----------------------------------------------------------------------------------------------      
@@ -56,6 +56,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           restore_slice=0   ;These probes do not skip the first slice
           missed=0       
           particle_count=intarr(num_images)  ;No counter
+          dof=bytarr(num_images)+1  ;Dofs are automatically rejected by requiring timeline AAAAAA.  There is a flipped bit in there if want to use them.
           
           ;Set up remainder for the next buffer
           nremainder=bufflength-max(sync_ind)
@@ -98,6 +99,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           restore_slice=1
           missed=0
           particle_count=intarr(num_images)  ;No counter
+          dof=bytarr(num_images)+1  ;No dof flag, assume all are good
        END
        
        (((*pop).probetype eq 'CIP') or ((*pop).probetype eq 'PIP')): BEGIN   
@@ -125,6 +127,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           ;The num_images-1 is tricky here since -1 also taken above. The last timeline is a partial image, so really taking num_timelines-2.
           (*pmisc).lastparticlecount=x.particle_count[num_images-1] 
           particle_count=x.particle_count[0:num_images-1]
+          dof=x.dof[0:num_images-1]
 
           ;Assign the first particle in each buffer as an overload for SEA files.  
           ;This is to account for deadtime between buffers in SEA data throttling.
@@ -143,6 +146,9 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           stopline=x.sync_ind[1:*]-1
           ;time_sfm=x.time_sfm
           ;particle_count=x.particle_count
+
+          ;Remove pixel noise
+          IF ((*pop).juelichfilter eq 1) THEN pixel_noise_filter, bitimage
                     
           ;Trying a new way to filter bad particles.  There are lots of them.
           ;Also account for missed/skipped images too, also LOTS of them.
@@ -162,6 +168,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           stopline=stopline[good]
           time_sfm=x.time_sfm[good]
           particle_count=x.particle_count[good]
+          dof=bytarr(num_images)+1  ;No dof flag, assume all are good
           deadtime=deadtime[good]
           missed=diffcount[good]-1
           (*pmisc).lastparticlecount=particle_count[num_images-1]
@@ -180,6 +187,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           stopline=intarr(num_images)
           inttime=dblarr(num_images)
           overload=bytarr(num_images)
+          particle_count=intarr(num_images)
           slicecount=1  ;dummy first slice
           freq=double((*pop).res/(1.0e6*buffer.tas))  ; the time interval of each tick in a timeline
           c=0   ;keep an actual count since there are some bad particles in there that will be skipped
@@ -193,6 +201,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
                slicecount=slicecount+(size(x.image,/dim))[1]
                stopline[c]=slicecount-1
                overload[c]=x.overload
+               particle_count[c]=x.particlecount
                IF ((*pop).probetype eq 'HVPS3') THEN x.time=x.timetrunc  ;HVPS has some timing errors, use truncated version.
                ;Check for clock rollovers over at 65536 (every 0.1 seconds at 100 m/s)
                IF x.time lt lastclock THEN inttime[c]=((x.time+65536)-lastclock)*freq ELSE $ 
@@ -204,6 +213,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           (*pmisc).lastclock=lastclock       ;Save for next buffer    
           num_images=c   ;update for sizing below
           overload=overload[0:c-1]  ;update size
+          particle_count=particle_count[0:c-1]
           
           IF num_images eq 0 THEN return, nullbuffer
           
@@ -231,9 +241,10 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           
           restore_slice=0
           missed=0
-          particle_count=intarr(num_images)  ;No counter
+          ;particle_count=intarr(num_images)  ;No counter
           (*pmisc).maxsfm=max(time_sfm)
-          (*pmisc).lastbufftime=buffer.time       
+          (*pmisc).lastbufftime=buffer.time   
+           dof=bytarr(num_images)+1  ;No dof flag, assume all are good
        END
       
        ELSE: PRINT, 'Probe type not available'
@@ -247,7 +258,9 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    size=fltarr(num_images)
    xsize=fltarr(num_images)
    ysize=fltarr(num_images)
+   areasize=fltarr(num_images)
    allin=bytarr(num_images)
+   centerin=bytarr(num_images)
    edge_touch=bytarr(num_images)
    area_ratio=fltarr(num_images)
    aspr=fltarr(num_images)
@@ -257,6 +270,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    zd=fltarr(num_images)
    nsep=intarr(num_images)
    dhist=intarr((*pop).numdiodes)
+   
    ;Boolean flag for SPEC probes indicates empty particle with overload time, set to 0 if not already defined.
    IF n_elements(overload) gt 0 THEN overloadflag=overload ELSE overloadflag=bytarr(num_images) 
    nslices=0  ;Number of image slices (no timelines, sync, etc)
@@ -307,20 +321,22 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
          ps_correction = poisson_spot_correct(area_orig[i], total(roi), zd=zeed) ; as in Korolev 2007 
       ENDIF ELSE ps_correction=1.0
          
-      part=soda2_findsize(roi,pop,pmisc)
+      part=soda2_findsize(roi,(*pop).res,(*pmisc).yres)
       size[i]=part.diam/ps_correction
       xsize[i]=part.xsize/ps_correction
       ysize[i]=part.ysize/ps_correction
+      areasize[i]=part.areasize
       area_ratio[i]=part.ar
       aspr[i]=part.aspr
       allin[i]=part.allin   
+      centerin[i]=part.centerin
       edge_touch[i]=part.edge_touch 
       zd[i]=zeed
       orientation[i]=part.orientation
       perimeterarea[i]=part.perimeterarea
    ENDFOR   ;image loop end
 
-   return,{size:size,xsize:xsize,ysize:ysize,probetime:time_sfm,reftime:reftime,ar:area_ratio,aspr:aspr,rejectbuffer:0,bitimage:bitimage,$
-           allin:allin,streak:streak,zd:zd,dhist:dhist,nslices:nslices,missed:missed,nsep:nsep,overloadflag:overloadflag,$
+   return,{size:size,xsize:xsize,ysize:ysize,areasize:areasize,probetime:time_sfm,reftime:reftime,ar:area_ratio,aspr:aspr,rejectbuffer:0,bitimage:bitimage,$
+           allin:allin,centerin:centerin,streak:streak,zd:zd,dhist:dhist,nslices:nslices,missed:missed,nsep:nsep,overloadflag:overloadflag,dof:dof,$
            orientation:orientation, area_orig:area_orig, perimeterarea:perimeterarea, particle_count:particle_count, edge_touch:edge_touch}  
 END
