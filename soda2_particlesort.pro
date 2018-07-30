@@ -6,6 +6,7 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
    x=xtemp[0:istop]  ;concatenate the particle structure
    op=*pop
    numparticles=istop+1
+   rejection_flag=bytarr(numparticles)
 
    truetime=x.probetime + median(x.bufftime-x.reftime)
    difftime=[0,truetime[1:*]-truetime]>0
@@ -40,55 +41,11 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       ENDFOR
    ENDIF
     
-   ;Print particles if flagged
-   IF op.ncdfparticlefile eq 1 THEN BEGIN   ;NetCDF version, now default
-      varid=ncdf_varid(ncdf_id,'time')
-      ncdf_varput,ncdf_id,varid,truetime[0:istop],count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'probetime')
-      ncdf_varput,ncdf_id,varid,x[0:istop].probetime,count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'buffertime')
-      ncdf_varput,ncdf_id,varid,x[0:istop].bufftime,count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'ipt')
-      ncdf_varput,ncdf_id,varid,interarrival[0:istop],count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'diam')
-      ncdf_varput,ncdf_id,varid,x[0:istop].size,count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'xsize')
-      ncdf_varput,ncdf_id,varid,x[0:istop].xsize,count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'ysize')
-      ncdf_varput,ncdf_id,varid,x[0:istop].ysize,count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'arearatio')
-      ncdf_varput,ncdf_id,varid,x[0:istop].ar,count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'aspectratio')
-      ncdf_varput,ncdf_id,varid,x[0:istop].aspr,count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'area')
-      ncdf_varput,ncdf_id,varid,x[0:istop].area,count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'perimeterarea')
-      ncdf_varput,ncdf_id,varid,x[0:istop].perimeterarea,count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'allin')
-      ncdf_varput,ncdf_id,varid,x[0:istop].allin,count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'edgetouch')
-      ncdf_varput,ncdf_id,varid,x[0:istop].edge_touch,count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'zd')
-      ncdf_varput,ncdf_id,varid,x[0:istop].zd,count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'missed')
-      ncdf_varput,ncdf_id,varid,x[0:istop].missed,count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'orientation')
-      ncdf_varput,ncdf_id,varid,x[0:istop].orientation,count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'overload')
-      ncdf_varput,ncdf_id,varid,x[0:istop].overloadflag,count=numparticles,offset=ncdf_offset
-      varid=ncdf_varid(ncdf_id,'particle_counter')
-      ncdf_varput,ncdf_id,varid,x[0:istop].particle_count,count=numparticles,offset=ncdf_offset
-   ENDIF
-   IF op.particlefile eq 1 THEN BEGIN   ;ASCII version
-      FOR i=0L,numparticles-1 DO printf, lun_pbp, truetime[i], x[i].probetime, x[i].bufftime, interarrival[i], x[i].size, x[i].xsize, x[i].ysize, x[i].ar, $
-          x[i].aspr, x[i].orientation, x[i].allin, x[i].overloadflag, x[i].missed, x[i].particle_count, form='(3f13.5,e13.5,3f12.3,2f6.2,f8.1,2i3,i7,i7)'
-   ENDIF
-
    ;Loop through all the unique indices found
    FOR i=1L,n_elements(u)-1 DO BEGIN
       indstart=(u[i-1]+1)
       indstop=(u[i])
-      iparticles=s[indstart:indstop]                   ;Index to each particle in this step
+      iparticles=s[indstart:indstop]               ;Index to each particle in this step
       itime=timeindex[iparticles[0]]               ;Time index of this step
       
       IF (itime ge 0) and (itime lt d.numrecords) THEN BEGIN                     ;Make sure in time range  
@@ -100,11 +57,7 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
             intbin=max(where(d.intendbins le interarrival[iparticles[j]],nw)) 
             IF (nw gt 0)  and (intbin lt d.numintbins) THEN d.intspec_all[itime,intbin]=d.intspec_all[itime,intbin]+1
          ENDFOR
-         
-         ;Make Zd/dof spectrum
-         ;FOR j=0L,n_elements(iparticles)-1 DO BEGIN
-         ;ENDFOR
-         
+                  
          ;Find cutoff time based on interarrival time, must have 100 particles
          IF ((*pop).inttime_reject eq 1) and (total(d.intspec_all[itime,*]) gt 100) THEN BEGIN
             dummy=max(d.intspec_all[itime,*],imax)       ;Use the maximum of the poisson dist as the first guess for fit.
@@ -124,9 +77,16 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
          FOR j=0L,n_elements(iparticles)-1 DO BEGIN
             nextparticleindex=(iparticles[j]+1) < (numparticles-1)
             reject=soda2_reject(x[iparticles[j]], interarrival[iparticles[j]], interarrival[nextparticleindex], d.intcutoff[itime], cluster[iparticles[j]], pop)
-            IF reject eq 0 THEN BEGIN
-               sizebin=max(where(op.endbins lt x[iparticles[j]].size),nws)
-               IF x[iparticles[j]].size eq op.endbins[0] THEN sizebin=0  ;Special case where size=first endbin
+            rejection_flag[iparticles[j]] =  reject
+            IF reject eq 0 THEN BEGIN   
+               CASE (*pop).smethod OF
+                  'xsize':size2use=x[iparticles[j]].xsize
+                  'ysize':size2use=x[iparticles[j]].ysize
+                  'areasize':size2use=x[iparticles[j]].areasize
+                  ELSE:size2use=x[iparticles[j]].size
+               ENDCASE        
+               sizebin=max(where(op.endbins lt size2use),nws)
+               IF size2use eq op.endbins[0] THEN sizebin=0  ;Special case where size=first endbin
                arbin=max(where(op.arendbins lt (x[iparticles[j]].ar<0.99>0.01)),nwa)
                asprbin=max(where(op.arendbins lt (x[iparticles[j]].aspr<0.99>0.01)),nwasp)
                obin=(floor(x[iparticles[j]].orientation + 90) / 10) < 17  ;Orientation bin every 10 degrees
@@ -160,4 +120,56 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
          ENDFOR
       END
    END
+   
+   ;Print particles if flagged
+   IF op.ncdfparticlefile eq 1 THEN BEGIN   ;NetCDF version, now default
+      varid=ncdf_varid(ncdf_id,'time')
+      ncdf_varput,ncdf_id,varid,truetime[0:istop],count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'probetime')
+      ncdf_varput,ncdf_id,varid,x[0:istop].probetime,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'buffertime')
+      ncdf_varput,ncdf_id,varid,x[0:istop].bufftime,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'ipt')
+      ncdf_varput,ncdf_id,varid,interarrival[0:istop],count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'diam')
+      ncdf_varput,ncdf_id,varid,x[0:istop].size,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'xsize')
+      ncdf_varput,ncdf_id,varid,x[0:istop].xsize,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'ysize')
+      ncdf_varput,ncdf_id,varid,x[0:istop].ysize,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'areasize')
+      ncdf_varput,ncdf_id,varid,x[0:istop].areasize,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'arearatio')
+      ncdf_varput,ncdf_id,varid,x[0:istop].ar,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'aspectratio')
+      ncdf_varput,ncdf_id,varid,x[0:istop].aspr,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'area')
+      ncdf_varput,ncdf_id,varid,x[0:istop].area,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'perimeterarea')
+      ncdf_varput,ncdf_id,varid,x[0:istop].perimeterarea,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'allin')
+      ncdf_varput,ncdf_id,varid,x[0:istop].allin,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'centerin')
+      ncdf_varput,ncdf_id,varid,x[0:istop].centerin,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'edgetouch')
+      ncdf_varput,ncdf_id,varid,x[0:istop].edge_touch,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'zd')
+      ncdf_varput,ncdf_id,varid,x[0:istop].zd,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'missed')
+      ncdf_varput,ncdf_id,varid,x[0:istop].missed,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'orientation')
+      ncdf_varput,ncdf_id,varid,x[0:istop].orientation,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'overload')
+      ncdf_varput,ncdf_id,varid,x[0:istop].overloadflag,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'particle_counter')
+      ncdf_varput,ncdf_id,varid,x[0:istop].particle_count,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'rejection_flag')
+      ncdf_varput,ncdf_id,varid,rejection_flag,count=numparticles,offset=ncdf_offset
+   ENDIF
+   IF op.particlefile eq 1 THEN BEGIN   ;ASCII version
+      FOR i=0L,numparticles-1 DO printf, lun_pbp, truetime[i], x[i].probetime, x[i].bufftime, interarrival[i], x[i].size, x[i].xsize, x[i].ysize, x[i].ar, $
+          x[i].aspr, x[i].orientation, x[i].allin, x[i].overloadflag, x[i].missed, x[i].particle_count, form='(3f13.5,e13.5,3f12.3,2f6.2,f8.1,2i3,i7,i7)'
+   ENDIF
+
+
 END
