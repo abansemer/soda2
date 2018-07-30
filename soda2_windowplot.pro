@@ -27,7 +27,7 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
       0:BEGIN 
          spec=(*p1).spec2d[i,*,*]
          IF max(spec) gt 10 THEN plotarray=alog10(spec)>1 ELSE plotarray=spec
-         contour,plotarray,(*p1).midbins,armidbins,/cell,nlevels=20,position=[0.4,0.4,0.95,0.95],$
+         contour,plotarray,(*p1).midbins,armidbins,/cell,nlevels=40,position=[0.4,0.4,0.95,0.95],$
             /xl,/xs,/ys,xr=sizerange,yr=arrange,title='Image Counts'
          plot,(*p1).midbins,(*p1).conc1d[i,*],/xl,/yl,/xs,xr=sizerange,yr=[1e4,1e12],position=[0.4,0.07,0.95,0.35],/noerase,$
              xtit='Diameter (um)',ytit='Concentration (#/m!u4!n)',/nodata
