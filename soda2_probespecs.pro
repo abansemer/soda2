@@ -327,6 +327,21 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.seatag=[8000, 8006, 8007]
    all=[all,x]
 
+   x.probename='HIWC PIP (SEA M300)'
+   x.shortname='PIP'
+   x.format='SEA'
+   x.subformat=1
+   x.probetype='CIP'
+   x.probeid=''
+   x.res=100
+   x.armwidth=22.7
+   x.numdiodes=64
+   x.tau=0.051e-6
+   x.firstsliceskip=0
+   x.wavelength=0.658e-6
+   x.seatag=35000
+   all=[all,x]
+
    x.probename='CCP from SPEC (SEA M300)'
    x.shortname='CIP'
    x.format='SEA'
