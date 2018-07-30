@@ -71,6 +71,7 @@ FUNCTION decompress_dmt, cimage
    time=dblarr(500)     ;stores the timeline (in seconds) of each particle
    time_total=dblarr(500) ;the raw time (not elapsed in the buffer)
    particle_count=lonarr(500)  ;stores the particle counter of each particle
+   dof=bytarr(500)  ;stores the dof flag of each particle
    ;slice_count=intarr(500)  ; number of slices for each particle
    FOR i=0,slices-2 DO BEGIN   ; 'slices-2' to make sure we get a time slice with each sync slice
       ss=8*i & se=ss+7   ;slice start and end indices
@@ -79,6 +80,7 @@ FUNCTION decompress_dmt, cimage
          ;Decode the time slice, which comes right after the sync slice
          params=decode_header_slice(image[ss+8:se+8])
          particle_count[sync_count]=params.particle_count
+         dof[sync_count]=params.dof
          ;slice_count[sync_count]=params.slice_count
          
          ;Get the time for each particle, starting each buffer at 0 seconds         
@@ -90,6 +92,7 @@ FUNCTION decompress_dmt, cimage
    ENDFOR
    sync_ind=sync_ind[0:((sync_count>1)-1)] ; truncate the array to size (>1 since sync_count is sometimes 0 in bad buffers)
    particle_count=particle_count[0:sync_count>1-1]
+   dof=dof[0:sync_count>1-1]
    time=time[0:sync_count>1-1]
    time_total=time_total[0:sync_count>1-1]
    ;slice_count=slice_count[0:sync_count>1-1]
@@ -102,6 +105,6 @@ FUNCTION decompress_dmt, cimage
 
    ;This is for running on Windows PCs to avoid a crash
    IF !version.os_family eq 'Windows' THEN wait,0.01  
-   return, {image:image, bitimage:bitimage, sync_ind:sync_ind, time_elap:time, time_sfm:time_total, particle_count:particle_count, slice_count:slice_count}
+   return, {image:image, bitimage:bitimage, sync_ind:sync_ind, time_elap:time, time_sfm:time_total, particle_count:particle_count, slice_count:slice_count, dof:dof}
    
 END
