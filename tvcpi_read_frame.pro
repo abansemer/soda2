@@ -64,7 +64,7 @@ FUNCTION tvcpi_read_frame, lun, bpoint, id
    ENDIF
    
    ;return,{himage:himage, vimage:vimage, nh:nh, nv:nv, htime:htime, vtime:vtime}
-   return,{image:image, time:time, error:error, overload:overload}
+   return,{image:image, time:time, error:error, overload:overload, particlecount:particlecount}
 END 
    
    

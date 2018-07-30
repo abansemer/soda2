@@ -34,7 +34,7 @@ FUNCTION spec_read_frame, lun, bpoint, id
    timefull=0L
    error=1
    overload=0
-   
+
    ;*NOTE* As of 10/2011 HVPS3, the first time word (bits 16-31) does not always 
    ;     increase monotonically.  Seems to be a problem somewhere... firmware?
    ;Have decided to skip this time word entirely for now
@@ -62,7 +62,7 @@ FUNCTION spec_read_frame, lun, bpoint, id
    ENDIF
 
    ;return,{himage:himage, vimage:vimage, nh:nh, nv:nv, htime:htime, vtime:vtime}
-   return,{image:image, time:timefull, timetrunc:time, error:error, overload:overload}
+   return,{image:image, time:timefull, timetrunc:time, error:error, overload:overload, particlecount:particlecount}
 END 
    
    
