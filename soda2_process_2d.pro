@@ -96,8 +96,9 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
 
    ;Set up the particle structure.  
    num2process=10000000L ;Limit to reduce memory consumption
-   basestruct={bufftime:0d, probetime:0d, reftime:0d, size:0.0, xsize:0.0, ysize:0.0, ar:0.0, aspr:0.0, area:0.0, $
-               allin:0b, edge_touch:0b, tas:0s, zd:0.0, missed:0.0, overloadflag:0b, orientation:0.0, perimeterarea:0.0, particle_count:0L}
+   basestruct={bufftime:0d, probetime:0d, reftime:0d, size:0.0, xsize:0.0, ysize:0.0, areasize:0.0, ar:0.0, aspr:0.0, area:0.0, $
+               allin:0b, centerin:0b, edge_touch:0b, tas:0s, zd:0.0, missed:0.0, overloadflag:0b, orientation:0.0, $
+               perimeterarea:0.0, dof:0b, particle_count:0L}
    x=replicate(basestruct, num2process)
  
    
@@ -183,7 +184,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    ncdf_id=0L
    IF op.ncdfparticlefile eq 1 THEN BEGIN
       fn_ncdf=soda2_filename(op,op.shortname,extension='.pbp.nc')
-      ncdf_id=ncdf_create(fn_ncdf,/clobber)
+      file_delete, fn_ncdf, /quiet ;The 'clobber' switch does not work on ncdf_create with netcdf4
+      ncdf_id=ncdf_create(fn_ncdf, /netcdf4_format)
       ;Define the x-dimension, should be used in all variables
       xdimid=ncdf_dimdef(ncdf_id,'Time',/unlimited)
       
@@ -210,21 +212,45 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
          ENDIF ELSE ncdf_attput,ncdf_id,opnames[i],op.(i),/global   ;Non-strings, all elements      
       ENDFOR
       
-      tagnames=['time', 'probetime', 'buffertime', 'ipt', 'diam', 'xsize', 'ysize', 'arearatio', 'aspectratio', 'area', 'perimeterarea', 'allin', $
-                'edgetouch','zd', 'missed', 'overload', 'particle_counter', 'orientation']
-      longname=['UTC time','Unadjusted Probe Particle Time','Buffer Time','Interarrival Time','Particle Diameter','X-size (across array)','Y-size (along airflow)',$
-                'Area Ratio','Aspect Ratio','Pixel Area','Perimeter Pixel Area','All-in Flag','Edge Touch (1=left, 2=right, 3=both)','Z position',$
-                'Missed Particles','Overload Flag','Particle Counter','Particle Orientation Relative to Array Axis']
-      units=['seconds','seconds','seconds','seconds','microns','microns','microns','unitless','unitless','pixels','pixels','boolean','unitless','microns','number','boolean','number','degrees']
+      ;List of variables to include in netCDF file: [varname, longname, unit, datatype]
+      ncdfprops=[['time', 'UTC Time', 'seconds', 'double'],$
+                 ['probetime', 'Unadjusted Probe Particle Time', 'seconds', 'double'],$
+                 ['buffertime', 'Buffer Time', 'seconds', 'double'],$
+                 ['ipt', 'Interarrival Time', 'seconds', 'float'],$
+                 ['diam', 'Particle Diameter from Circle Fit', 'microns', 'float'],$
+                 ['xsize', 'X-size (across array)', 'microns', 'float'],$
+                 ['ysize', 'Y-size (along airflow)', 'microns', 'float'],$
+                 ['areasize', 'Equivalent Area Size', 'microns', 'float'],$
+                 ['arearatio', 'Area Ratio', 'unitless', 'float'],$
+                 ['aspectratio', 'Aspect Ratio', 'unitless', 'float'],$
+                 ['area', 'Number of Pixels Shaded', 'pixels', 'short' ],$
+                 ['perimeterarea', 'Number of Perimeter Pixels Shaded', 'pixels', 'short'],$
+                 ['allin', 'All-in Flag', 'unitless', 'byte'],$
+                 ['centerin', 'Center-in Flag', 'unitless', 'byte'],$
+                 ['dof_flag', 'Depth of Field Flag from Probe', 'unitless', 'byte'],$
+                 ['edgetouch', 'Edge Touch (1=left, 2=right, 3=both)', 'unitless', 'byte'],$
+                 ['zd', 'Z Position from Korolev Correction', 'microns', 'float'],$
+                 ['missed', 'Missed Particle Count', 'number', 'short'],$
+                 ['overload', 'Overload Flag', 'boolean', 'byte'],$
+                 ['particle_counter', 'Particle Counter', 'number', 'long'],$
+                 ['orientation', 'Particle Orientation Relative to Array Axis', 'degrees', 'float'],$
+                 ['rejection_flag', 'Particle Rejection Code', 'unitless', 'byte']]
+       
+      tagnames=ncdfprops[0,*]
       FOR i=0,n_elements(tagnames)-1 DO BEGIN
-         IF (tagnames[i] eq 'time') or (tagnames[i] eq 'probetime') or (tagnames[i] eq 'buffertime') THEN $
-            varid=ncdf_vardef(ncdf_id,tagnames[i],xdimid,/double) ELSE $    ;Use double precision for time variables
-            varid=ncdf_vardef(ncdf_id,tagnames[i],xdimid,/float)
-         ncdf_attput,ncdf_id,varid,'longname',longname[i]
-         ncdf_attput,ncdf_id,varid,'units',units[i]
+         CASE ncdfprops[3,i] OF
+            'float': varid = ncdf_vardef(ncdf_id,tagnames[i], xdimid, /float, gzip=5)
+            'double': varid = ncdf_vardef(ncdf_id,tagnames[i], xdimid, /double, gzip=5)
+            'byte': varid = ncdf_vardef(ncdf_id,tagnames[i], xdimid, /byte, gzip=5)
+            'short': varid = ncdf_vardef(ncdf_id,tagnames[i], xdimid, /short, gzip=5)
+            'long': varid = ncdf_vardef(ncdf_id,tagnames[i], xdimid, /long, gzip=5)
+         ENDCASE              
+         ncdf_attput,ncdf_id,varid,'longname',ncdfprops[1,i]
+         ncdf_attput,ncdf_id,varid,'units',ncdfprops[2,i]
       ENDFOR
       ncdf_control,ncdf_id,/endef                ;put in data mode 
    ENDIF
+   
    IF op.particlefile eq 1 THEN BEGIN
       fn_pbp=soda2_filename(op,op.shortname,extension='.pbp')
       close, lun_pbp
@@ -337,19 +363,21 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
         x[istart:istop].size=p.size
         x[istart:istop].xsize=p.xsize
         x[istart:istop].ysize=p.ysize
+        x[istart:istop].areasize=p.areasize
         x[istart:istop].ar=p.ar
         x[istart:istop].aspr=p.aspr
         x[istart:istop].area=p.area_orig 
         x[istart:istop].perimeterarea=p.perimeterarea 
         x[istart:istop].allin=p.allin
+        x[istart:istop].centerin=p.centerin
         x[istart:istop].edge_touch=p.edge_touch
         x[istart:istop].tas=b.tas
         x[istart:istop].zd=p.zd
         x[istart:istop].missed=p.missed
         x[istart:istop].particle_count=p.particle_count
         x[istart:istop].overloadflag=p.overloadflag
+        x[istart:istop].dof=p.dof
         x[istart:istop].orientation=p.orientation
-        ;x[istart:istop].nsep=p.nsep  ;now using keeplargest option for detection of multi-particles
    
         ;Feedback to user
         percentcomplete=fix(float(i-firstbuff)/(lastbuff-firstbuff)*100)
@@ -397,11 +425,13 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    sv=sa*d.tas*activetime
    
    conc1d=fltarr(numrecords, numbins)  ;size spectra
+   
    ;JPL temp
    conc1d_spherical=fltarr(numrecords, numbins)
    conc1d_mediumprolate=fltarr(numrecords, numbins)
    conc1d_oblate=fltarr(numrecords, numbins)
    conc1d_maximumprolate=fltarr(numrecords, numbins) 
+   
    ;Orientation
    orientation_index=fltarr(numrecords, numbins)
    FOR i=0L,numrecords-1 DO BEGIN
