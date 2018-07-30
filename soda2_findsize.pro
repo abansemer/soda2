@@ -1,13 +1,8 @@
-FUNCTION soda2_findsize, img, pop, pmisc
+FUNCTION soda2_findsize, img, xres, yres
    ;Returns the diameter of a binary image based on the size of a pixel in each dir (xres and yres)
    ;Aaron Bansemer, NCAR, 2009
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
-
-      
-   xres=float((*pop).res)
-   yres=float((*pmisc).yres) 
               
-   ;IF xres ne yres THEN print,'Square pixels required for fastcircle sizing, using x-resolution only.'
    area_original=total(img) * (yres/xres) ;area of particle
    s=size(img)
    ndims=size(img,/n_dim)
@@ -36,7 +31,7 @@ FUNCTION soda2_findsize, img, pop, pmisc
 
    ;Change diam to area equivalent diameter if needed   
    area_adjusted=area_original*((!pi*r^2)/circle_area_imaged)
-   IF (*pop).smethod eq 'areasize' THEN diam=sqrt(4.0/!pi*area_adjusted) * xres
+   areasize=sqrt(4.0/!pi*area_adjusted) * xres
    
    ;if (phi+theta) gt 0 then allin=0 else allin=1
    IF  (total(img[0,*])+total(img[s[1]-1,*]) ne 0) THEN allin=0b ELSE allin=1b
@@ -46,6 +41,6 @@ FUNCTION soda2_findsize, img, pop, pmisc
    IF (total(img[0,*]) gt 0) THEN edge_touch=edge_touch+1
    IF (total(img[s[1]-1,*]) gt 0) THEN edge_touch=edge_touch+2
    
-   return, {diam:diam, xsize:xsize, ysize:ysize, ar:ar, aspr:aspr, allin:allin, c:circle.center, centerin:centerin, $
+   return, {diam:diam, xsize:xsize, ysize:ysize, areasize:areasize, ar:ar, aspr:aspr, allin:allin, c:circle.center, centerin:centerin, $
             orientation:orientation, perimeterarea:circle.area, edge_touch:edge_touch}  
 END
