@@ -59,9 +59,9 @@ FUNCTION decompress_dmt_grey, cimage
    
    ;sync_ind=(timeline[0:partcount-1]-timeline[0])/64
    ;Sync lines were often missed, causing lots of 1000um-sized artifacts.  Here is a new method of detecting them:
-   leftsidetotal=total(bitimage[0:31,*],1)
-   lst_shift=[96,leftsidetotal]
-   sync_ind=where((leftsidetotal lt 7) and (lst_shift eq 96))  ;Look for blank line followed by solid '3's on left side   
+   leftsidetotal=total(bitimage[0:27,*],1)
+   lst_shift=[84,leftsidetotal]
+   sync_ind=where((leftsidetotal lt 7) and (lst_shift eq 84))  ;Look for blank line followed by solid '3's on left side   
    partcount=n_elements(sync_ind)
    IF partcount lt 3 THEN return,badbuffer  ;indicates a bad buffer, exit now
 
@@ -80,7 +80,7 @@ FUNCTION decompress_dmt_grey, cimage
       slice_count[i]=s.slice_count
       tas[i]=s.tas
 ;print,particle_count[i],particle_count[i]-particle_count[(i-1)>0]   
-   ENDFOR
-   return, {bitimage:bitimage, sync_ind:sync_ind, time_elap:time_elap, time_sfm:time, particle_count:particle_count, slice_count:slice_count}
+   ENDFOR 
+   return, {bitimage:bitimage, sync_ind:sync_ind, time_elap:time_elap, time_sfm:time, particle_count:particle_count, slice_count:slice_count, tas:tas}
 END
    
