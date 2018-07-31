@@ -462,7 +462,13 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
          pointer:buffpoint, ind:buffindex, currentfile:bufffile, numbuffsaccepted:numbuffsaccepted, numbuffsrejected:numbuffsrejected, dhist:dhist,$
          hist3d:d.hist3d, spec2d_orientation:d.spec2d_orientation, orientation_index:orientation_index}
          ;, conc1d_spherical:conc1d_spherical, conc1d_mediumprolate:conc1d_mediumprolate, conc1d_oblate:conc1d_oblate, conc1d_maximumprolate:conc1d_maximumprolate }
-  
+     
+   ;Close pointers and luns
+   ptr_free, pop, pmisc
+   IF op.particlefile eq 1 THEN close,lun_pbp
+   IF op.ncdfparticlefile eq 1 THEN ncdf_close,ncdf_id
+   
+   ;Save data and display notifications
    fn_out=soda2_filename(op,op.shortname)
    IF op.savfile eq 1 THEN BEGIN
       save,file=fn_out,data,/compress
@@ -471,18 +477,14 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    ENDIF
    
    IF op.particlefile eq 1 THEN BEGIN
-      close,lun_pbp
       infoline='Saved file '+fn_pbp
       IF textwidgetid ne 0 THEN dummy=dialog_message(infoline,dialog_parent=textwidgetid,/info) ELSE print,infoline
    ENDIF
    
    IF op.ncdfparticlefile eq 1 THEN BEGIN
-      ncdf_close,ncdf_id
       infoline='Saved file '+fn_ncdf
       IF textwidgetid ne 0 THEN dummy=dialog_message(infoline,dialog_parent=textwidgetid,/info) ELSE print,infoline
    ENDIF
-   
-   ptr_free, pop, pmisc
 
 ;profiler,/report  
 END

@@ -193,9 +193,9 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                 'Rejection Codes':BEGIN
                   total_count=float((*p1).count_rejected_total[a:b]+(*p1).count_accepted[a:b])>1
                   plot,x,(*p1).count_rejected[a:b,1]/total_count*100,ytitle='Percent Rejected',yr=[0,105],/ys,psym=1,symsize=0.3
-                  colorchoices=[color1,color2,color3,color4,color5]
-                  FOR i=1,4 DO oplot,x,(*p1).count_rejected[a:b,i]/total_count*100,color=colorchoices[i-1],psym=1,symsize=0.3
-                  legend_old,['Area Ratio','Interarrival','Size Range','Edge Touch','Cluster'],$
+                  colorchoices=[color1,color2,color3,color4,color5,color6]
+                  FOR i=1,6 DO oplot,x,(*p1).count_rejected[a:b,i]/total_count*100,color=colorchoices[i-1],psym=1,symsize=0.3
+                  legend_old,['Area Ratio','Interarrival','Size Range','Edge Touch','Cluster','Centerin'],$
                       line=0,color=colorchoices,charsize=1.0,box=0
                END
                'Particle Counts':BEGIN
