@@ -60,6 +60,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
      r[5]=50 & g[5]=50 & b[5]=150
    ENDIF
    
+   tvlct, rold, gold, bold, /get  ;Save current table
    tvlct,r,g,b
 
    ;General setup
@@ -207,6 +208,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    
    close,1
    device,/close
+   tvlct, rold, gold, bold  ;Restore original color table
    IF !version.os_family eq 'Windows' THEN set_plot,'win' ELSE set_plot,'x'
 END
 
