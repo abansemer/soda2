@@ -6,8 +6,9 @@ FUNCTION soda2_reject, a, inttime, nextinttime, cutoff, clustercount, pop
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
 
-   ;Rejection criteria
+   ;Rejection criteria in increasing order of importance. Eventually change back to binary sum?
    reject=0               
+   IF ((*pop).centerinrejection eq 1) and (a.centerin eq 0) THEN reject=6  ;Center-in rejection
    IF (a.ar lt 0.10) or (a.ar gt 1.0) THEN reject=1      ;Low area ratio
    IF (inttime lt cutoff) or (nextinttime lt cutoff) THEN reject=2                  ;Below interarrival
    IF (a.size lt min((*pop).endbins)) or (a.size gt max((*pop).endbins)) THEN reject=3     ;Out of size range
