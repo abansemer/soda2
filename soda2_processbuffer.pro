@@ -311,8 +311,6 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
       xspan=max(w)-min(w)+1
       nsep[i]=xspan-nw
       
-      IF total(roi) eq 0 THEN roi[5,0]=1    ;fill in zero area images with a single bit
-
       ;Water processing
       zeed=0
       area_orig[i]=total(roi)
