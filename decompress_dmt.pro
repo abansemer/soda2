@@ -12,6 +12,7 @@ FUNCTION decompress_dmt, cimage
    rlehb=0B  ; run-length encoding header byte
    ipos=0 ; where we are in the decompressed image
    cipos=0 ; where we are in the compressed image
+   clength=n_elements(cimage)
    
    IF n_elements(cimage) le 1 THEN $
       return, {image:image, bitimage:0, sync_ind:0, time_elap:0, time_sfm:0, particle_count:0, slice_count:0}
@@ -22,10 +23,10 @@ FUNCTION decompress_dmt, cimage
    WHILE total((cimage[cipos+1:cipos+8] eq sync)) ne 8 DO BEGIN
       cipos=cipos+1    
       ;Check for no syncs
-      IF cipos ge 4000 THEN return, {image:image, bitimage:0, sync_ind:0, time_elap:0, time_sfm:0, particle_count:0, slice_count:0}  
+      IF (cipos ge (clength-10)) THEN return, {image:image, bitimage:0, sync_ind:0, time_elap:0, time_sfm:0, particle_count:0, slice_count:0}  
    ENDWHILE
 
-   WHILE cipos lt 4095 and ipos lt 30000 DO BEGIN
+   WHILE (cipos lt n_elements(cimage)-1) and (ipos lt 30000) DO BEGIN
       zeroes=0 & ones=0 & dummy=0
       rlehb=cimage[cipos]
       cipos=cipos+1
@@ -45,7 +46,7 @@ FUNCTION decompress_dmt, cimage
       
       IF (zeroes eq 0) and (ones eq 0) and (dummy eq 0) THEN BEGIN    ;Just keeps the following bytes
          ;There is an infrequent error where cipos+count is too big
-         IF cipos+count le 4095 THEN image[ipos:ipos+count]=cimage[cipos:cipos+count]
+         IF cipos+count le (clength-1) THEN image[ipos:ipos+count]=cimage[cipos:cipos+count]
          ipos=ipos+count+1
          cipos=cipos+count+1
       ENDIF
