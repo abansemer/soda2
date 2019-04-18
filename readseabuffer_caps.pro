@@ -18,7 +18,7 @@ function readseabuffer_caps,lun,sun=sun,tag=tag,probetype=probetype
    time=intarr(9)
    
    IF probetype eq 'CIP1D' THEN image={header:0s,bytecount:0s,oversizereject:0s,count:intarr(62),dofreject:0s,endreject:0s,$
-          housekeeping:intarr(16),particlecounter:0s,secmsec:0s,hourmin:0s,hostsynccounter:02,$
+          housekeeping:intarr(16),particlecounter:0us,secmsec:0s,hourmin:0s,hostsynccounter:02,$
           resetflag:0s,checksum:0s,trailer:0s}
    IF probetype eq 'CAS' THEN image={header:0s,bytecount:0s,transit:0l,sum:0l,fifofull:0s,reset:0s,foverflow:0s,$
           boverflow:0s,interarrival:intarr(64),housekeeping:intarr(31),fcount:intarr(30),$
@@ -29,6 +29,8 @@ function readseabuffer_caps,lun,sun=sun,tag=tag,probetype=probetype
    gotdata=0             ;flag to test if 2d records found
    i=0l
    numberbytes=4098  ;Start with a high default so logic below works
+   ;Change image for image probes
+   IF ((probetype ne 'CIP1D') and (probetype ne 'CAS')) THEN image=bytarr(numberbytes-2)   ;-2 to account for checksum.  There are rare occasions where this is not 4kB.
    
    REPEAT BEGIN
       REPEAT BEGIN   ;read through all the data directories
@@ -57,8 +59,8 @@ function readseabuffer_caps,lun,sun=sun,tag=tag,probetype=probetype
    readu,lun,time  ;Next is stop time
    hhmmss_stop = time[3]*10000d + time[4]*100d + time[5] + time[6]/double(time[7])  ;see SEA manual
 
-   image=bytarr(numberbytes-2)   ;-2 to account for checksum.  There are rare occasions where this is not 4kB.
    point_lun,lun,imagepoint
+   IF ((probetype ne 'CIP1D') and (probetype ne 'CAS')) THEN image=bytarr(numberbytes)  ;Shortened buffers occur in some projects
    readu,lun,image
    
    nextbuffer=buf.dataoffset+lastpointer+buf.parameter1*65536l   ; the 999 tag points to the start of next buffer
@@ -67,7 +69,8 @@ function readseabuffer_caps,lun,sun=sun,tag=tag,probetype=probetype
    probetime=0
    IF probetype eq 'CIP1D' THEN probetime=ishft(image.hourmin and 1984,-6)*10000d + (image.hourmin and 63)*100d + $
        ishft(image.secmsec and 64512,-10) + (image.secmsec and 1023)/1000d
-   return,{starttime:hhmmss, stoptime:hhmmss_stop, image:image, difftime:0, eof:0, pointer:q.cur_ptr, tas:100, probetime:probetime,$
-           year:year, month:month, day:day, imagepoint:imagepoint}
+
+   return,{starttime:hhmmss, stoptime:hhmmss_stop, image:image, difftime:sfm(hhmmss_stop)-sfm(hhmmss), eof:0, pointer:q.cur_ptr, tas:100, probetime:probetime,$
+           year:year, month:month, day:day, imagepoint:imagepoint, numberbytes:numberbytes}
 END
           
