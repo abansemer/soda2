@@ -31,7 +31,7 @@ FUNCTION spec_read_frame, lun, bpoint, id
    htime=0UL
    vtime=0UL
    time=0L
-   timefull=0L
+   timefull=0UL
    error=1
    overload=0
 
@@ -47,6 +47,7 @@ FUNCTION spec_read_frame, lun, bpoint, id
       image=spec_decompress(himageraw,overloadh)   
       error=0
       IF missingtwh THEN error=1
+      IF (overloadh eq 0) and (nh eq 2) THEN error=1   ;Just a timeword with no overload.  This is usually an error where H or V flag appears to be backward
       overload=overloadh 
    ENDIF
    
@@ -58,14 +59,10 @@ FUNCTION spec_read_frame, lun, bpoint, id
       image=spec_decompress(vimageraw,overloadv)   
       error=0
       IF missingtwv THEN error=1
+      IF (overloadv eq 0) and (nv eq 2) THEN error=1   ;Just a timeword with no overload.  This is usually an error where H or V flag appears to be backward
       overload=overloadv
    ENDIF
 
    ;return,{himage:himage, vimage:vimage, nh:nh, nv:nv, htime:htime, vtime:vtime}
    return,{image:image, time:timefull, timetrunc:time, error:error, overload:overload, particlecount:particlecount}
-END 
-   
-   
-   
-   
-   
+END

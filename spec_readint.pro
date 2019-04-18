@@ -1,4 +1,4 @@
-FUNCTION spec_readint,lun,length,buffsize=buffsize
+FUNCTION spec_readint,lun,length,buffsize=buffsize,signed=signed
    ;FUNCTION to read the next 'length' integers from an HVPS/2DS
    ;file.  Main purpose of this is to skip over intervening buffer headers.
    ;There is also a 2-byte buffer trailer.  Format={header:intarr(8), image:bytarr(4096), footer:0s}
@@ -7,6 +7,7 @@ FUNCTION spec_readint,lun,length,buffsize=buffsize
 
    
    IF n_elements(buffsize) eq 0 THEN buffsize=4114
+   IF n_elements(signed) eq 0 THEN signed=0
    headersize=9ULL  ;integer length
    point_lun,-lun,pointer
    m1=pointer/buffsize
@@ -16,10 +17,12 @@ FUNCTION spec_readint,lun,length,buffsize=buffsize
    CASE crossings OF
       0:BEGIN
          x=uintarr(length)
+         IF signed eq 1 THEN x=intarr(length)
          readu,lun,x
       END
       1:BEGIN
          x2=uintarr(length+headersize)
+         IF signed eq 1 THEN x=intarr(length+headersize)
          readu,lun,x2
          div=(buffsize-(pointer mod buffsize))/2 - 1 ;-1 for footer
          IF div gt 0 THEN x=[x2[0:div-1],x2[div+headersize:length+headersize-1]] ELSE $
