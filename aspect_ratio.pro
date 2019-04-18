@@ -1,4 +1,5 @@
-FUNCTION aspect_ratio, img_in, tas_adjust=tas_adjust, makeplot=makeplot, circle=circle, orientation=orientation, coordinates=coordinates
+FUNCTION aspect_ratio, img_in, tas_adjust=tas_adjust, makeplot=makeplot, circle=circle, $
+         orientation=orientation, coordinates=coordinates, x_ind=x_ind, y_ind=y_ind
    ;Find the aspect ratio of a particle
    ;'coordinates' flag means img_in is a set of coordinates in a [n,2] array rather than an image
    ;AB 3/2014
