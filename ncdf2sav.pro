@@ -1,4 +1,5 @@
-PRO ncdf2sav, ncfile, data, varlist=varlist, lite=lite, nosave=nosave, compress=compress
+PRO ncdf2sav, ncfile, data, varlist=varlist, lite=lite, nosave=nosave, compress=compress, $
+              count=count, offset=offset, stride=stride
    ;PRO to convert an ncdf file to IDL sav format.
    ;If only a few variables are desired, enter the tags into 'varlist'
    ;   Varlist is case sensitive.
@@ -54,7 +55,6 @@ PRO ncdf2sav, ncfile, data, varlist=varlist, lite=lite, nosave=nosave, compress=
    FOR i=0,datainfo.nvars-1 DO BEGIN
       varinfo=ncdf_varinq(id,i)
       IF ((total(varlist eq strupcase(varinfo.name)) gt 0) or (extractall eq 1)) THEN BEGIN
-         ncdf_varget,id,i,vardata
          varname=strjoin(strsplit(varinfo.name,badchar,/ext,/regex), '_')  
          IF total(varname eq reservednames) gt 0 THEN varname=varname+'_'
          firstletter_ascii=byte(strmid(varname,0,1))  ;Make sure it doesn't start with a number
@@ -78,7 +78,9 @@ PRO ncdf2sav, ncfile, data, varlist=varlist, lite=lite, nosave=nosave, compress=
             ENDFOR
                         
             ;Write data to main structure, only do 1-dimensional variables if flagged
-            IF (lite eq 0) or ((lite eq 1) and ((size(vardata))[0] eq 1)) THEN BEGIN
+            ;IF (lite eq 0) or ((lite eq 1) and ((size(vardata))[0] eq 1)) THEN BEGIN
+            IF (lite eq 0) or ((lite eq 1) and (varinfo.ndims eq 1)) THEN BEGIN
+               ncdf_varget,id,i,vardata, count=count, offset=offset, stride=stride
                attributes=create_struct(attributes, varname, attstruct)
                data=create_struct(data, varname, vardata) 
             ENDIF 
