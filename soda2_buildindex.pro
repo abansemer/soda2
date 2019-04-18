@@ -29,9 +29,10 @@ FUNCTION soda2_buildindex, fn, pop
    ENDIF
    
    c=0L
-   pointer=lonarr(1000000)
-   bufftime=dblarr(1000000)
-   date=lonarr(1000000)
+   bignumber=5000000
+   pointer=lonarr(bignumber)
+   bufftime=dblarr(bignumber)
+   date=lonarr(bignumber)
            
    ;Read the buffers, record start time and pointer
    laststart=0

@@ -39,6 +39,7 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
            
    ;All other probes
    ENDIF ELSE BEGIN
+   
       IF n_elements(b.image) gt 1 THEN BEGIN
          p=soda2_processbuffer(b, pop, pmisc)
          rejectbuffer=p.rejectbuffer

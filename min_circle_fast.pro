@@ -7,7 +7,7 @@ function min_circle_fast,xin,yin
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
    
    area=n_elements(xin)
-   if area eq 1 then return,{diam:0.0, center:[xin[0],yin[0]], corners:[0,0], area:1}
+   if area eq 1 then return,{diam:0d, center:double([xin[0],yin[0]]), corners:[0,0], area:1L}
    x=double(xin)
    y=double(yin)
 

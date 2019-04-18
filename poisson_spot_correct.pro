@@ -24,12 +24,12 @@ FUNCTION poisson_spot_correct, img_orig, img_fill, zd=zd
    correction = -1
    Zd = -1
    IF ((img_orig ge 0) AND (img_fill ge 0)) THEN BEGIN
-     ratio = sqrt((img_fill-img_orig)/img_fill)
+      ratio = sqrt((float(img_fill)-img_orig)/img_fill)
       ip=1
       WHILE (ratio GT Dspot_Dedge[ip]) DO BEGIN
 	      ip=ip+1
-	  ENDWHILE
-	  Zd = Zeed[ip-1]
+	   ENDWHILE
+	   Zd = Zeed[ip-1]
       correction = Dedge_D0[ip-1]
    ENDIF
    return, correction

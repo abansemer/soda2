@@ -1,4 +1,4 @@
-FUNCTION mvdiam, conc_raw, midbins, interpolate=interpolate, nan=nan
+FUNCTION mvdiam, conc_raw, endbins, nan=nan
    ;FUNCTION to compute the median volume diameter from a size distribution (or time x size array)
    ;conc should be un-normalized (m^-3).  Use unnormalize.pro if needed.
    ;The interpolate keyword gives an interpolated MVD, instead
@@ -7,10 +7,10 @@ FUNCTION mvdiam, conc_raw, midbins, interpolate=interpolate, nan=nan
    ;Aaron Bansemer, Oct 2006
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
    
-   IF n_elements(interpolate) eq 0 THEN interpolate=0
    IF n_elements(nan) eq 0 THEN nan=0
    IF nan eq 1 THEN nullvalue=!values.f_nan ELSE nullvalue=0
    
+   midbins=(endbins[1:*] + endbins)/2.0
    n=n_elements(midbins)
    z=fltarr(n)
    s=size(conc_raw)  
@@ -20,14 +20,17 @@ FUNCTION mvdiam, conc_raw, midbins, interpolate=interpolate, nan=nan
       tvolume=total(volume)
       
       FOR j=0,n-1 DO z[j]=total(volume[0:j])  ;cumulative volume
-   
-      w=min(where(z ge 0.5*tvolume)) > 0
-      mvd[i]=midbins[w]
+      ;MVD interpolation is a little tricky: assume the high edge of each bin is where the value in z
+      ;   is realized.  So interpolation is done on the high edge, endbins[1:*].  This can be 
+      ;   double-checked by printing out: for q=0,n-1 do print,endbins[q],endbins[q+1],z[q],tvolume/2.0
+      mvd[i]=interpol(endbins[1:*], z, tvolume/2.0)
       
-      IF interpolate and (w ne 0) THEN BEGIN
-         f=(0.5*tvolume-z[w-1])/(z[w]-z[w-1])
-         mvd[i]=((midbins[w]+midbins[(w+1)<(n-1)])/2 - (midbins[w-1]+midbins[w])/2 )*f + (midbins[w-1]+midbins[w])/2 
-      ENDIF
+      ;Old way.  Tested against new way above, only minimal changes.
+      ;w=min(where(z ge 0.5*tvolume)) > 0
+      ;mvd[i]=midbins[w]
+      
+      ;f=(0.5*tvolume-z[w-1])/(z[w]-z[w-1])
+      ;mvd[i]=((midbins[w]+midbins[(w+1)<(n-1)])/2 - (midbins[w-1]+midbins[w])/2 )*f + (midbins[w-1]+midbins[w])/2 
    
       IF tvolume eq 0 THEN mvd[i]=nullvalue
    ENDFOR
