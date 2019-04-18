@@ -1,4 +1,4 @@
-PRO soda2_process_2d, op, textwidgetid=textwidgetid
+PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    ;PRO to make 'spectra' files for a 2D probe, and save them
    ;in IDL's native binary format.  This version places particles
    ;individually in the appropriate time period, rather than the 
@@ -7,8 +7,16 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    ;Aaron Bansemer, NCAR, 2009.
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
-   
+   ;Needed when running from GUI
    IF n_elements(textwidgetid) eq 0 THEN textwidgetid=0
+   
+   ;Option to reprocess data using an already-generated pbp file to save time
+   IF n_elements(fn_pbp) eq 0 THEN reprocess=0 ELSE BEGIN
+      reprocess=1
+      IF file_test(fn_pbp) eq 0 THEN stop, 'PBP file not found.'
+      op.ncdfparticlefile=0    ;Don't rewrite particle files
+      op.particlefile=0
+   ENDELSE
    
    ;The current expected structure of op is:
    ;op={fn:fn, date:date, starttime:hms2sfm(starttime), stoptime:hms2sfm(stoptime), format:format, $
@@ -17,7 +25,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    ;fixedtas:fixedtas, outdir:outdir, project:project, timeoffset:timeoffset, armwidth:armwidth, $
    ;numdiodes:numdiodes, greythresh:greythresh}
   
-;presolve_all
+;resolve_all
 ;profiler,/reset
 ;profiler  
 ;profiler,/system
@@ -26,8 +34,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    soda2_update_op,op
    pop=ptr_new(op)      ;make a pointer to this for all other programs, these are constants
    ;Keep miscellaneous stuff here, things that change during processing
-   misc={f2d_remainder:ulon64arr(512), f2d_remainder_slices:0, yres:op.yres, lastbufftime:0D, $
-         nimages:0, imagepointers:lon64arr(500), lastclock:0d, lastparticlecount:0L, maxsfm:0D}    
+   misc={f2d_remainder:ulon64arr(512), f2d_remainder_slices:0, yres:op.yres, lastbufftime:0D, aircrafttas:0.0,$
+         nimages:0, imagepointers:lon64arr(500), hkpointers:lon64arr(500), lastclock:0d, lastparticlecount:0L, maxsfm:0D}    
    pmisc=ptr_new(misc)  ;a different pointer, for stuff that changes 
    
    ;====================================================================================================
@@ -60,11 +68,6 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    spec2d:fltarr(numrecords, numbins, numarbins) ,$
    spec2d_aspr:fltarr(numrecords, numbins, numarbins) ,$
    spec2d_orientation:fltarr(numrecords, numbins, 18) ,$
-   ;JPL temporary
-   spec1d_spherical:fltarr(numrecords, numbins) ,$
-   spec1d_mediumprolate:fltarr(numrecords, numbins) ,$
-   spec1d_oblate:fltarr(numrecords, numbins) ,$
-   spec1d_maximumprolate:fltarr(numrecords, numbins) ,$
  
    ;Interarrival
    numintbins:numintbins ,$
@@ -93,12 +96,14 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    numbuffsaccepted=intarr(numrecords)
    numbuffsrejected=intarr(numrecords)
    dhist=lonarr(numrecords,op.numdiodes)
+   activetime_sea=dblarr(numrecords)
 
    ;Set up the particle structure.  
    num2process=10000000L ;Limit to reduce memory consumption
-   basestruct={bufftime:0d, probetime:0d, reftime:0d, size:0.0, xsize:0.0, ysize:0.0, areasize:0.0, ar:0.0, aspr:0.0, area:0.0, $
-               allin:0b, centerin:0b, edge_touch:0b, tas:0s, zd:0.0, missed:0.0, overloadflag:0b, orientation:0.0, $
-               perimeterarea:0.0, dof:0b, particle_count:0L}
+   basestruct={buffertime:0d, probetime:0d, reftime:0d, rawtime:0d, inttime:0d, diam:0.0, xsize:0.0, ysize:0.0, $
+               areasize:0.0, arearatio:0.0, aspectratio:0.0, area:0.0, areafilled:0.0,$
+               allin:0b, centerin:0b, edgetouch:0b, probetas:0.0, aircrafttas:0.0, zd:0.0, missed:0.0, overloadflag:0b, orientation:0.0, $
+               perimeterarea:0.0, dofflag:0b, particlecounter:0L}
    x=replicate(basestruct, num2process)
  
    
@@ -135,6 +140,17 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
          free_lun,lun
          got_pth=1
       ENDIF
+      ;NetCDF (NCAR-style for now)
+      IF (suffix eq 'nc') THEN BEGIN      
+         pth_tas=fltarr(numrecords)
+         restorenc, op.pth, varlist=['TIME','TASX']
+         ;Very basic error check
+         good=where((data.tasx gt 0) and (data.tasx lt 400) and (data.time ge op.starttime) and (data.time le op.stoptime))
+         itas=(round(data.time[good])-op.starttime)/op.rate ;find index for each variable
+         ;Fill TAS array, don't bother with averaging.  Note use of i:*, which makes sure gaps are filled in for hirate data.
+         FOR i=0,n_elements(good)-1 DO pth_tas[itas[i]:*] = data.tasx[good[i]]
+         got_pth=1
+      ENDIF
    ENDIF ELSE BEGIN
       pth_tas=fltarr(numrecords)
       IF op.pth ne '' THEN BEGIN  ;Extra warning if a filename was actually entered
@@ -149,34 +165,6 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
       ENDIF ELSE print,'No TAS file entered, using default values'
    ENDELSE
       
-   ;====================================================================================================
-   ;====================================================================================================
-   ;Build index of buffers for all files.  
-   ;====================================================================================================
-   ;====================================================================================================
-   
-   
-   firstfile=1
-   FOR i=0,n_elements(op.fn)-1 DO BEGIN
-      y=soda2_buildindex(op.fn[i], pop)      
-      IF y.error eq 0 THEN BEGIN
-         IF firstfile THEN BEGIN
-            ;Create arrays
-            bufftime=y.bufftime
-            buffdate=y.date
-            buffpoint=y.pointer
-            bufffile=bytarr(y.count)+i
-         ENDIF ELSE BEGIN
-            ;Concatenate arrays if there is more than one file
-            IF op.format eq 'SPEC' THEN stop, 'Multiple files not supported with SPEC format, need to concatenate raw files first'
-            bufftime=[bufftime, y.bufftime]
-            buffdate=[buffdate, y.date]
-            buffpoint=[buffpoint,y.pointer]
-            bufffile=[bufffile,bytarr(y.count)+i]
-         ENDELSE
-         firstfile=0
-      ENDIF ELSE IF y.error eq 1 THEN stop,'Error on build index, check probe ID set correctly.'
-   ENDFOR
    
    ;Set up particlefile
    lun_pbp=2
@@ -216,7 +204,9 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
       ncdfprops=[['time', 'UTC Time', 'seconds', 'double'],$
                  ['probetime', 'Unadjusted Probe Particle Time', 'seconds', 'double'],$
                  ['buffertime', 'Buffer Time', 'seconds', 'double'],$
-                 ['ipt', 'Interarrival Time', 'seconds', 'float'],$
+                 ['rawtime', 'Raw Time', 'slices or seconds', 'double'],$
+                 ['reftime', 'Reference Time for Buffer Matching', 'seconds', 'double'],$
+                 ['inttime', 'Interarrival Time', 'seconds', 'float'],$
                  ['diam', 'Particle Diameter from Circle Fit', 'microns', 'float'],$
                  ['xsize', 'X-size (across array)', 'microns', 'float'],$
                  ['ysize', 'Y-size (along airflow)', 'microns', 'float'],$
@@ -224,17 +214,20 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
                  ['arearatio', 'Area Ratio', 'unitless', 'float'],$
                  ['aspectratio', 'Aspect Ratio', 'unitless', 'float'],$
                  ['area', 'Number of Pixels Shaded', 'pixels', 'short' ],$
+                 ['areafilled', 'Number of Pixels Shaded Including Voids', 'pixels', 'short' ],$
                  ['perimeterarea', 'Number of Perimeter Pixels Shaded', 'pixels', 'short'],$
                  ['allin', 'All-in Flag', 'unitless', 'byte'],$
                  ['centerin', 'Center-in Flag', 'unitless', 'byte'],$
-                 ['dof_flag', 'Depth of Field Flag from Probe', 'unitless', 'byte'],$
+                 ['dofflag', 'Depth of Field Flag from Probe', 'unitless', 'byte'],$
                  ['edgetouch', 'Edge Touch (1=left, 2=right, 3=both)', 'unitless', 'byte'],$
                  ['zd', 'Z Position from Korolev Correction', 'microns', 'float'],$
-                 ['missed', 'Missed Particle Count', 'number', 'short'],$
-                 ['overload', 'Overload Flag', 'boolean', 'byte'],$
-                 ['particle_counter', 'Particle Counter', 'number', 'long'],$
+                 ['missed', 'Missed Particle Count', 'number', 'float'],$
+                 ['probetas', 'True Air Speed for Probe Clock', 'm/s', 'float'],$
+                 ['aircrafttas', 'True Air Speed for Aircraft (if available)', 'm/s', 'float'],$
+                 ['overloadflag', 'Overload Flag', 'boolean', 'byte'],$
+                 ['particlecounter', 'Particle Counter', 'number', 'long'],$
                  ['orientation', 'Particle Orientation Relative to Array Axis', 'degrees', 'float'],$
-                 ['rejection_flag', 'Particle Rejection Code', 'unitless', 'byte']]
+                 ['rejectionflag', 'Particle Rejection Code', 'unitless', 'byte']]
        
       tagnames=ncdfprops[0,*]
       FOR i=0,n_elements(tagnames)-1 DO BEGIN
@@ -276,7 +269,39 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
       printf, lun_pbp, '  14: Particle counter [number]'
       printf, lun_pbp, '-------------------------------------------'
    ENDIF
-    
+   
+   
+   ;====================================================================================================
+   ;====================================================================================================
+   ;Build index of buffers for all files.  
+   ;====================================================================================================
+   ;====================================================================================================
+   
+   
+   firstfile=1
+   FOR i=0,n_elements(op.fn)-1 DO BEGIN
+      y=soda2_buildindex(op.fn[i], pop)      
+      IF y.error eq 0 THEN BEGIN
+         IF firstfile THEN BEGIN
+            ;Create arrays
+            bufftime=y.bufftime
+            buffdate=y.date
+            buffpoint=y.pointer
+            bufffile=bytarr(y.count)+i
+         ENDIF ELSE BEGIN
+            ;Concatenate arrays if there is more than one file
+            IF op.format eq 'SPEC' THEN stop, 'Multiple files not supported with SPEC format, need to concatenate raw files first'
+            bufftime=[bufftime, y.bufftime]
+            buffdate=[buffdate, y.date]
+            buffpoint=[buffpoint,y.pointer]
+            bufffile=[bufffile,bytarr(y.count)+i]
+         ENDELSE
+         firstfile=0
+      ENDIF ELSE IF y.error eq 1 THEN stop,'Error on build index, check probe ID set correctly.'
+   ENDFOR
+ 
+
+   
    ;====================================================================================================
    ;====================================================================================================
    ;Process buffers that fall into the specified time period.  Write individual
@@ -310,101 +335,139 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
       print,'No buffers in specified time range'    
       return
    ENDIF
-   currentfile=-1
+ 
+   IF reprocess eq 0 THEN BEGIN
    
-   ;lastbuffertime=0   
-   lastpercentcomplete=0
-   istop=-1L
-   inewbuffer=lonarr(lastbuff-firstbuff+1)
-   FOR i=firstbuff,lastbuff DO BEGIN
-      ;Open new file if needed
-      IF currentfile ne bufffile[i] THEN BEGIN
-         close,1
-         openr,1,op.fn[bufffile[i]]
-         currentfile=bufffile[i]
-      ENDIF
-      
-      ;Read in buffer
-      point_lun,1,buffpoint[i]
-      b=soda2_read2dbuffer(1,pop)
-      b.time=bufftime[i]   ;In case time changed due to midnight crossing
-      timeindex=long((b.time-op.starttime)/op.rate)>0<(numrecords-1)   ;Index each buffer into right time period
-      
-      ;Commented out b/c time indexing should account for offsets in truetime/reftime
-      ;To-do....
-      ;IF b.overload gt 0 THEN BEGIN
-      ;   timeindex=long((b.time-op.starttime)/op.rate)
-      ;   IF (timeindex ge 0) and (timeindex lt numrecords) THEN deadtime[timeindex]=deadtime[timeindex]+b.overload
-      ;ENDIF
-      
-      ;Update miscellaneous
-      ;*************Update misc.yres here, not yet implemented
-      
-      ;Process
-      IF (*pop).format eq 'SPEC' THEN BEGIN
-         (*pmisc).nimages=y.numimages[i]
-         IF (*pmisc).nimages gt 0 THEN $
-            (*pmisc).imagepointers=i*y.buffsize + y.imagep[(y.firstp[i]):(y.firstp[i]+y.numimages[i]-1)]
-      ENDIF    
-      p=soda2_processbuffer(b,pop,pmisc)
-      dhist[timeindex,*]=dhist[timeindex,*]+p.dhist
-
-      IF p.rejectbuffer eq 0 THEN BEGIN
-        numbuffsaccepted[timeindex]=numbuffsaccepted[timeindex]+1
-        ;Write data to structure
-        n=n_elements(p.size)
-        istart=istop+1
-        inewbuffer[i-firstbuff]=istart  ;Save these start positions
-        istop=istop+n
-        
-        x[istart:istop].bufftime=b.time
-        x[istart:istop].probetime=p.probetime
-        x[istart:istop].reftime=p.reftime
-        x[istart:istop].size=p.size
-        x[istart:istop].xsize=p.xsize
-        x[istart:istop].ysize=p.ysize
-        x[istart:istop].areasize=p.areasize
-        x[istart:istop].ar=p.ar
-        x[istart:istop].aspr=p.aspr
-        x[istart:istop].area=p.area_orig 
-        x[istart:istop].perimeterarea=p.perimeterarea 
-        x[istart:istop].allin=p.allin
-        x[istart:istop].centerin=p.centerin
-        x[istart:istop].edge_touch=p.edge_touch
-        x[istart:istop].tas=b.tas
-        x[istart:istop].zd=p.zd
-        x[istart:istop].missed=p.missed
-        x[istart:istop].particle_count=p.particle_count
-        x[istart:istop].overloadflag=p.overloadflag
-        x[istart:istop].dof=p.dof
-        x[istart:istop].orientation=p.orientation
-   
-        ;Feedback to user
-        percentcomplete=fix(float(i-firstbuff)/(lastbuff-firstbuff)*100)
-        IF percentcomplete ne lastpercentcomplete THEN BEGIN
-            infoline=strtrim(string(percentcomplete))+'%'
-            IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
-        ENDIF
-        lastpercentcomplete=percentcomplete
-      ENDIF ELSE BEGIN
-         numbuffsrejected[timeindex]=numbuffsrejected[timeindex]+1
-      ENDELSE
-      IF (istop+500) gt num2process THEN BEGIN
-         ;Memory limit reached, process particles and reset arrays
-         soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id
-         ncdf_offset=ncdf_offset + istop + 1
-         istop=-1L         
-      ENDIF
-      
-   ENDFOR
+      currentfile=-1      
+      ;lastbuffertime=0   
+      lastpercentcomplete=0
+      istop=-1L
+      inewbuffer=lonarr(lastbuff-firstbuff+1)
+      FOR i=firstbuff,lastbuff DO BEGIN
+         ;Open new file if needed
+         IF currentfile ne bufffile[i] THEN BEGIN
+            close,1
+            openr,1,op.fn[bufffile[i]]
+            currentfile=bufffile[i]
+         ENDIF
          
-   IF istop lt 0 THEN return
-   infoline='Sorting Particles...'
-   IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
-   soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id
-   close,1
+         ;Read in buffer
+         point_lun,1,buffpoint[i]
+         b=soda2_read2dbuffer(1,pop)
+         b.time=bufftime[i]   ;In case time changed due to midnight crossing
+         timeindex=long((b.time-op.starttime)/op.rate)>0<(numrecords-1)   ;Index each buffer into right time period
+         
+         ;Active/dead time computation with SEA buffers
+         IF (*pop).format eq 'SEA' THEN BEGIN
+            timeindex_stoptime=long((b.stoptime-op.starttime)/op.rate)>0<(numrecords-1)
+            
+            ;Add activetime if buffer starts and stop in the same time period
+            IF timeindex eq timeindex_stoptime THEN activetime_sea[timeindex] += (b.stoptime-b.time)
+            
+            ;If buffer brackets 2+ time periods:
+            IF (timeindex lt timeindex_stoptime) and (timeindex_stoptime lt numrecords) THEN BEGIN
+               activetime_sea[timeindex] += ((d.time[timeindex+1]-b.time) < op.rate)  ;(Start of next time period) - (buffer start) 
+               activetime_sea[timeindex_stoptime] += (b.stoptime - d.time[timeindex_stoptime]) ; (buffer stop)-(last time period start)
+               IF (timeindex_stoptime - timeindex) gt 1 THEN activetime_sea[(timeindex+1):(timeindex_stoptime-1)]=op.rate ;Fill intervening buffers
+            ENDIF
+         ENDIF
+                     
+         ;Process
+         IF (*pop).format eq 'SPEC' THEN BEGIN
+            (*pmisc).nimages=y.numimages[i]
+            IF (*pmisc).nimages gt 0 THEN BEGIN
+               (*pmisc).imagepointers=i*y.buffsize + y.imagep[(y.firstp[i]):(y.firstp[i]+y.numimages[i]-1)]
+               (*pmisc).hkpointers=y.hkp[y.ihk[(y.firstp[i]):(y.firstp[i]+y.numimages[i]-1)]]
+            ENDIF
+         ENDIF    
+         
+         ;Send current aircraft TAS to processbuffer for y-sizing on SPEC probes
+         (*pmisc).aircrafttas=pth_tas[timeindex]
+         
+         p=soda2_processbuffer(b,pop,pmisc)
+         dhist[timeindex,*]=dhist[timeindex,*]+p.dhist
+
+         IF p.rejectbuffer eq 0 THEN BEGIN
+         numbuffsaccepted[timeindex]=numbuffsaccepted[timeindex]+1
+         ;Write data to structure
+         n=n_elements(p.diam)
+         istart=istop+1
+         inewbuffer[i-firstbuff]=istart  ;Save these start positions
+         istop=istop+n
+         
+         x[istart:istop].buffertime=b.time
+         x[istart:istop].probetime=p.probetime
+         x[istart:istop].reftime=p.reftime
+         x[istart:istop].rawtime=p.rawtime
+         x[istart:istop].inttime=p.inttime
+         x[istart:istop].diam=p.diam
+         x[istart:istop].xsize=p.xsize
+         x[istart:istop].ysize=p.ysize
+         x[istart:istop].areasize=p.areasize
+         x[istart:istop].arearatio=p.ar
+         x[istart:istop].aspectratio=p.aspr
+         x[istart:istop].area=p.area_orig 
+         x[istart:istop].areafilled=p.area_filled 
+         x[istart:istop].perimeterarea=p.perimeterarea 
+         x[istart:istop].allin=p.allin
+         x[istart:istop].centerin=p.centerin
+         x[istart:istop].edgetouch=p.edgetouch
+         x[istart:istop].probetas=p.clocktas
+         x[istart:istop].aircrafttas=pth_tas[timeindex]
+         x[istart:istop].zd=p.zd
+         x[istart:istop].missed=p.missed
+         x[istart:istop].particlecounter=p.particlecounter
+         x[istart:istop].overloadflag=p.overloadflag
+         x[istart:istop].dofflag=p.dofflag
+         x[istart:istop].orientation=p.orientation
+      
+         ;Feedback to user
+         percentcomplete=fix(float(i-firstbuff)/(lastbuff-firstbuff)*100)
+         IF percentcomplete ne lastpercentcomplete THEN BEGIN
+               infoline=strtrim(string(percentcomplete))+'%'
+               IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
+         ENDIF
+         lastpercentcomplete=percentcomplete
+         ENDIF ELSE BEGIN
+            numbuffsrejected[timeindex]=numbuffsrejected[timeindex]+1
+         ENDELSE
+         IF (istop+500) gt num2process THEN BEGIN
+            ;Memory limit reached, process particles and reset arrays
+            soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id
+            ncdf_offset=ncdf_offset + istop + 1
+            istop=-1L         
+         ENDIF
+         
+      ENDFOR
+            
+      IF istop lt 0 THEN return
+      infoline='Sorting Particles...'
+      IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
+      soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id
+      close,1
 
 
+   ENDIF ELSE BEGIN  ;Reprocessing IF statement
+   
+      ;Reprocess straight from PBP netCDF file
+      restorenc, fn_pbp, 'pbp', var='time'  ;Just to get number of particles
+      infoline='Sorting Particles...'
+      IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
+      
+      FOR i = 0, n_elements(pbp.time)/num2process DO BEGIN  ;Don't apply -1 to i, last iteration does remainder particles
+         x=soda2_restore_pbp(fn_pbp, offset=i*num2process, count=num2process)
+         istop=n_elements(x.time)-1
+         inewbuffer=0  ;Only for 2DC/2DP, ignore for now, should cause crash if tried
+         soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id
+         
+         percentcomplete=fix(float(i+1)*num2process / n_elements(pbp.time) * 100) < 100
+         infoline=strtrim(string(percentcomplete))+'%'
+         IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
+      ENDFOR
+      
+      IF (*pop).format eq 'SEA' THEN print, 'NOTE: Activetime from SEA buffers not computed.  Process from scratch if needed.'
+   ENDELSE
+   
    ;====================================================================================================
    ;====================================================================================================   
    ;Compute concentration, save data
@@ -420,31 +483,28 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
    FOR i=0,numbins-1 DO sa[i]=soda2_samplearea(midbins[i], op.res, op.armwidth, op.numdiodes, op.reconstruct, op.smethod, op.wavelength, centerin=op.centerin)
 
    ;Assume probe is always active, minus deadtime
-   IF op.ignoredeadtime eq 1 THEN activetime=fltarr(numrecords)+op.rate ELSE activetime=(fltarr(numrecords)+op.rate-d.deadtime)>0 
+   IF op.ignoredeadtime eq 1 THEN BEGIN
+      activetime=fltarr(numrecords)+op.rate 
+   ENDIF ELSE BEGIN
+      activetime=(fltarr(numrecords)+op.rate-d.deadtime)>0 
+;      IF (*pop).format eq 'SEA' THEN activetime=activetime_sea
+   ENDELSE
+   
    IF (got_pth eq 1) THEN d.tas=pth_tas
    sv=sa*d.tas*activetime
    
    conc1d=fltarr(numrecords, numbins)  ;size spectra
-   
-   ;JPL temp
-   conc1d_spherical=fltarr(numrecords, numbins)
-   conc1d_mediumprolate=fltarr(numrecords, numbins)
-   conc1d_oblate=fltarr(numrecords, numbins)
-   conc1d_maximumprolate=fltarr(numrecords, numbins) 
-   
+      
    ;Orientation
    orientation_index=fltarr(numrecords, numbins)
+   
+   ;Make count/concentration arrays
    FOR i=0L,numrecords-1 DO BEGIN
       spec1d[i,*]=spec1d[i,*]*(d.corr_fac[i] > 1.0)          ;Make the correction
       d.spec2d[i,*,*]=d.spec2d[i,*,*]*(d.corr_fac[i] > 1.0) 
       d.spec2d_aspr[i,*,*]=d.spec2d_aspr[i,*,*]*(d.corr_fac[i] > 1.0)
       IF d.tas[i]*activetime[i] gt 0 THEN BEGIN
          conc1d[i,*]=spec1d[i,*]/(sa*d.tas[i]*activetime[i])/(binwidth/1.0e6) 
-         ;JPL temp
-         conc1d_spherical[i,*]=d.spec1d_spherical[i,*]/(sa*d.tas[i]*activetime[i])/(binwidth/1.0e6) 
-         conc1d_mediumprolate[i,*]=d.spec1d_mediumprolate[i,*]/(sa*d.tas[i]*activetime[i])/(binwidth/1.0e6) 
-         conc1d_oblate[i,*]=d.spec1d_oblate[i,*]/(sa*d.tas[i]*activetime[i])/(binwidth/1.0e6) 
-         conc1d_maximumprolate[i,*]=d.spec1d_maximumprolate[i,*]/(sa*d.tas[i]*activetime[i])/(binwidth/1.0e6) 
          ;Orientation index computation from histograms
          FOR j=0,numbins-1 DO BEGIN
             omax=max(d.spec2d_orientation[i,j,*], imax)
@@ -461,7 +521,6 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid
          corr_fac:d.corr_fac, poisson_fac:d.poisson_fac, intcutoff:d.intcutoff, zdspec:d.zdspec, zdendbins:d.zdendbins, zdmidbins:d.zdmidbins,$
          pointer:buffpoint, ind:buffindex, currentfile:bufffile, numbuffsaccepted:numbuffsaccepted, numbuffsrejected:numbuffsrejected, dhist:dhist,$
          hist3d:d.hist3d, spec2d_orientation:d.spec2d_orientation, orientation_index:orientation_index}
-         ;, conc1d_spherical:conc1d_spherical, conc1d_mediumprolate:conc1d_mediumprolate, conc1d_oblate:conc1d_oblate, conc1d_maximumprolate:conc1d_maximumprolate }
      
    ;Close pointers and luns
    ptr_free, pop, pmisc
