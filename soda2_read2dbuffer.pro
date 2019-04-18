@@ -21,7 +21,7 @@ FUNCTION soda2_read2dbuffer, lun, pop
       A={probetype:0b, probenumber:0b, hours:0s, minutes:0s, $
         seconds:0s, year:0s, month:0s, day:0s, tas:0s, milliseconds:0s, $
         overload:0s, image:ulonarr(1024) }  
-      IF ((*pop).probetype eq 'F2DC') or ((*pop).probetype eq 'F2DP') THEN $
+      IF ((*pop).probetype eq 'F2DC') or ((*pop).probetype eq 'F2DC_v2') or ((*pop).probetype eq 'F2DP') THEN $
         A={probetype:0b, probenumber:0b, hours:0s, minutes:0s, $
         seconds:0s, year:0s, month:0s, day:0s, tas:0s, milliseconds:0s, $
         overload:0s, image:ulon64arr(512)}  
