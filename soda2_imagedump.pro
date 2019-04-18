@@ -1,6 +1,6 @@
 PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime, $
               all=all, skip=skip, showdividers=showdividers, maxwidth=maxwidth, nofile=nofile,$
-              textwidgetid=textwidgetid
+              textwidgetid=textwidgetid, writejunk=writejunk, numcolumns=numcolumns, rakefixtype=rakefixtype
    ;Make a series of particle image png files from processed OAP data.
    ;Uses the SODA2 '.dat' files to find raw data locations and pointers.
    ;File: the processed SODA2 file for flight of interest
@@ -20,11 +20,12 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    IF n_elements(maxwidth) eq 0 THEN maxwidth=1024
    IF n_elements(nofile) eq 0 THEN nofile=0
    IF n_elements(textwidgetid) eq 0 THEN textwidgetid=0
+   IF n_elements(writejunk) eq 0 THEN writejunk=1
+   IF n_elements(numcolumns) eq 0 THEN numcolumns=2
 
    IF nofile eq 1 THEN data=file ELSE restore, file
    op=data.op
    soda2_update_op,op
-   pop=ptr_new(op)
    ;Need to index SPEC files for frame locations
    IF op.format eq 'SPEC' THEN BEGIN
       openr,lun,op.fn[0],/get_lun
@@ -42,6 +43,9 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    probename=op.shortname
    IF op.probetype eq '2DS' THEN probename=op.shortname+'_'+op.probeid  ;Add 'H' or 'V' specifier
    rate=fix(op.rate)
+
+   ;Output images using a different rakefix than what is in the op structure (for HIWC PIP, mainly)
+   IF n_elements(rakefixtype) ne 0 THEN op.rakefix=rakefixtype
 
    ;Set up blue, black, and white color table
    r=bytarr(6) & g=bytarr(6) & b=bytarr(6)
@@ -81,16 +85,20 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    ;----------------------------------------------------------------------
    ;--------------Main loop start-----------------------------------------
    ;----------------------------------------------------------------------
+   numslices=700
+   imwidth=numcolumns*numslices+200  ;1600
+   headerheight=150 ;Pixels for header
+   imheight=headerheight+(60.0/numcolumns)/rate*(op.numdiodes+7)+50 ;Total image height
+   pop=ptr_new(op)
+
    IF all eq 0 THEN BEGIN
-      headerheight=150 ;Pixels for header
-      imheight=headerheight+30.0/rate*(op.numdiodes+7)+50 ;Total image height
-      emptyimage=bytarr(op.numdiodes,700)
+      emptyimage=bytarr(op.numdiodes,numslices)
       FOR minute=0,numframes DO BEGIN
          imagetime=string(sfm2hms(data.time[i]),form='(i06)')
          IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=imagetime,/append ELSE print,imagetime
          gotimage=0                          ;flag to write only if there are some images.
          device,/close
-         device,set_resolution=[1600,imheight]
+         device,set_resolution=[imwidth,imheight]
 
          ;-------Write image header-------
          xyouts,20,imheight-30, op.date+' '+imagetime+'  Buffer width = '+wid+' microns.',/device,color=1
@@ -99,9 +107,12 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
          xyouts,50,imheight-90, 'Many more images are not shown.  Contact PI for complete images.',/device,color=1
          ;xyouts,50,imheight-110,'Contacts: Andy Heymsfield (heyms1@ncar.ucar.edu ) or  Aaron Bansemer (bansemer@ucar.edu)',/device,color=1
          
+         numaccepted = 0 ;Keep track of the number of accepted particles to avoid writing junk
+         
          ;------ Loop for each sub-image -------
          FOR sec=0,59,rate DO BEGIN
             ind=where(data.ind eq i,buffcount)
+
             IF buffcount gt 0 THEN BEGIN
                buff=soda2_bitimage(op.fn[data.currentfile[ind[0]]], data.pointer[ind[0]], pop, pmisc, divider=showdividers)
                finalimage=buff.bitimage
@@ -110,20 +121,23 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
             ENDIF ELSE finalimage = emptyimage
 
             ;-----Placement details----------
-            xpos=(sec/rate mod 2)*750 + 50
-            ypos=imheight-headerheight-20-op.numdiodes-(sec/rate/2)*(op.numdiodes+7)
+            xpos=(sec/rate mod numcolumns)*(numslices+50) + 50
+            ypos=imheight-headerheight-20-op.numdiodes-(sec/rate/numcolumns)*(op.numdiodes+7)
             s=size(finalimage,/dim)
-            im2=rotate(finalimage[*,0:699<(s[1]-1)],3)
+            im2=rotate(finalimage[*,0:(numslices-1)<(s[1]-1)],3)
             ;Place time and image
             xyouts,xpos-20,ypos+op.numdiodes/2,strtrim(string(sec),2),/device,color=1
-            tv,bytarr(700+2,op.numdiodes+2)+1,xpos-1,ypos-1  ;Black outline
-            tv,bytarr(700,op.numdiodes),xpos,ypos            ;White center
+            tv,bytarr(numslices+2,op.numdiodes+2)+1,xpos-1,ypos-1  ;Black outline
+            tv,bytarr(numslices,op.numdiodes),xpos,ypos            ;White center
             IF op.probetype eq 'CIPG' THEN im2=im2+2    ;Shift for color table
             tv,im2,xpos,ypos
 
+            numaccepted += data.count_accepted[i]
             i=i+1
          ENDFOR
+         
          ;-------Write the image---------
+         IF (writejunk eq 0) and (numaccepted eq 0) THEN gotimage = 0  ;Cull bad images
          IF (gotimage eq 1) THEN write_png,outdir+op.date+'_'+imagetime+'_'+probename+'.png',tvrd(),r,g,b
       ENDFOR
    
