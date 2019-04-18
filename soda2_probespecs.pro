@@ -334,12 +334,27 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=100
-   x.armwidth=22.7
+   x.armwidth=22.2  ;Has Korolev tips
    x.numdiodes=64
    x.tau=0.051e-6
    x.firstsliceskip=0
    x.wavelength=0.658e-6
-   x.seatag=35000
+   x.seatag=[35000, 34000, 0]  ;Second item is 1D data
+   all=[all,x]
+
+   x.probename='HIWC PIP (PADS)'
+   x.shortname='PIP'
+   x.format='DMT'
+   x.subformat=1
+   x.probetype='CIP'
+   x.probeid=''
+   x.res=100
+   x.armwidth=22.2  ;Has Korolev tips
+   x.numdiodes=64
+   x.tau=0.051e-6
+   x.firstsliceskip=0
+   x.wavelength=0.658e-6
+   x.seatag=[35000, 34000, 0]  ;Second item is 1D data
    all=[all,x]
 
    x.probename='CCP from SPEC (SEA M300)'
@@ -377,6 +392,21 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.format='RAF'
    x.subformat=3
    x.probetype='F2DC'
+   x.probeid='C4'
+   x.res=25
+   x.armwidth=6.1
+   x.numdiodes=64
+   x.tau=0.051e-6
+   x.firstsliceskip=0
+   x.wavelength=0.658e-6
+   all=[all,x]
+
+   x=base
+   x.probename='NCAR Fast-2DC_v2 [C4] (25um)'
+   x.shortname='F2DC'
+   x.format='RAF'
+   x.subformat=3
+   x.probetype='F2DC_v2'
    x.probeid='C4'
    x.res=25
    x.armwidth=6.1
@@ -440,6 +470,21 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.format='RAF'
    x.subformat=3
    x.probetype='F2DC'
+   x.probeid='C6'
+   x.res=10
+   x.armwidth=6.1
+   x.numdiodes=64
+   x.tau=0.051e-6
+   x.firstsliceskip=0
+   x.wavelength=0.658e-6
+   all=[all,x]
+   
+   x=base
+   x.probename='NCAR Fast-2DC_v2 [C6] (10um)' ;30MHz clock
+   x.shortname='F2DC10'
+   x.format='RAF'
+   x.subformat=3
+   x.probetype='F2DC_v2'
    x.probeid='C6'
    x.res=10
    x.armwidth=6.1
