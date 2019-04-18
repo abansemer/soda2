@@ -14,6 +14,12 @@ function read2dseabuffer,lun,res=res,sun=sun,tags=tags,probetype=probetype
    IF n_elements(sun) eq 0 THEN sun=0 ; assume running on non-sun, for byte swapping
    IF n_elements(tags) eq 0 THEN tags=[5000,5001,5002]  ; standard tags if not specified
    IF tags[0] eq 0 THEN tags=[5000,5001,5002]
+   
+   ;Some older instruments don't have tas and/or elapsed tags, figure that out here.
+   tas_tagexists=0
+   elapsed_tagexists=0
+   IF n_elements(tags) ge 2 THEN tas_tagexists=1
+   IF n_elements(tags) eq 3 THEN elapsed_tagexists=1
       
    ;point_lun,-(lun),lastpointer ; get current pointer in to file
    q=fstat(lun)
@@ -22,7 +28,7 @@ function read2dseabuffer,lun,res=res,sun=sun,tags=tags,probetype=probetype
    ;time=bytarr(18)
    time=intarr(9)
    image=ulonarr(1024)
-   IF probetype eq 'HVPS' THEN image=uintarr(2048)
+   IF (probetype eq 'HVPS') or (probetype eq 'HAIL') THEN image=uintarr(2048)
    elapsedtime=0ul
    tas=[0us, 0us] ;TAS factors  ;0ul
    imagepoint=0
@@ -33,8 +39,8 @@ function read2dseabuffer,lun,res=res,sun=sun,tags=tags,probetype=probetype
          buf=readdatadir(lun, sun=sun) 
          IF buf.tagnumber eq 0       THEN timepoint=lastpointer+buf.dataoffset  ;found a time tag
          IF buf.tagnumber eq tags[0] THEN imagepoint=lastpointer+buf.dataoffset
-         IF buf.tagnumber eq tags[1] THEN taspoint=lastpointer+buf.dataoffset
-         IF buf.tagnumber eq tags[2] THEN elapsedpoint=lastpointer+buf.dataoffset
+         IF (tas_tagexists eq 1) &&  (buf.tagnumber eq tags[1]) THEN taspoint=lastpointer+buf.dataoffset
+         IF (elapsed_tagexists eq 1) && (buf.tagnumber eq tags[2]) THEN elapsedpoint=lastpointer+buf.dataoffset
          i=i+1
       ENDREP UNTIL (buf.tagnumber eq 999) or (lastpointer+i*16 gt q.size)
       IF imagepoint eq 0 THEN BEGIN              ;no 2d data in this buffer
@@ -44,7 +50,7 @@ function read2dseabuffer,lun,res=res,sun=sun,tags=tags,probetype=probetype
       IF (lastpointer+i*16 gt q.size) THEN return,{starttime:999999,image:0,eof:1}
    ENDREP UNTIL gotdata  ; repeat until one of the sea buffers contains 2d data
    
-   IF n_elements(elapsedpoint) eq 0 THEN BEGIN
+   IF n_elements(imagepoint) eq 0 THEN BEGIN
       print, 'No data found, check tag numbers in read2dseabuffer.pro'
       stop
    ENDIF
@@ -61,17 +67,21 @@ function read2dseabuffer,lun,res=res,sun=sun,tags=tags,probetype=probetype
    point_lun,lun,imagepoint
    readu,lun,image
    ;IF sun THEN image=swap_endian(image)
-   
-   point_lun,lun,elapsedpoint
-   readu,lun,elapsedtime
-   ;IF sun THEN elapsedtime=swap_endian(elapsedtime)
-   elapsedtime=elapsedtime*double(25e-6)
-   
-   point_lun,lun,taspoint
-   readu,lun,tas
-   ;IF sun THEN tas=swap_endian(tas)
-   tas2=tas[0]*100.0*res*1.0e-6/ (tas[1]*0.002)  ;see SEA manual TAS factors (type 6) and equation in type 8
 
+   IF (elapsed_tagexists eq 1) THEN BEGIN
+      point_lun,lun,elapsedpoint
+      readu,lun,elapsedtime
+      ;IF sun THEN elapsedtime=swap_endian(elapsedtime)
+      elapsedtime=elapsedtime*double(25e-6)
+   ENDIF ELSE elapsedtime=0.0
+   
+   IF (tas_tagexists eq 1) THEN BEGIN
+      point_lun,lun,taspoint
+      readu,lun,tas
+      ;IF sun THEN tas=swap_endian(tas)
+      tas2=tas[0]*100.0*res*1.0e-6/ (tas[1]*0.002)  ;see SEA manual TAS factors (type 6) and equation in type 8
+   ENDIF ELSE tas2=0.0
+   
    nextbuffer=buf.dataoffset+lastpointer+buf.parameter1*65536l   ; the 999 tag points to the start of next buffer
    point_lun,lun,nextbuffer ; position the file pointer at the start of next buffer
    return,{starttime:hhmmss, stoptime:hhmmss_stop, year:time[0], month:time[1], day:time[2], image:image,difftime:elapsedtime,tas:tas2,eof:0,pointer:q.cur_ptr}
