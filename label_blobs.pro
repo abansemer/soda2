@@ -7,22 +7,20 @@ FUNCTION label_blobs, img, _EXTRA=e, dilate=dilate
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
    
    IF n_elements(dilate) eq 0 THEN dilate=0
-   img2=1<img                   ;make sure its a binary array
-   s=size(img2)
-   IF s[0] eq 1 THEN s=[0,s]   ;avoid an error where 1-D arrays have different size parameters
+   img2 = 1b < img                 ;make sure its a binary array
+   s = [size(img2,/dim), 1]        ;adding a 1 to array fixes 1-d issue
    
-   temp=bytarr(s[1]+2,s[2]+2)  ;recreate array with extra 'edge' on each side
-   temp[1:s[1],1:s[2]]=img2     ;
+   temp = bytarr(s[0]+2,s[1]+2)    ;recreate array with extra 'edge' on each side
+   temp[1:s[0],1:s[1]] = img2
    
    IF dilate ne 0 THEN BEGIN
-      bb=label_region(dilate(temp,bytarr(dilate*2+1,dilate*2+1)+1), _EXTRA=e)
-      aa=bytarr(s[1]+2,s[2]+2)
-      shaded=where(temp eq 1)
-      aa[shaded]=bb[shaded]
+      kerneldim = (dilate*2+1) < (s[1]+2)  ;Can't exceed temp's dimensions
+      kernel = bytarr(kerneldim, kerneldim)+1
+      dilated = label_region(dilate(temp, kernel, _EXTRA=e))
+      labels = temp*dilated
    ENDIF ELSE BEGIN
-      aa=label_region(temp, _EXTRA=e) ;make labels
+      labels = label_region(temp, _EXTRA=e) ;make labels
    ENDELSE
    
-   aa=aa[1:s[1],1:s[2]]          ;crop array back to original size
-   return,aa
+   return, byte(labels[1:s[0],1:s[1]])          ;crop array back to original size
 END
