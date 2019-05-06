@@ -173,6 +173,10 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       ncdf_varput,ncdf_id,varid,x[0:istop].dofflag,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'edgetouch')
       ncdf_varput,ncdf_id,varid,x[0:istop].edgetouch,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'xpos')
+      ncdf_varput,ncdf_id,varid,x[0:istop].xpos,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'ypos')
+      ncdf_varput,ncdf_id,varid,x[0:istop].ypos,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'zd')
       ncdf_varput,ncdf_id,varid,x[0:istop].zd,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'missed')

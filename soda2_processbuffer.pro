@@ -350,6 +350,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    area_filled=fltarr(num_images)
    perimeterarea=fltarr(num_images)  ;Number of pixels on the border, for water detection
    zd=fltarr(num_images)
+   xpos=fltarr(num_images)
+   ypos=fltarr(num_images)
    nsep=intarr(num_images)
    dhist=intarr((*pop).numdiodes)
    
@@ -415,11 +417,13 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
       centerin[i]=part.centerin
       edgetouch[i]=part.edgetouch 
       zd[i]=zeed
+      xpos[i]=part.c[0]
+      ypos[i]=part.c[1]
       orientation[i]=part.orientation
       perimeterarea[i]=part.perimeterarea
    ENDFOR   ;image loop end
 
    return,{diam:diam,xsize:xsize,ysize:ysize,areasize:areasize,probetime:time_sfm,reftime:reftime,rawtime:rawtime,ar:area_ratio,aspr:aspr,rejectbuffer:0,bitimage:bitimage,$
-           allin:allin,centerin:centerin,streak:streak,zd:zd,dhist:dhist,nslices:nslices,missed:missed,nsep:nsep,overloadflag:overloadflag,dofflag:dof,$
+           allin:allin,centerin:centerin,streak:streak,zd:zd,dhist:dhist,nslices:nslices,missed:missed,nsep:nsep,overloadflag:overloadflag,dofflag:dof,xpos:xpos,ypos:ypos,$
            orientation:orientation, area_orig:area_orig, area_filled:area_filled, perimeterarea:perimeterarea, particlecounter:particle_count, edgetouch:edgetouch, inttime:inttime, clocktas:clocktas}  
 END

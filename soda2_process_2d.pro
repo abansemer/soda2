@@ -101,7 +101,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    ;Set up the particle structure.  
    num2process=10000000L ;Limit to reduce memory consumption
    basestruct={buffertime:0d, probetime:0d, reftime:0d, rawtime:0d, inttime:0d, diam:0.0, xsize:0.0, ysize:0.0, $
-               areasize:0.0, arearatio:0.0, aspectratio:0.0, area:0.0, areafilled:0.0,$
+               areasize:0.0, arearatio:0.0, aspectratio:0.0, area:0.0, areafilled:0.0, xpos:0.0, ypos:0.0,$
                allin:0b, centerin:0b, edgetouch:0b, probetas:0.0, aircrafttas:0.0, zd:0.0, missed:0.0, overloadflag:0b, orientation:0.0, $
                perimeterarea:0.0, dofflag:0b, particlecounter:0L}
    x=replicate(basestruct, num2process)
@@ -216,6 +216,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
                  ['area', 'Number of Pixels Shaded', 'pixels', 'short' ],$
                  ['areafilled', 'Number of Pixels Shaded Including Voids', 'pixels', 'short' ],$
                  ['perimeterarea', 'Number of Perimeter Pixels Shaded', 'pixels', 'short'],$
+                 ['xpos', 'X-position of Particle Center (across array)', 'pixels', 'float'],$
+                 ['ypos', 'Y-position of Particle Center (along airflow)', 'pixels', 'float'],$
                  ['allin', 'All-in Flag', 'unitless', 'byte'],$
                  ['centerin', 'Center-in Flag', 'unitless', 'byte'],$
                  ['dofflag', 'Depth of Field Flag from Probe', 'unitless', 'byte'],$
@@ -415,6 +417,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          x[istart:istop].probetas=p.clocktas
          x[istart:istop].aircrafttas=pth_tas[timeindex]
          x[istart:istop].zd=p.zd
+         x[istart:istop].xpos=p.xpos
+         x[istart:istop].ypos=p.ypos
          x[istart:istop].missed=p.missed
          x[istart:istop].particlecounter=p.particlecounter
          x[istart:istop].overloadflag=p.overloadflag
