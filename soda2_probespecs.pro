@@ -211,6 +211,21 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.wavelength=0.658e-6
    all=[all,x]   
 
+   x.probename='SEA CIP-Grey (SEA M300)'
+   x.shortname='CIPG'
+   x.format='SEA'
+   x.subformat=1
+   x.probetype='CIPG'
+   x.probeid=''
+   x.res=25
+   x.armwidth=7.0
+   x.numdiodes=64
+   x.tau=0.051e-6
+   x.firstsliceskip=0
+   x.wavelength=0.658e-6
+   x.seatag=[3000, 2000]
+   all=[all,x]   
+   
    x.probename='Shanxi CIP-Mono (PADS)'
    x.shortname='CIP'
    x.format='DMT'

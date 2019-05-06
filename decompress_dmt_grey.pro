@@ -11,9 +11,10 @@ FUNCTION decompress_dmt_grey, cimage
    partcount=0
    timeline=lonarr(300)
    badbuffer={particle_count:0,bitimage:bytarr(64,1000),sync_ind:0, time_elap:0, time_sfm:0, slice_count:0, error:1}
-   FOR i=0,n_elements(cimage)-1 DO BEGIN
+   bufferlength=n_elements(cimage) < 4096  ;Some buffers come with padding, ignore anything past 4096 bytes
+   FOR i=0, bufferlength-1 DO BEGIN
       IF cimage[i] eq 255 THEN blankdetect=1
-      IF cimage[i] ge 128 THEN BEGIN
+      IF cimage[i] gt 128 THEN BEGIN
          ;This is a "count" byte
          n=cimage[i] and 127b   
          im[next:next+n-1]=pairs[3]
