@@ -69,6 +69,5 @@ FUNCTION soda2_findsize, img, xres, yres
    out.ar=(area_original/circle_area_imaged) < 1.0
 
    out.areasize=out.diam*sqrt(out.ar)   ;Can show by derivation.  This also adjusts for partial images.
- 
    return, out
 END

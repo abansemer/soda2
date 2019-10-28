@@ -5,9 +5,9 @@ function find_radius, p1,p2,p3
    ;Based on algorithm by Goldman, in Graphics Gems "Triangles"
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
    
-   d1=float(p3-p1)##transpose(p2-p1)
-   d2=float(p3-p2)##transpose(p1-p2)
-   d3=float(p1-p3)##transpose(p2-p3)
+   d1=double(p3-p1)##transpose(p2-p1)
+   d2=double(p3-p2)##transpose(p1-p2)
+   d3=double(p1-p3)##transpose(p2-p3)
    
    c=(d2*d3+d3*d1+d1*d2)
    

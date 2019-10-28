@@ -60,8 +60,23 @@ function min_circle_fast,xin,yin
       corners=[P,Q,R]
    ENDELSE
 
+   ;Catch and correct error which can occur if all points are on a very long straight line
+   IF finite(circ.r) eq 0 THEN BEGIN   ;Radius will be NaN in this case
+      xwid=max(xin,ixmax)-min(xin,ixmin)
+      ywid=max(yin,iymax)-min(yin,iymin)
+      ;Use maximally separated x or y extent and recompute
+      IF xwid gt ywid THEN BEGIN
+         P=ixmax
+         Q=ixmin
+      ENDIF ELSE BEGIN
+         P=iymax
+         Q=iymin
+      ENDELSE
+      radius=sqrt((x[P]-x[Q])^2+(y[P]-y[Q])^2)/2.0
+      center=[(x[P]+x[Q])/2.0,(y[P]+y[Q])/2.0]
+      circ={r:radius,center:center}
+      corners=[P,Q]    
+   ENDIF
+   
    return,{diam:circ.r*2, center:circ.center, corners:corners, area:area}  ;RETURNS *DIAMETER*
 END
-   
-   
-   
