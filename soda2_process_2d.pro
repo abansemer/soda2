@@ -118,8 +118,17 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
       ;IDL sav files      
       IF (suffix eq 'dat') or (suffix eq 'sav') THEN BEGIN      
          restore,op.pth
-         IF total(d.time - data.time) ne 0 THEN stop,'PTH time does not match.'
-         pth_tas=data.tas
+         IF total(d.time - data.time) ne 0 THEN BEGIN
+            print, 'PTH time does not match, using nearest point.'
+            pth_tas=fltarr(numrecords)
+            good=where((data.tas gt 0) and (data.tas lt 400) and (data.time ge op.starttime) and (data.time le op.stoptime), ngood)
+            IF ngood eq 0 THEN stop, 'Time mismatch for TAS file.'
+            itas=(round(data.time[good])-op.starttime)/op.rate ;find index for each variable
+            ;Fill TAS array, don't bother with averaging.  Note use of i:*, which makes sure gaps are filled in for hirate data.
+            FOR i=0,n_elements(good)-1 DO pth_tas[itas[i]:*] = data.tas[good[i]]
+         ENDIF ELSE BEGIN
+            pth_tas=data.tas
+         ENDELSE
          got_pth=1
       ENDIF
       ;ASCII or CSV files, assumes time and tas in first two columns
