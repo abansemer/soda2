@@ -689,7 +689,22 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.wavelength=0.6328e-6
    x.seatag=[5000, 5001, 5002]
    all=[all,x]
-   
+
+   x.probename='UND CIP (SEA M300)'
+   x.shortname='CIP'
+   x.format='SEA'
+   x.subformat=1
+   x.probetype='CIP'
+   x.probeid=''
+   x.res=25
+   x.armwidth=6.0
+   x.numdiodes=64
+   x.tau=0.051e-6
+   x.firstsliceskip=0
+   x.wavelength=0.658e-6
+   x.seatag=[33000, 32000, 0]  ;Second item is 1D data
+   all=[all,x]
+
    x=base
    x.probename='MSC 2DC'
    x.shortname='2DC'

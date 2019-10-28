@@ -69,6 +69,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
 
    ;General setup
    set_plot,'z'
+   !p.charsize=1.0
    n=n_elements(data.time)
 
    wid=strtrim(string(long(op.res*op.numdiodes)),2)  ; buffer width (for header)
