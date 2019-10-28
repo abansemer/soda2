@@ -203,31 +203,41 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           ;Also account for missed/skipped images too, also LOTS of them.
           previouscount=[(*pmisc).lastparticlecount, x.particle_count]
           diffcount=x.particle_count-previouscount
+          rollover=where(diffcount lt -10000, nrollovers)  ;Rollovers happen at 32767, have to adjust manually since not at uint limit
+          IF nrollovers gt 0 THEN diffcount[rollover]+=32767
           previoustime=[(*pmisc).lastclock, x.time_sfm]
           difftime=x.time_sfm-previoustime
-          deadtime=difftime-difftime/diffcount
           greymax=intarr(n_elements(x.time_sfm))
           ;Eliminate particles that don't have at least 1 level-2 pixel.  Iterating to n-2 will automatically eliminate final incomplete image.
           FOR i=0, n_elements(x.time_sfm)-2 DO greymax[i]=max(bitimage[*,startline[i]:stopline[i]])
+          IF (*pop).format eq 'SEA' THEN maxdiff = 5000 ELSE maxdiff = 50  ;Allow a greater counter diff for SEA due to missing buffers
           
-          good=where((diffcount gt 0) and (diffcount lt 50) and (difftime gt 0) and $
-                     (x.slice_count ne 0) and (x.slice_count lt 150) and (greymax ge 2),num_images)
+          good=where((diffcount gt 0) and (diffcount lt maxdiff) and (difftime gt 0) and $
+                     (x.slice_count ne 0) and (x.slice_count lt 150) and (greymax ge 2) and (x.time_sfm gt 0),num_images)
           IF num_images lt 4 THEN return, nullbuffer  ; This is a bad buffer after num_images updated
           startline=startline[good]
           stopline=stopline[good]
           time_sfm=x.time_sfm[good]
           rawtime=time_sfm  ;No difference
+          ;Reform previous time to use only good particles
+          previoustime=[(*pmisc).lastclock, x.time_sfm[good]]
+          inttime=x.time_sfm[good]-previoustime
           particle_count=x.particle_count[good]
           dof=bytarr(num_images)+1  ;No dof flag, assume all are good
-          deadtime=deadtime[good]
-          missed=diffcount[good]-1
+          ;Need to reform previouscount now to only use good particles
+          previouscount=[(*pmisc).lastparticlecount, x.particle_count[good]]
+          diffcount=x.particle_count[good]-previouscount
+          rollover=where(diffcount lt -10000, nrollovers)  ;Rollovers happen at 32767, have to adjust manually since not at uint limit
+          IF nrollovers gt 0 THEN diffcount[rollover]+=32767
+          missed=diffcount-1        
+          overload=byte(missed<1)         ;Flag these particles for computing dead time
           (*pmisc).lastparticlecount=particle_count[num_images-1]
           (*pmisc).lastclock=time_sfm[num_images-1]
                  
           reftime=time_sfm[num_images-1]  ;This is the time that -should- match the buffer time          
           restore_slice=0      
           stretch=fltarr(num_images)+1.0  ;Not implemented yet for this probe, assume no stretch
-          inttime=dblarr(num_images)   ;Not yet implemented for this probe
+          ;inttime=dblarr(num_images)   ;Not yet implemented for this probe
           clocktas=fltarr(num_images)+buffer.tas
        END
 
@@ -265,7 +275,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
                particle_count[c]=x.particlecount
                rawtime[c]=x.time
                clocktas[c]=hk.tas
-               IF (*pmisc).aircrafttas gt 0 THEN stretch[c]=(*pmisc).aircrafttas/hk.tas
+               ;Compute stretching factor, keep between reasonable values 0.1 to 10
+               IF ((*pmisc).aircrafttas gt 0) and (hk.tas gt 0) THEN stretch[c]=((*pmisc).aircrafttas/hk.tas) > 0.1 < 10.0
                freq=double((*pop).res/(1.0e6*clocktas[c]))  ; the time interval of each tick in a timeline
                IF ((*pop).probetype eq 'HVPS3') THEN BEGIN
                   x.time=x.timetrunc  ;HVPS has some timing errors, use truncated version.
