@@ -1,4 +1,4 @@
-FUNCTION compute_bulk_simple, conc1d, endbins, binstart=binstart, acoeff=acoeff, bcoeff=bcoeff, _extra=e, mass=mass
+FUNCTION compute_bulk_simple, conc1d, endbins, binstart=binstart, binstop=binstop, acoeff=acoeff, bcoeff=bcoeff, _extra=e, mass=mass, sizerange=sizerange
    ;Compute IWC from simple power law from for a single or to-be-merged spectra.
    ;conc1d in m^-4, endbins in um, iwc in g/m3
    ;AB 9/2009
@@ -6,7 +6,6 @@ FUNCTION compute_bulk_simple, conc1d, endbins, binstart=binstart, acoeff=acoeff,
     
    IF n_elements(acoeff) eq 0 THEN acoeff=0.00294  ;Use BF as default
    IF n_elements(bcoeff) eq 0 THEN bcoeff=1.9
-   IF n_elements(binstart) eq 0 THEN binstart=0
    
    endbins=float(endbins)
    numbins=n_elements(endbins)-1
@@ -23,7 +22,15 @@ FUNCTION compute_bulk_simple, conc1d, endbins, binstart=binstart, acoeff=acoeff,
       s=size(conc1d,/dim)
    ENDIF
    num=s[0]
-   binstop=s[1]-1
+   
+   ;Get range indexes
+   IF n_elements(binstart) eq 0 THEN binstart=0
+   IF n_elements(binstop) eq 0 THEN binstop=s[1]-1
+   IF n_elements(sizerange) eq 2 THEN BEGIN
+      binstart=min(where(endbins ge sizerange[0]))
+      binstop=max(where(endbins le sizerange[1]))
+      print,binstart,binstop,endbins[binstart],endbins[binstop]
+   ENDIF
    
    iwc=fltarr(num)
    lwc=fltarr(num)
@@ -39,6 +46,7 @@ FUNCTION compute_bulk_simple, conc1d, endbins, binstart=binstart, acoeff=acoeff,
    dm6=(6/!pi)^2 * mass^2 * 1.e6
    midbins_melted=(6/!pi*mass)^(1.0/3.0)*1e4
    msd=conc1d*0.0
+   msdnorm=conc1d*0.0
    
    FOR i=0L,num-1 DO BEGIN
       spec=conc1d[i,*]*binwidth/1.0e6
@@ -46,6 +54,7 @@ FUNCTION compute_bulk_simple, conc1d, endbins, binstart=binstart, acoeff=acoeff,
       lwc[i]=total((massLWC*spec)[binstart:binstop])
       z[i]=total((dm6*spec)[binstart:binstop])
       msd[i,*]=mass*spec
+      msdnorm[i,*]=mass*spec/(binwidth/1.0e6)
       IF iwc[i] gt 0 THEN dmass[i]=total((mass*spec*midbins)[binstart:binstop])/iwc[i]  
       IF iwc[i] gt 0 THEN dmassmelted[i]=total((mass*spec*midbins_melted)[binstart:binstop])/iwc[i]  
       IF iwc[i] gt 0 THEN dmedianmass[i]=mmdiam((mass*spec)[binstart:binstop], endbins[binstart:binstop+1])
@@ -58,5 +67,5 @@ FUNCTION compute_bulk_simple, conc1d, endbins, binstart=binstart, acoeff=acoeff,
    mnd=meandiam(u[*,binstart:binstop],midbins[binstart:binstop])
 
    return, {iwc:iwc, lwc:lwc, dmass:dmass, dmedianmass:dmedianmass, dmassw:dmassw, dmassmelted:dmassmelted, $
-            dbz:10*(alog10(z))-7.2, dbzw:10*(alog10(z)), nt:nt, mvd:mvd, mnd:mnd, msd:msd} 
+            dbz:10*(alog10(z))-7.2, dbzw:10*(alog10(z)), nt:nt, mvd:mvd, mnd:mnd, msd:msd, msdnorm:msdnorm} 
 END
