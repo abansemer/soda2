@@ -320,9 +320,11 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                    contour,conc,x,yaxis,/cell,nlevels=nlevels,ytitle='Diode Number',/ys,yr=drange,zr=zrange,c_colors=c_colors
                    
                    barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
-                   barposy=([0.95,1.0])*(!y.window[1]-!y.window[0]) + !y.window[0]
+                   barposy=([0.95,0.99])*(!y.window[1]-!y.window[0]) + !y.window[0]
                    bar=findgen(nlevels+1)/nlevels*(zrange[1]-zrange[0])+zrange[0]
                    xsave=!x
+                   k=0.002
+                   polyfill,[barposx[0]-k,barposx[1]+k,barposx[1]+k,barposx[0]-k],[barposy[0]-k,barposy[0]-k,barposy[1]+k,barposy[1]+k],/norm,color=255
                    contour,[[bar],[bar]],findgen(nlevels+1),[0,1],/cell,nlevels=nlevels,$
                       position=[barposx[0],barposy[0],barposx[1],barposy[1]],$
                       xstyle=5,ystyle=5,zr=zrange,/noerase,noclip=0,c_colors=c_colors,$

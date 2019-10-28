@@ -11,7 +11,7 @@ FUNCTION soda2_reject, a, inttime, nextinttime, cutoff, clustercount, binningsiz
    IF ((*pop).centerinrejection eq 1) and (a.centerin eq 0) THEN reject=6  ;Center-in rejection
    IF (a.arearatio lt 0.10) or (a.arearatio gt 1.0) THEN reject=1      ;Low area ratio
    IF (inttime lt cutoff) or (nextinttime lt cutoff) THEN reject=2                  ;Below interarrival
-   IF (binningsize lt min((*pop).endbins)) or (binningsize gt max((*pop).endbins)) THEN reject=3     ;Out of size range
+   IF (binningsize lt min((*pop).endbins)) or (binningsize gt max((*pop).endbins)) or (finite(binningsize) eq 0) THEN reject=3     ;Out of size range
    IF ((*pop).reconstruct eq 0) and (a.allin eq 0) THEN reject=4
    IF ((*pop).clusterthresh gt 0) and (clustercount ge 2) THEN reject=5
    ;IF a.nsep ge 1 THEN reject=6  ;Look for gaps between two particles  ;Now done with 'keeplargest' option
