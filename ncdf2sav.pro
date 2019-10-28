@@ -88,6 +88,8 @@ PRO ncdf2sav, ncfile, data, varlist=varlist, lite=lite, nosave=nosave, compress=
       ENDIF
    ENDFOR
   
+   ncdf_close, id
+   
    ;Merge attributes into main structure
    data=create_struct('attributes', attributes, data)
 
