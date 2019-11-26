@@ -28,8 +28,8 @@ FUNCTION compute_bulk_simple, conc1d, endbins, binstart=binstart, binstop=binsto
    IF n_elements(binstop) eq 0 THEN binstop=s[1]-1
    IF n_elements(sizerange) eq 2 THEN BEGIN
       binstart=min(where(endbins ge sizerange[0]))
-      binstop=max(where(endbins le sizerange[1]))
-      print,binstart,binstop,endbins[binstart],endbins[binstop]
+      binstop=max(where(endbins le sizerange[1]))-1
+      print,binstart,binstop,endbins[binstart],endbins[binstop+1]
    ENDIF
    
    iwc=fltarr(num)
