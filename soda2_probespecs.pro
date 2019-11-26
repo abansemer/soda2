@@ -7,7 +7,7 @@ FUNCTION soda2_probespecs, name=name, id=id
         
    base={probename:'', shortname:'', format:'', subformat:0s, probetype:'', probeid:'', $
          res:0.0, armwidth:0.0, numdiodes:0.0, tau:0.0, firstsliceskip:0, arrayid:0s, $
-         dofthreshold:0.0, wavelength:0.0, seatag:[33000,0,0]}
+         dofthreshold:0.0, wavelength:0.0, dofconst:3.0, seatag:[33000,0,0]}
    ;Tau is the response time in seconds as in Baumgardner 1997 JTECH   
    ;Legacy probes use mean value from Strapp et al JTECH 2001, newer probes various communications.
 
@@ -448,7 +448,7 @@ FUNCTION soda2_probespecs, name=name, id=id
 
 
    x=base
-   x.probename='NCAR Fast-2DC (25um) with 66% DoF threshold'
+   x.probename='NCAR Fast-2DC (25um) 66% DoF threshold'
    x.shortname='F2DC'
    x.format='RAF'
    x.subformat=3
@@ -579,6 +579,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.numdiodes=128
    x.tau=41.0e-9
    x.firstsliceskip=0
+   x.dofconst=8.12
    x.wavelength=0.785e-6
    all=[all,x]
    
@@ -594,6 +595,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.numdiodes=128
    x.tau=41.0e-9
    x.firstsliceskip=0
+   x.dofconst=8.12
    x.wavelength=0.785e-6
    all=[all,x]
    
@@ -609,6 +611,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.numdiodes=128
    x.tau=41.0e-9
    x.firstsliceskip=0
+   x.dofconst=8.12
    x.wavelength=0.785e-6
    all=[all,x]
    
@@ -624,6 +627,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.numdiodes=128
    x.tau=41.0e-9
    x.firstsliceskip=0
+   x.dofconst=8.12
    x.wavelength=0.785e-6
    all=[all,x]
    
@@ -639,6 +643,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.numdiodes=128
    x.tau=41.0e-9
    x.firstsliceskip=0
+   x.dofconst=8.12
    x.wavelength=0.785e-6
    all=[all,x]
 
@@ -655,6 +660,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.numdiodes=128
    x.tau=41.0e-9
    x.firstsliceskip=0
+   x.dofconst=8.12
    x.wavelength=0.785e-6
    all=[all,x]
    
@@ -725,7 +731,7 @@ FUNCTION soda2_probespecs, name=name, id=id
       IF nw gt 0 THEN return, all[w] ELSE return,base
    ENDIF
    IF n_elements(id) ne 0 THEN BEGIN
-      IF id lt n_elements(all) THEN return, all[id] ELSE return,base
+      IF max(id) lt n_elements(all) THEN return, all[id] ELSE return,base
    ENDIF
 
    ;Return everything if no probe specified
