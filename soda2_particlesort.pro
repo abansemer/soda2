@@ -99,20 +99,21 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
                'xsize':binningsize=x[iparticles[j]].xsize
                'ysize':binningsize=x[iparticles[j]].ysize
                'areasize':binningsize=x[iparticles[j]].areasize
+               'xextent':binningsize=x[iparticles[j]].xextent
                ELSE:binningsize=x[iparticles[j]].diam
             ENDCASE        
-            ;Apply poisson-spot correction if not already applied in soda2_processbuffer
-            ;This is mainly for HIWC, where they want it applied to ice.  This correction should not be used with 'water', checked in soda2_update_op.pro.
-            IF ((*pop).apply_psc eq 1) THEN BEGIN               
-               ps_correction = poisson_spot_correct(x[iparticles[j]].area, x[iparticles[j]].areafilled)
-               binningsize /= ps_correction
+            ;Apply poisson-spot correction
+            ;apply_psc is for HIWC, where they want it applied to ice.  This correction should not be used with 'water', checked in soda2_update_op.pro.
+            IF ((*pop).apply_psc eq 1) or ((*pop).water eq 1) THEN BEGIN               
+               binningsize /= x[iparticles[j]].sizecorrection
             ENDIF 
+            IF ((*pop).water eq 1) THEN binningar=x[iparticles[j]].arearatiofilled ELSE binningar=x[iparticles[j]].arearatio
             reject=soda2_reject(x[iparticles[j]], interarrival[iparticles[j]], interarrival[nextparticleindex], d.intcutoff[itime], cluster[iparticles[j]], binningsize, pop)
             rejectionflag[iparticles[j]] =  reject
             IF reject eq 0 THEN BEGIN   
                sizebin=max(where(op.endbins le binningsize),nws)
                IF binningsize eq op.endbins[0] THEN sizebin=0  ;Special case where size=first endbin
-               arbin=max(where(op.arendbins lt (x[iparticles[j]].arearatio<0.99>0.01)),nwa)
+               arbin=max(where(op.arendbins lt (binningar<0.99>0.01)),nwa)
                asprbin=max(where(op.arendbins lt (x[iparticles[j]].aspectratio<0.99>0.01)),nwasp)
                obin=(floor(x[iparticles[j]].orientation + 90) / 10) < 17  ;Orientation bin every 10 degrees
                d.spec2d[itime, sizebin, arbin]=d.spec2d[itime, sizebin, arbin]+1
@@ -127,7 +128,8 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
                zdbin=max(where(d.zdendbins le x[iparticles[j]].zd,nzd)) 
                d.zdspec[sizebin,zdbin]=d.zdspec[sizebin,zdbin]+1
             ENDIF ELSE BEGIN
-               d.count_rejected[itime,reject]=d.count_rejected[itime,reject]+1
+               ireject=where(reject and [1,2,4,8,16,32,64])  ;Gives a list of reasons.  Only increment count_rejected based on the first one.
+               d.count_rejected[itime,ireject[0]]=d.count_rejected[itime,ireject[0]]+1
             ENDELSE
          ENDFOR
       END
@@ -153,10 +155,14 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       ncdf_varput,ncdf_id,varid,x[0:istop].xsize,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'ysize')
       ncdf_varput,ncdf_id,varid,x[0:istop].ysize,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'xextent')
+      ncdf_varput,ncdf_id,varid,x[0:istop].xextent,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'areasize')
       ncdf_varput,ncdf_id,varid,x[0:istop].areasize,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'arearatio')
       ncdf_varput,ncdf_id,varid,x[0:istop].arearatio,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'arearatiofilled')
+      ncdf_varput,ncdf_id,varid,x[0:istop].arearatiofilled,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'aspectratio')
       ncdf_varput,ncdf_id,varid,x[0:istop].aspectratio,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'area')
@@ -179,6 +185,8 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       ncdf_varput,ncdf_id,varid,x[0:istop].ypos,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'zd')
       ncdf_varput,ncdf_id,varid,x[0:istop].zd,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'sizecorrection')
+      ncdf_varput,ncdf_id,varid,x[0:istop].sizecorrection,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'missed')
       ncdf_varput,ncdf_id,varid,x[0:istop].missed,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'probetas')
