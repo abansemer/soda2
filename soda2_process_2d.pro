@@ -100,10 +100,10 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
 
    ;Set up the particle structure.  
    num2process=10000000L ;Limit to reduce memory consumption
-   basestruct={buffertime:0d, probetime:0d, reftime:0d, rawtime:0d, inttime:0d, diam:0.0, xsize:0.0, ysize:0.0, $
-               areasize:0.0, arearatio:0.0, aspectratio:0.0, area:0.0, areafilled:0.0, xpos:0.0, ypos:0.0,$
-               allin:0b, centerin:0b, edgetouch:0b, probetas:0.0, aircrafttas:0.0, zd:0.0, missed:0.0, overloadflag:0b, orientation:0.0, $
-               perimeterarea:0.0, dofflag:0b, particlecounter:0L}
+   basestruct={buffertime:0d, probetime:0d, reftime:0d, rawtime:0d, inttime:0d, diam:0.0, xsize:0.0, ysize:0.0, xextent:0.0,$
+               areasize:0.0, arearatio:0.0, arearatiofilled:0.0, aspectratio:0.0, area:0.0, areafilled:0.0, xpos:0.0, ypos:0.0,$
+               allin:0b, centerin:0b, edgetouch:0b, probetas:0.0, aircrafttas:0.0, zd:0.0, sizecorrection:0.0, missed:0.0, $
+               overloadflag:0b, orientation:0.0, perimeterarea:0.0, dofflag:0b, particlecounter:0L}
    x=replicate(basestruct, num2process)
  
    
@@ -113,6 +113,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    ;====================================================================================================
    ;====================================================================================================
    got_pth=0
+   pth_tas=fltarr(numrecords)
    IF file_test(op.pth) THEN BEGIN
       suffix=(strsplit(op.pth,'.',/extract))[-1]
       ;IDL sav files      
@@ -120,7 +121,6 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          restore,op.pth
          IF total(d.time - data.time) ne 0 THEN BEGIN
             print, 'PTH time does not match, using nearest point.'
-            pth_tas=fltarr(numrecords)
             good=where((data.tas gt 0) and (data.tas lt 400) and (data.time ge op.starttime) and (data.time le op.stoptime), ngood)
             IF ngood eq 0 THEN stop, 'Time mismatch for TAS file.'
             itas=(round(data.time[good])-op.starttime)/op.rate ;find index for each variable
@@ -133,14 +133,13 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
       ENDIF
       ;ASCII or CSV files, assumes time and tas in first two columns
       IF (suffix eq 'txt') or (suffix eq 'csv') THEN BEGIN
-         pth_tas=fltarr(numrecords)
          v=''
          openr,lun,op.pth,/get_lun
          on_ioerror, bad  ;Use to suppress type conversion errors
          REPEAT BEGIN
             readf,lun,v
             fields=float(strsplit(v, '[ ,' + STRING(9B) + ']+', /regex, /extract))
-            i=(round(fields[0])-op.starttime)/op.rate ;find index for each variable
+            i=(round(fields[0])-op.starttime)/op.rate > 0 ;find index for each variable
             ;Fill TAS array, don't bother with averaging.  Note use of i:*, which makes sure gaps are filled in for hirate data.
             IF (i ge 0) and (i lt numrecords) and (fields[1] gt 0) and (fields[1] lt 500) THEN pth_tas[i:*]=fields[1]
             bad:dummy=0
@@ -151,7 +150,6 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
       ENDIF
       ;NetCDF (NCAR-style for now)
       IF (suffix eq 'nc') THEN BEGIN      
-         pth_tas=fltarr(numrecords)
          restorenc, op.pth, varlist=['TIME','TASX']
          ;Very basic error check
          good=where((data.tasx gt 0) and (data.tasx lt 400) and (data.time ge op.starttime) and (data.time le op.stoptime))
@@ -161,7 +159,11 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          got_pth=1
       ENDIF
    ENDIF ELSE BEGIN
-      pth_tas=fltarr(numrecords)
+      IF op.fixedtas gt 0 THEN BEGIN
+         pth_tas+=op.fixedtas
+         got_pth=1
+      ENDIF
+
       IF op.pth ne '' THEN BEGIN  ;Extra warning if a filename was actually entered
          infoline='TAS file does not exist.  Use default air speed instead?'
          IF textwidgetid ne 0 THEN BEGIN 
@@ -171,7 +173,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
             print,'TAS file '+op.pth+' does not exist. Stopping.'
             stop
          ENDELSE
-      ENDIF ELSE print,'No TAS file entered, using default values'
+      ENDIF ELSE print,'No TAS file entered, using default or fixed values'
    ENDELSE
       
    
@@ -210,35 +212,38 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
       ENDFOR
       
       ;List of variables to include in netCDF file: [varname, longname, unit, datatype]
-      ncdfprops=[['time', 'UTC Time', 'seconds', 'double'],$
-                 ['probetime', 'Unadjusted Probe Particle Time', 'seconds', 'double'],$
-                 ['buffertime', 'Buffer Time', 'seconds', 'double'],$
-                 ['rawtime', 'Raw Time', 'slices or seconds', 'double'],$
-                 ['reftime', 'Reference Time for Buffer Matching', 'seconds', 'double'],$
-                 ['inttime', 'Interarrival Time', 'seconds', 'float'],$
-                 ['diam', 'Particle Diameter from Circle Fit', 'microns', 'float'],$
-                 ['xsize', 'X-size (across array)', 'microns', 'float'],$
-                 ['ysize', 'Y-size (along airflow)', 'microns', 'float'],$
-                 ['areasize', 'Equivalent Area Size', 'microns', 'float'],$
-                 ['arearatio', 'Area Ratio', 'unitless', 'float'],$
-                 ['aspectratio', 'Aspect Ratio', 'unitless', 'float'],$
-                 ['area', 'Number of Pixels Shaded', 'pixels', 'short' ],$
-                 ['areafilled', 'Number of Pixels Shaded Including Voids', 'pixels', 'short' ],$
-                 ['perimeterarea', 'Number of Perimeter Pixels Shaded', 'pixels', 'short'],$
-                 ['xpos', 'X-position of Particle Center (across array)', 'pixels', 'float'],$
-                 ['ypos', 'Y-position of Particle Center (along airflow)', 'pixels', 'float'],$
-                 ['allin', 'All-in Flag', 'unitless', 'byte'],$
-                 ['centerin', 'Center-in Flag', 'unitless', 'byte'],$
-                 ['dofflag', 'Depth of Field Flag from Probe', 'unitless', 'byte'],$
-                 ['edgetouch', 'Edge Touch (1=left, 2=right, 3=both)', 'unitless', 'byte'],$
-                 ['zd', 'Z Position from Korolev Correction', 'microns', 'float'],$
-                 ['missed', 'Missed Particle Count', 'number', 'float'],$
-                 ['probetas', 'True Air Speed for Probe Clock', 'm/s', 'float'],$
-                 ['aircrafttas', 'True Air Speed for Aircraft (if available)', 'm/s', 'float'],$
-                 ['overloadflag', 'Overload Flag', 'boolean', 'byte'],$
-                 ['particlecounter', 'Particle Counter', 'number', 'long'],$
-                 ['orientation', 'Particle Orientation Relative to Array Axis', 'degrees', 'float'],$
-                 ['rejectionflag', 'Particle Rejection Code', 'unitless', 'byte']]
+      ncdfprops=[['time', 'UTC time', 'seconds', 'double'],$
+                 ['probetime', 'Unadjusted probe particle time', 'seconds', 'double'],$
+                 ['buffertime', 'Buffer time', 'seconds', 'double'],$
+                 ['rawtime', 'Raw time', 'slices or seconds', 'double'],$
+                 ['reftime', 'Reference time for buffer matching', 'seconds', 'double'],$
+                 ['inttime', 'Interarrival time', 'seconds', 'float'],$
+                 ['diam', 'Particle diameter from circle fit. No Poisson spot size corrections applied', 'microns', 'float'],$
+                 ['xsize', 'X-size (across array). No Poisson spot size corrections applied', 'microns', 'float'],$
+                 ['ysize', 'Y-size (along airflow). No Poisson spot size corrections applied', 'microns', 'float'],$
+                 ['xextent', 'Maximum x-extent (across array) for all individual slices. No Poisson spot size corrections applied', 'microns', 'float'],$
+                 ['areasize', 'Equivalent area size. No Poisson spot size corrections applied', 'microns', 'float'],$
+                 ['arearatio', 'Area ratio', 'unitless', 'float'],$
+                 ['arearatiofilled', 'Area ratio with particle voids filled', 'unitless', 'float'],$
+                 ['aspectratio', 'Aspect ratio', 'unitless', 'float'],$
+                 ['area', 'Number of shaded pixels', 'pixels', 'short' ],$
+                 ['areafilled', 'Number of shaded pixels including voids', 'pixels', 'short' ],$
+                 ['perimeterarea', 'Number of shaded perimeter pixels', 'pixels', 'short'],$
+                 ['xpos', 'X-position of particle center (across array)', 'pixels', 'float'],$
+                 ['ypos', 'Y-position of particle center (along airflow)', 'pixels', 'float'],$
+                 ['allin', 'All-in flag', 'unitless', 'byte'],$
+                 ['centerin', 'Center-in flag', 'unitless', 'byte'],$
+                 ['dofflag', 'Depth of field flag from probe', 'unitless', 'byte'],$
+                 ['edgetouch', 'Edge touch (1=left, 2=right, 3=both)', 'unitless', 'byte'],$
+                 ['sizecorrection', 'Size correction factor from Korolev 2007 (D_edge/D0), use to adjust sizes in this file if necessary', 'unitless', 'float'],$
+                 ['zd', 'Z position from Korolev correction', 'microns', 'float'],$
+                 ['missed', 'Missed particle count', 'number', 'float'],$
+                 ['probetas', 'True air speed for probe clock', 'm/s', 'float'],$
+                 ['aircrafttas', 'True air speed for aircraft (if available)', 'm/s', 'float'],$
+                 ['overloadflag', 'Overload flag', 'boolean', 'byte'],$
+                 ['particlecounter', 'Particle counter', 'number', 'long'],$
+                 ['orientation', 'Particle orientation relative to array axis', 'degrees', 'float'],$
+                 ['rejectionflag', 'Particle rejection code', 'unitless', 'byte']]
        
       tagnames=ncdfprops[0,*]
       FOR i=0,n_elements(tagnames)-1 DO BEGIN
@@ -310,7 +315,9 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          firstfile=0
       ENDIF ELSE IF y.error eq 1 THEN stop,'Error on build index, check probe ID set correctly.'
    ENDFOR
- 
+   
+   ;Get housekeeping data, if available
+   IF op.format eq 'SPEC' THEN spec_process_hk, op, y=y, /nosav, data=house ELSE house={op:op}
 
    
    ;====================================================================================================
@@ -338,6 +345,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    bufffile=bufffile[s]
    buffindex=long((bufftime-op.starttime)/op.rate)  ;keep these for output only
    imagepointers=0  ;Used for SPEC probes only, pointers to each image in a buffer
+   pbpstartindex=lonarr(numbuffs)
    
    firstbuff=max(where(bufftime lt op.starttime)) > 0
    lastbuff=min(where(bufftime gt op.stoptime,nlb))
@@ -404,6 +412,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          n=n_elements(p.diam)
          istart=istop+1
          inewbuffer[i-firstbuff]=istart  ;Save these start positions
+         pbpstartindex[i]=istart+ncdf_offset ;Save for final output
          istop=istop+n
          
          x[istart:istop].buffertime=b.time
@@ -414,8 +423,10 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          x[istart:istop].diam=p.diam
          x[istart:istop].xsize=p.xsize
          x[istart:istop].ysize=p.ysize
+         x[istart:istop].xextent=p.xextent
          x[istart:istop].areasize=p.areasize
          x[istart:istop].arearatio=p.ar
+         x[istart:istop].arearatiofilled=p.arfilled
          x[istart:istop].aspectratio=p.aspr
          x[istart:istop].area=p.area_orig 
          x[istart:istop].areafilled=p.area_filled 
@@ -426,6 +437,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          x[istart:istop].probetas=p.clocktas
          x[istart:istop].aircrafttas=pth_tas[timeindex]
          x[istart:istop].zd=p.zd
+         x[istart:istop].sizecorrection=p.sizecorrection
          x[istart:istop].xpos=p.xpos
          x[istart:istop].ypos=p.ypos
          x[istart:istop].missed=p.missed
@@ -493,7 +505,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    midbins=(float(op.endbins[0:numbins-1])+op.endbins[1:numbins])/2.0
    binwidth=op.endbins[1:numbins]-op.endbins[0:numbins-1]
    sa=fltarr(numbins)
-   FOR i=0,numbins-1 DO sa[i]=soda2_samplearea(midbins[i], op.res, op.armwidth, op.numdiodes, op.reconstruct, op.smethod, op.wavelength, centerin=op.centerin)
+   FOR i=0,numbins-1 DO sa[i]=soda2_samplearea(midbins[i], op.res, op.armwidth, op.numdiodes, op.eawmethod, op.smethod, op.wavelength, op.dofconst)
 
    ;Assume probe is always active, minus deadtime
    IF op.ignoredeadtime eq 1 THEN BEGIN
@@ -503,21 +515,22 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
 ;      IF (*pop).format eq 'SEA' THEN activetime=activetime_sea
    ENDELSE
    
-   IF (got_pth eq 1) THEN d.tas=pth_tas
-   sv=sa*d.tas*activetime
+   ;Figure out which TAS to use for concentration and compute sample volume
+   probetas=d.tas
+   IF (got_pth eq 1) THEN aircrafttas=pth_tas ELSE aircrafttas=probetas
+   sv=sa*aircrafttas*activetime
    
-   conc1d=fltarr(numrecords, numbins)  ;size spectra
-      
    ;Orientation
    orientation_index=fltarr(numrecords, numbins)
    
    ;Make count/concentration arrays
+   conc1d=fltarr(numrecords, numbins)  ;size spectra
    FOR i=0L,numrecords-1 DO BEGIN
       spec1d[i,*]=spec1d[i,*]*(d.corr_fac[i] > 1.0)          ;Make the correction
       d.spec2d[i,*,*]=d.spec2d[i,*,*]*(d.corr_fac[i] > 1.0) 
       d.spec2d_aspr[i,*,*]=d.spec2d_aspr[i,*,*]*(d.corr_fac[i] > 1.0)
-      IF d.tas[i]*activetime[i] gt 0 THEN BEGIN
-         conc1d[i,*]=spec1d[i,*]/(sa*d.tas[i]*activetime[i])/(binwidth/1.0e6) 
+      IF aircrafttas[i]*activetime[i] gt 0 THEN BEGIN
+         conc1d[i,*]=spec1d[i,*]/(sa*aircrafttas[i]*activetime[i])/(binwidth/1.0e6) 
          ;Orientation index computation from histograms
          FOR j=0,numbins-1 DO BEGIN
             omax=max(d.spec2d_orientation[i,j,*], imax)
@@ -527,37 +540,37 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
       ENDIF
    ENDFOR
 
-   data={op:op, time:d.time, tas:d.tas, midbins:midbins, activetime:activetime, Date_Processed:systime(), sa:sa, $
+   data={op:op, time:d.time, tas:aircrafttas, probetas:probetas, midbins:midbins, activetime:activetime, Date_Processed:systime(), sa:sa, $
          intspec_all:d.intspec_all, intspec_accepted:d.intspec_accepted, intendbins:intendbins, intmidbins:intmidbins,$  
          count_rejected:d.count_rejected,count_accepted:d.count_accepted, count_missed:d.count_missed, $
          missed_hist:d.missed_hist, conc1d:conc1d, spec1d:spec1d, spec2d:d.spec2d, spec2d_aspr:d.spec2d_aspr,$
          corr_fac:d.corr_fac, poisson_fac:d.poisson_fac, intcutoff:d.intcutoff, zdspec:d.zdspec, zdendbins:d.zdendbins, zdmidbins:d.zdmidbins,$
          pointer:buffpoint, ind:buffindex, currentfile:bufffile, numbuffsaccepted:numbuffsaccepted, numbuffsrejected:numbuffsrejected, dhist:dhist,$
-         hist3d:d.hist3d, spec2d_orientation:d.spec2d_orientation, orientation_index:orientation_index}
+         hist3d:d.hist3d, spec2d_orientation:d.spec2d_orientation, orientation_index:orientation_index, house:house, pbpstartindex:pbpstartindex}
      
    ;Close pointers and luns
    ptr_free, pop, pmisc
-   IF op.particlefile eq 1 THEN close,lun_pbp
-   IF op.ncdfparticlefile eq 1 THEN ncdf_close,ncdf_id
+   infoline=['Saved file:']
+   IF op.particlefile eq 1 THEN BEGIN
+      close,lun_pbp
+      infoline=[infoline, fn_pbp]
+   ENDIF
+   IF op.ncdfparticlefile eq 1 THEN BEGIN
+      ncdf_close,ncdf_id
+      infoline=[infoline, fn_ncdf]
+   ENDIF
    
-   ;Save data and display notifications
+   ;Save data and display notification
    fn_out=soda2_filename(op,op.shortname)
    IF op.savfile eq 1 THEN BEGIN
       save,file=fn_out,data,/compress
-      infoline='Saved file '+fn_out
-      IF textwidgetid ne 0 THEN dummy=dialog_message(infoline,dialog_parent=textwidgetid,/info) ELSE print,infoline
+      infoline=[infoline,fn_out]
+      IF textwidgetid ne 0 THEN BEGIN
+         dummy=dialog_message([infoline, '', 'Browse data?'],dialog_parent=textwidgetid,/question,/default_no) 
+         IF dummy eq 'Yes' THEN call_procedure, 'soda2_browse', fn_out
+      ENDIF ELSE print,infoline
    ENDIF
    
-   IF op.particlefile eq 1 THEN BEGIN
-      infoline='Saved file '+fn_pbp
-      IF textwidgetid ne 0 THEN dummy=dialog_message(infoline,dialog_parent=textwidgetid,/info) ELSE print,infoline
-   ENDIF
-   
-   IF op.ncdfparticlefile eq 1 THEN BEGIN
-      infoline='Saved file '+fn_ncdf
-      IF textwidgetid ne 0 THEN dummy=dialog_message(infoline,dialog_parent=textwidgetid,/info) ELSE print,infoline
-   ENDIF
-
 ;profiler,/report  
 END
 
