@@ -276,7 +276,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
                rawtime[c]=x.time
                clocktas[c]=hk.tas
                ;Compute stretching factor, keep between reasonable values 0.1 to 10
-               IF ((*pmisc).aircrafttas gt 0) and (hk.tas gt 0) THEN stretch[c]=((*pmisc).aircrafttas/hk.tas) > 0.1 < 10.0
+               IF ((*pmisc).aircrafttas gt 0) and (hk.tas gt 0) and ((*pop).stretchcorrect eq 1) THEN $
+                  stretch[c]=((*pmisc).aircrafttas/hk.tas) > 0.1 < 10.0
                freq=double((*pop).res/(1.0e6*clocktas[c]))  ; the time interval of each tick in a timeline
                IF ((*pop).probetype eq 'HVPS3') THEN BEGIN
                   x.time=x.timetrunc  ;HVPS has some timing errors, use truncated version.
@@ -350,17 +351,20 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    diam=fltarr(num_images)
    xsize=fltarr(num_images)
    ysize=fltarr(num_images)
+   xextent=fltarr(num_images)
    areasize=fltarr(num_images)
    allin=bytarr(num_images)
    centerin=bytarr(num_images)
    edgetouch=bytarr(num_images)
-   area_ratio=fltarr(num_images)
+   arearatio=fltarr(num_images)
+   arearatiofilled=fltarr(num_images)
    aspr=fltarr(num_images)
    orientation=fltarr(num_images)
    area_orig=fltarr(num_images)
    area_filled=fltarr(num_images)
    perimeterarea=fltarr(num_images)  ;Number of pixels on the border, for water detection
    zd=fltarr(num_images)
+   sizecorrection=fltarr(num_images) + 1.0
    xpos=fltarr(num_images)
    ypos=fltarr(num_images)
    nsep=intarr(num_images)
@@ -411,18 +415,17 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
       area_orig[i]=total(roi)
       roifilled=fillholes(roi)     ;fills in poisson spots for liquid water drops, +40% processing time
       area_filled[i]=total(roifilled)
-      IF ((*pop).water eq 1) THEN BEGIN
-         ;roi=fillholes(roi)     ;fills in poisson spots for liquid water drops, change roi so soda2_findsize get right area ratio, +40% processing time
-         ps_correction = poisson_spot_correct(area_orig[i], area_filled[i], zd=zeed) ; as in Korolev 2007
-         roi=roifilled  ;This is so area ratio is higher when computed in findsize.pro
-      ENDIF ELSE ps_correction=1.0
+      sizecorrection[i] = poisson_spot_correct(area_orig[i], area_filled[i], zd=zeed) ; as in Korolev 2007
          
-      part=soda2_findsize(roi,(*pop).res, (*pmisc).yres * stretch[i])
-      diam[i]=part.diam/ps_correction
-      xsize[i]=part.xsize/ps_correction
-      ysize[i]=part.ysize/ps_correction
+      ;Find particle metrics and fill arrays
+      part=soda2_findsize(roi,(*pop).res, (*pmisc).yres * stretch[i], voidarea=area_filled[i]-area_orig[i])
+      diam[i]=part.diam
+      xsize[i]=part.xsize
+      ysize[i]=part.ysize
+      xextent[i]=part.xextent
       areasize[i]=part.areasize
-      area_ratio[i]=part.ar
+      arearatio[i]=part.ar
+      arearatiofilled[i]=part.arfilled
       aspr[i]=part.aspr
       allin[i]=part.allin   
       centerin[i]=part.centerin
@@ -434,7 +437,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
       perimeterarea[i]=part.perimeterarea
    ENDFOR   ;image loop end
 
-   return,{diam:diam,xsize:xsize,ysize:ysize,areasize:areasize,probetime:time_sfm,reftime:reftime,rawtime:rawtime,ar:area_ratio,aspr:aspr,rejectbuffer:0,bitimage:bitimage,$
-           allin:allin,centerin:centerin,streak:streak,zd:zd,dhist:dhist,nslices:nslices,missed:missed,nsep:nsep,overloadflag:overloadflag,dofflag:dof,xpos:xpos,ypos:ypos,$
-           orientation:orientation, area_orig:area_orig, area_filled:area_filled, perimeterarea:perimeterarea, particlecounter:particle_count, edgetouch:edgetouch, inttime:inttime, clocktas:clocktas}  
+   return,{diam:diam,xsize:xsize,ysize:ysize,xextent:xextent,areasize:areasize,probetime:time_sfm,reftime:reftime,rawtime:rawtime,ar:arearatio,arfilled:arearatiofilled,aspr:aspr,rejectbuffer:0,bitimage:bitimage,$
+           allin:allin,centerin:centerin,streak:streak,zd:zd,sizecorrection:sizecorrection,dhist:dhist,nslices:nslices,missed:missed,nsep:nsep,overloadflag:overloadflag,dofflag:dof,xpos:xpos,ypos:ypos,$
+           orientation:orientation, area_orig:area_orig, area_filled:area_filled, perimeterarea:perimeterarea, particlecounter:particle_count, edgetouch:edgetouch, inttime:inttime, clocktas:clocktas, $
+           startline:startline, stopline:stopline}  
 END
