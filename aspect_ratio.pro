@@ -1,5 +1,5 @@
 FUNCTION aspect_ratio, img_in, tas_adjust=tas_adjust, makeplot=makeplot, circle=circle, $
-         orientation=orientation, coordinates=coordinates, x_ind=x_ind, y_ind=y_ind
+         orientation=orientation, coordinates=coordinates, x_ind=x_ind, y_ind=y_ind_orig
    ;Find the aspect ratio of a particle
    ;'coordinates' flag means img_in is a set of coordinates in a [n,2] array rather than an image
    ;AB 3/2014
@@ -20,6 +20,7 @@ FUNCTION aspect_ratio, img_in, tas_adjust=tas_adjust, makeplot=makeplot, circle=
       y_ind=img_in[*,1]
       s=[2, max(x_ind), max(y_ind)]
    ENDELSE
+   y_ind_orig=y_ind  ;This is for passing back to soda2_findsize, don't want TAS adjustments
    IF n_elements(tas_adjust) gt 0 THEN y_ind=y_ind*tas_adjust  ;Correct for TAS error in y-index
    circle=min_circle_fast(x_ind,y_ind)
 
