@@ -1,10 +1,11 @@
-PRO spec_process_hk, op, textwidgetid=textwidgetid, fn_out=fn_out
+PRO spec_process_hk, op, textwidgetid=textwidgetid, fn_out=fn_out, y=y, nosav=nosav, data=data
    ;PRO to create a housekeeping file of HVPS/2DS data
    ;Send it the same op structure as soda2
    ;AB 12/2011
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
    IF n_elements(textwidgetid) eq 0 THEN textwidgetid=0
+   IF n_elements(nosav) eq 0 THEN nosav=0
    soda2_update_op,op
    pop=ptr_new(op)
    
@@ -18,7 +19,7 @@ PRO spec_process_hk, op, textwidgetid=textwidgetid, fn_out=fn_out
    
    
    IF n_elements(op.fn) gt 1 THEN stop,'Multiple SPEC raw files not supported, concatenate first'
-   y=soda2_buildindex(op.fn[0], pop)
+   IF n_elements(y) eq 0 THEN y=soda2_buildindex(op.fn[0], pop)
    startdate=julday(strmid(op.date,0,2), strmid(op.date,2,2), strmid(op.date,4,4))
    IF abs(y.date[0]-startdate) gt 5 THEN BEGIN
       ;Some probes do not have the date right, just use the first one in this case
@@ -88,6 +89,7 @@ PRO spec_process_hk, op, textwidgetid=textwidgetid, fn_out=fn_out
    data={op:op, time:time, nb:nb, arrayid:op.probeid, tas:tas, diodes:diodes, volts:volts, canpressure:hk[*,24]*68.9476, $
          power:hk[*,[7,8,22,23]], tempid:tempid, temp:hk[*,9:21], laservolts:laservolts, overloads:overloads, counts:counts }
    
+   IF nosav eq 1 THEN return  ;This applies when called from soda2_process_2d
    fn_out=soda2_filename(op,op.shortname+'_HOUSE')
    save,file=fn_out,data
    infoline='Saved file '+fn_out
