@@ -47,6 +47,28 @@ PRO soda2_export_event, ev
             dummy=dialog_message(infoline,dialog_parent=ev.id,/info)
             widget_control,widget_info(ev.top,find='process'),set_value='EXPORT to netCDF'
         END
+        
+        'ascii':BEGIN ;===========================================================================
+            ;Collect data from the GUI
+
+            ;--------Filenames
+            widget_control,widget_info(ev.top,find='filelist'),get_value=fn
+            widget_control,widget_info(ev.top,find='outdir'),get_value=outdir
+            IF strmid(outdir, strlen(outdir)-1, 1) ne path_sep() THEN outdir=outdir+path_sep()
+           
+            widget_control,widget_info(ev.top,find='ascii'),set_value='Processing...'
+            infoline=['Exported files:']
+            FOR i=0,n_elements(fn)-1 DO BEGIN
+               IF file_test(fn[i]) THEN BEGIN
+                  restore,fn[i]
+                  outfile=(str_sep(file_basename(fn[i]), '.dat'))[0] + '.txt'
+                  soda2_export_ascii,data,outfile=outdir + outfile
+                  infoline=[infoline, outdir+outfile]
+               ENDIF
+            ENDFOR
+            dummy=dialog_message(infoline,dialog_parent=ev.id,/info)
+            widget_control,widget_info(ev.top,find='ascii'),set_value='EXPORT to ASCII'
+        END
 
         'processimages':BEGIN ;===========================================================================
             ;Collect data from the GUI
@@ -85,9 +107,6 @@ PRO soda2_export
     fileID=widget_button(menubarID, value='File', /menu)
     quitID=widget_button(fileID, value='Quit',uname='quit')
 
-    helpID=widget_button(menubarID, value='Help', /menu,/align_right)
-
-
     subbase5=widget_base(base,column=1,/frame)
     addfile = cw_bgroup(subbase5,['Add a file...','Clear files'], uname='addfile',/row,label_left='SODA file(s) to export:')
     filelist= widget_text(subbase5,/scroll,uname='filelist',/editable,ysize=6)
@@ -96,9 +115,8 @@ PRO soda2_export
     outdirID=cw_field(subbase5a,/string, title='Output directory: ', value=currentdir+path_sep(), uname='outdir', xsize=52)
     browse2=widget_button(subbase5a,value='Select...',uname='findoutdir')
 
-
-
     process = WIDGET_BUTTON(base, value='EXPORT to netCDF', uname='process')
+    process = WIDGET_BUTTON(base, value='EXPORT to ASCII', uname='ascii')
     process = WIDGET_BUTTON(base, value='WRITE IMAGES', uname='processimages')
     WIDGET_CONTROL, base, /REALIZE
     XMANAGER, 'soda2_export', base, /no_block
