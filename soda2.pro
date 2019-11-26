@@ -24,19 +24,21 @@ PRO soda2_event, ev
             ;--------TAS stuff
             widget_control,widget_info(ev.top,find='tas'),set_value=op.fixedtas
             widget_control,widget_info(ev.top,find='pthfile'),set_value=op.pth
+            widget_control,widget_info(ev.top,find='tascheckbox'),set_value=op.stretchcorrect
              
             ;--------Checkboxes
-            checkboxarray=[0,0,0,0,0]
+            checkboxarray=[0,0,0,0]
             id=widget_info(ev.top,find='options')
             widget_control,id,get_uvalue=values
-            IF op.reconstruct eq 0 THEN checkboxarray[where(values eq 'All-In')]=1
+            IF total(where(tag_names(op) eq 'RECONSTRUCT')) ne -1 THEN IF op.reconstruct eq 0 THEN checkboxarray[where(values eq 'All-In')]=1
+            IF total(where(tag_names(op) eq 'EAWMETHOD')) ne -1 THEN IF op.eawmethod eq 'allin' THEN checkboxarray[where(values eq 'All-In')]=1
             IF total(where(tag_names(op) eq 'INTTIME_REJECT')) ne -1 THEN IF op.inttime_reject eq 1 THEN checkboxarray[where(values eq 'Shatter Correct')]=1
             ;SODA-1 compatibility:
             IF total(where(tag_names(op) eq 'TIMEREJECT')) ne -1 THEN IF op.timereject eq 'variable' THEN checkboxarray[where(values eq 'Shatter Correct')]=1
             IF op.water eq 1 THEN checkboxarray[where(values eq 'Water Processing')]=1
             IF op.stuckbits eq 1 THEN checkboxarray[where(values eq 'Stuck Bit Correct')]=1
             IF op.juelichfilter eq 1 THEN checkboxarray[where(values eq 'Pixel Noise Filter')]=1
-            IF op.smethod eq 'areasize' THEN checkboxarray[where(values eq 'Area Size')]=1
+            ;IF op.smethod eq 'areasize' THEN checkboxarray[where(values eq 'Area Size')]=1
             widget_control,id,set_value=checkboxarray
 
             ;--------Output checkboxes
@@ -54,6 +56,20 @@ PRO soda2_event, ev
             
             ;--------Bins
             widget_control,widget_info(ev.top,find='endbins'),set_value=string(data.op.endbins,form='(100(i0," "))')
+
+            ;--------Size method
+            id=widget_info(ev.top,find='sizemethod')
+            widget_control,id,get_value=methods
+            CASE op.smethod OF
+               'fastcircle':w=where(strmid(methods,0,1) eq 'C')
+               'xsize':w=where(strmid(methods,0,1) eq 'X')
+               'ysize':w=where(strmid(methods,0,1) eq 'Y')
+               'areasize':w=where(strmid(methods,0,1) eq 'A')
+               'xextent':w=where(strmid(methods,0,1) eq 'L')
+            ENDCASE
+            w=w[0]  ;Can double up when old data loaded
+            widget_control,id,set_value=[methods[w], methods]     
+            widget_control,id,set_uvalue=methods[w]
 
             ;--------Probe type
             id=widget_info(ev.top,find='probetype')
@@ -75,7 +91,7 @@ PRO soda2_event, ev
 
                 widget_control,widget_info(ev.top,find='filelist'),set_value=a 
                 (*pinfo).rawpath=file_dirname(a[0])
-                IF !version.os_family ne 'unix' THEN widget_control,widget_info(ev.top,find='outdir'),set_value=file_dirname(a[0])+path_sep()      
+                IF !version.os_family ne 'unix' THEN widget_control,widget_info(ev.top,find='outdir'),set_value=file_dirname(a[0])+path_sep()
             ENDIF
             IF ev.value eq 1 THEN BEGIN ;Clear files pressed
                 widget_control,widget_info(ev.top,find='filelist'),set_value=''
@@ -85,7 +101,7 @@ PRO soda2_event, ev
 
         'findpthfile': BEGIN ;===========================================================================
             IF ev.value eq 0 THEN BEGIN ;Add a file pressed
-               a=dialog_pickfile(/read,filter=['*.dat','*.sav','*.txt','*.csv'],title='Select flight data file',dialog_parent=widget_info(ev.top,find='process'),path=(*pinfo).rawpath)
+               a=dialog_pickfile(/read,filter=['*.dat;*.sav;*.txt;*.csv'],title='Select flight data file',dialog_parent=widget_info(ev.top,find='process'),path=(*pinfo).rawpath)
                IF file_test(a) THEN BEGIN
                   widget_control,widget_info(ev.top,find='pthfile'),set_value=a
                   widget_control,widget_info(ev.top,find='tas'),sensitive=0
@@ -119,6 +135,47 @@ PRO soda2_event, ev
             widget_control,widget_info(ev.top,find='endbins'),set_value=string(endbins,form='(100(i0," "))')
         END
 
+        'autofill': BEGIN ;===========================================================================
+            widget_control,widget_info(ev.top,find='filelist'),get_value=fn
+            starttime=9999999d  
+            stoptime=0d
+            gottime=0
+            FOR i=0, n_elements(fn)-1 DO BEGIN
+               ss=soda2_startstop(fn[i])
+               IF ss.err eq 0 THEN BEGIN
+                  starttime= starttime < ss.starttime
+                  stoptime= stoptime > ss.stoptime
+                  gottime=1
+               ENDIF
+            ENDFOR
+            IF gottime THEN BEGIN
+               caldat, starttime, month, startday, year, hour, minute, second
+               datestring = string(month, startday, year, format='(i02,i02,i04)')
+               starttimestring = string(hour, minute, second, format='(3i02)')
+               caldat, stoptime, month, stopday, year, hour, minute, second
+               IF stopday gt startday THEN hour+=24  ;Midnight crossing
+               stoptimestring = string(hour, minute, second, format='(3i02)')
+               widget_control,widget_info(ev.top,find='date'),set_value=datestring
+               widget_control,widget_info(ev.top,find='starttime'),set_value=starttimestring
+               widget_control,widget_info(ev.top,find='stoptime'),set_value=stoptimestring
+               
+               ;Check for time span longer than 24 hours, probably entered wrong files
+               IF (stoptime-starttime) gt 1.0 THEN dummy=dialog_message('Warning: Time span longer than 24 hours',dialog_parent=widget_info(ev.top,find='process'))
+            
+               ;Pare down the probe list
+               specs=soda2_probespecs()
+               w=where(specs.format eq ss.format, nw)
+               IF nw gt 0 THEN probenames=specs[w].probename ELSE probenames=specs.probename
+               widget_control,widget_info(ev.top,find='probetype'),set_value=probenames
+               widget_control,widget_info(ev.top,find='probetype'),set_uvalue=probenames[0]
+            ENDIF ELSE BEGIN
+               ;Reset the full probe list
+               specs=soda2_probespecs()
+               widget_control, widget_info(ev.top,find='probetype'),set_value=specs.probename
+               widget_control, widget_info(ev.top,find='probetype'),set_uvalue=specs.probename[0]
+            ENDELSE
+        END
+      
         'process':BEGIN ;===========================================================================
             ;Collect data from the GUI
             ;--------Boxes
@@ -129,6 +186,10 @@ PRO soda2_event, ev
             widget_control,widget_info(ev.top,find='starttime'),get_value=starttime
             widget_control,widget_info(ev.top,find='stoptime'),get_value=stoptime
             widget_control,widget_info(ev.top,find='timeoffset'),get_value=timeoffset
+            IF stoptime lt starttime THEN BEGIN
+               dummy=dialog_message('Stop time must be later than start time',dialog_parent=widget_info(ev.top,find='process'))
+               return           
+            ENDIF
 
             ;--------Checkboxes
             id=widget_info(ev.top,find='options')
@@ -136,12 +197,24 @@ PRO soda2_event, ev
             widget_control,id,get_value=iadv
             IF iadv[where(values eq 'Shatter Correct')] eq 1 THEN inttime_reject=1 ELSE inttime_reject=0
             ;textfile=iadv[where(values eq 'Create PBP file')]
-            IF iadv[where(values eq 'All-In')] eq 1 THEN reconstruct=0 ELSE reconstruct=1
+            IF iadv[where(values eq 'All-In')] eq 1 THEN eawmethod='allin' ELSE eawmethod='centerin'
             IF iadv[where(values eq 'Water Processing')] eq 1 THEN water=1 ELSE water=0
             IF iadv[where(values eq 'Stuck Bit Correct')] eq 1 THEN stuckbits=1 ELSE stuckbits=0
             IF iadv[where(values eq 'Pixel Noise Filter')] eq 1 THEN juelichfilter=1 ELSE juelichfilter=0
-            IF iadv[where(values eq 'Area Size')] eq 1 THEN smethod='areasize' ELSE smethod='fastcircle'
+            widget_control,widget_info(ev.top,find='tascheckbox'),get_value=stretchcorrect
            
+            ;--------Size Method
+            id=widget_info(ev.top,find='sizemethod')
+            widget_control,id,get_uvalue=sizemethodstr
+            CASE strmid(sizemethodstr,0,1) OF
+               'C':smethod='fastcircle'
+               'X':smethod='xsize'
+               'Y':smethod='ysize'
+               'A':smethod='areasize'
+               'L':smethod='xextent'
+               ELSE:print,'Unknkown size method'
+            ENDCASE
+                 
             ;--------Output Flag Checkboxes
             id=widget_info(ev.top,find='outputflags')
             widget_control,id,get_uvalue=values
@@ -166,6 +239,13 @@ PRO soda2_event, ev
                dummy=dialog_message('Unknown raw filename(s)',dialog_parent=widget_info(ev.top,find='process'))
                return           
             ENDIF
+            IF probe.format eq 'SPEC' and n_elements(fn) gt 1 THEN BEGIN
+               infoline=['Multiple SPEC files not supported.','Concatenate first with:',$
+                         'cat base1 base2 > baseAll (Linux/Mac)',$
+                         'copy /b base1+base2 baseAll (Windows)']
+               dummy=dialog_message(infoline,dialog_parent=widget_info(ev.top,find='process'))
+               return           
+            ENDIF
             
             ;--------Bin Sizes
             arendbins=[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
@@ -182,11 +262,11 @@ PRO soda2_event, ev
             warn=0 & go='Yes'
             IF probe.res ge 100 and mean(endbins) lt 2000 THEN warn=1
             IF probe.res lt 100 and mean(endbins) ge 2000 THEN warn=1
+            IF probe.res lt 25  and endbins[0] gt 20 THEN warn=1
             IF warn THEN go=dialog_message('The bin sizes seem strange for this probe... Continue?',/question,dialog_parent=widget_info(ev.top,find='process'))
             IF go eq 'No' THEN return
             dendbins=endbins[1:*]-endbins
             IF min(dendbins) le 0 THEN BEGIN
-            stop
                dummy=dialog_message('Bin end-points must be increasing',dialog_parent=widget_info(ev.top,find='process'))
                return
             ENDIF
@@ -195,13 +275,13 @@ PRO soda2_event, ev
             IF probe.probetype eq 'CIPG' THEN greythresh=2 ELSE greythresh=0
             
             ;Can add bindistribution to this structure if desired
-            op={fn:fn, date:date[0], starttime:hms2sfm(starttime), stoptime:hms2sfm(stoptime), format:probe.format, $
-               subformat:probe.subformat, probetype:probe.probetype, res:probe.res, endbins:endbins, $
+            op={fn:fn, date:date[0], starttime:hms2sfm(starttime[0]), stoptime:hms2sfm(stoptime[0]), format:probe.format, $
+               subformat:probe.subformat, probetype:probe.probetype, res:probe.res, dofconst:probe.dofconst, endbins:endbins, $
                arendbins:arendbins, rate:rate, smethod:smethod, pth:pthfile[0], particlefile:particlefile, $
-               savfile:savfile, inttime_reject:inttime_reject, reconstruct:reconstruct, stuckbits:stuckbits, juelichfilter:juelichfilter, water:water,$
+               savfile:savfile, inttime_reject:inttime_reject, eawmethod:eawmethod, stuckbits:stuckbits, juelichfilter:juelichfilter, water:water,$
                fixedtas:fixedtas, outdir:outdir[0], project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
                numdiodes:probe.numdiodes, probeid:probe.probeid, shortname:probe.shortname, greythresh:greythresh, $
-               wavelength:probe.wavelength, seatag:probe.seatag, ncdfparticlefile:ncdfparticlefile}
+               wavelength:probe.wavelength, seatag:probe.seatag, ncdfparticlefile:ncdfparticlefile, stretchcorrect:stretchcorrect}
 
             ;Process housekeeping if flagged
             IF (housefile eq 1) and (probe.format eq 'SPEC') THEN BEGIN
@@ -218,9 +298,13 @@ PRO soda2_event, ev
             ENDIF
         END
         
-        'probetype': widget_control,ev.id,set_uvalue=ev.str      ;A workaround to be able to access current index with widget_control later on
+        'probetype': widget_control,ev.id,set_uvalue=ev.str    ;A workaround to be able to access current index with widget_control later on
+
+        'sizemethod': widget_control,ev.id,set_uvalue=ev.str   ;A workaround to be able to access current index with widget_control later on
         
         'browse': soda2_browse
+        
+        'merge': soda2_merge
 
         'export': soda2_export
                 
@@ -252,13 +336,12 @@ PRO soda2
     base = WIDGET_BASE(COLUMN=1,title='SODA-2 Processing Software Version 1.0',MBar=menubarID)
     info={datpath:'', rawpath:''}
     pinfo=ptr_new(info)
-    fileID=widget_button(menubarID, value='File', /menu, uname='base', uvalue=pinfo)
+    fileID=widget_button(menubarID, value='Menu', /menu, uname='base', uvalue=pinfo)
     loadfile=widget_button(fileID, value='Load settings...',uname='loadfile')
+    browseID=widget_button(fileID, value='Browse data...',uname='browse')
+    mergeID=widget_button(fileID, value='Merge data...',uname='merge')
+    exportID=widget_button(fileID, value='Export data...',uname='export')
     quitID=widget_button(fileID, value='Quit',uname='quit')
-
-    actionID=widget_button(menubarID, value='Other actions', /menu)
-    browseID=widget_button(actionID, value='Browse data...',uname='browse')
-    exportID=widget_button(actionID, value='Export to netCDF and PNG...',uname='export')
 
 
     ;-----------File names widget block------------------------------------
@@ -275,8 +358,11 @@ PRO soda2
     subbase3b=widget_base(subbase3,row=1)
     addpthfile=cw_bgroup(subbase3a,['Select...','Clear'], uname='findpthfile',/row,label_left='Flight data file (SODA or ASCII format):')
     pthfile=widget_text(subbase3,uname='pthfile',/editable,xsize=62,/all_events) 
-    tas=cw_field(subbase3,/int, title='or use fixed TAS of (m/s):',uname='tas', value='150', xsize=4)
-   
+    subbase3c=widget_base(subbase3,row=1)
+    tas=cw_field(subbase3c,/int, title='or use fixed TAS of (m/s):',uname='tas', value='0', xsize=4)
+    vals=['Apply stretch correction']
+    tasadvanced=cw_bgroup(subbase3c,vals,uname='tascheckbox',/row,/nonexclusive,uval=vals,set_value=[0])
+
 
     ;-----------Processing options widget block----------------------------
     subbase2=widget_base(base,column=1,frame=5)
@@ -285,13 +371,17 @@ PRO soda2
     subbase2d=widget_base(subbase2,row=1)
     projectname=cw_field(subbase2d,/string,title='Project Name',uname='project',xsize=15,value='NONE',/column)
     date=cw_field(subbase2d,/string,       title='Date (mmddyyyy)',uname='date',xsize=15,value='01012000',/column)
-    starttime=cw_field(subbase2d,/long,    title='Start Time (hhmmss)',uname='starttime',value='000000',xsize=15,/column)
-    stoptime=cw_field(subbase2d,/long,     title='Stop Time (hhmmss)',uname='stoptime',value='240000',xsize=15,/column)
+    starttime=cw_field(subbase2d,/string,  title='Start Time (hhmmss)',uname='starttime',value='000000',xsize=15,/column)
+    stoptime=cw_field(subbase2d,/string,   title='Stop Time (hhmmss)',uname='stoptime',value='240000',xsize=15,/column)
+    defaultbins=widget_button(subbase2d,   value='Auto-Fill',uname='autofill')
 
     subbase2b=widget_base(subbase2,row=1)
     specs=soda2_probespecs()
     dummy=widget_label(subbase2b,value='Probe:',/align_left)
     probetype=widget_combobox(subbase2b,value=specs.probename,uname='probetype',uvalue=specs[0].probename)
+    dummy=widget_label(subbase2b,value='  Sizing Method:',/align_left)
+    methodnames=['Circle fit','X-size (across array)','Y-size (with airflow)','Area equivalent','Lx (max slice width)']
+    sizemethod=widget_combobox(subbase2b,value=methodnames,uname='sizemethod',uvalue=methodnames[0])
 
     subbase2e=widget_base(subbase2,row=1)
     binstring=string([25, 50, 100, 150, 200, 250, 300, 350, 400, 500, 600,700,800,900,1000,1200,1400,1600,1800,2000],form='(100(i0," "))')
@@ -303,8 +393,8 @@ PRO soda2
     timeoffset=cw_field(subbase2a,/float, title='Clock Correction (s):',uname='timeoffset' , xsize=6, value=0.0)
    
     subbase2c=widget_base(subbase2,row=1)
-    vals=['Shatter Correct','All-In','Water Processing','Stuck Bit Correct','Pixel Noise Filter','Area Size']
-    advanced=cw_bgroup(subbase2c,vals,uname='options',/row,/nonexclusive,uval=vals,set_value=[1,0,0,0,0])
+    vals=['Shatter Correct','All-In','Water Processing','Stuck Bit Correct','Pixel Noise Filter']
+    advanced=cw_bgroup(subbase2c,vals,uname='options',/row,/nonexclusive,uval=vals,set_value=[1,0,0,0])
 
 
     ;---------Output directory and process button-------------------------
