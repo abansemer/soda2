@@ -5,6 +5,8 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
    !p.multi=[0,1,1,0,0]
    tabnum=widget_info(widget_info(topid,find='tab'),/tab_current) 
    IF keyword_set(noset) eq 0 THEN wset,(*pinfo).wid[tabnum]  ;Don't set window if we're in z-buffer for PNGs
+   psave=!p
+   !p.charsize=!d.y_size/600.0
    erase
    i=(*pinfo).i
    color1=80  ;blue
@@ -13,11 +15,11 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
    color4=190 ;yellow
    color5=215 ;orange
    color6=110 ;light blue
-   
+   color7=45  ;purple
+ 
    sizerange=[min((*p1).midbins), max((*p1).midbins)]
    arrange=[0,1]
    armidbins=((*p1).op.arendbins[1:*]+(*p1).op.arendbins[1:*])/2.0
-   !p.charsize=1.5
    
    CASE tabnum OF
       
@@ -110,14 +112,14 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
          oplot,(*p1).intmidbins,tothist/max(tothist)*!y.crange[1]*0.8,color=color3,line=2,thick=1
          oplot,(*p1).intmidbins,(*p1).intspec_all[i,*],color=color1
          oplot,(*p1).intmidbins,(*p1).intspec_accepted[i,*],color=color2
-         legend_old,['All Particles','Accepted Particles','Entire Flight (Scaled)'],line=[0,0,2],color=[color1,color2,color3],box=0,charsize=1.5
+         legend_old,['All Particles','Accepted Particles','Entire Flight (Scaled)'],line=[0,0,2],color=[color1,color2,color3],box=0,charsize=1.0
     
          IF (*p1).sodaversion eq 2 THEN BEGIN
             tothist=total((*p1).dhist,1)
             plot,findgen((*p1).op.numdiodes),(*p1).dhist[i,*],/xs,xtit='Diode Number',ytit='Shadow Count',/nodata
             oplot,findgen((*p1).op.numdiodes),(*p1).dhist[i,*],color=color1
             oplot,findgen((*p1).op.numdiodes),tothist/max(tothist)*!y.crange[1]*0.8,line=2,thick=1,color=color3
-            legend_old,['This Time Period', 'Entire Flight (Scaled)'],line=[0,2],color=[color1,color3],box=0,charsize=1.5,/bottom
+            legend_old,['This Time Period', 'Entire Flight (Scaled)'],line=[0,2],color=[color1,color3],box=0,charsize=1.0,/bottom
          ENDIF ELSE BEGIN
             plot,findgen(n_elements((*p1).dhist)),(*p1).dhist,/xs,xtit='Diode Number',ytit='Shadow Count',/nodata
             oplot,findgen(n_elements((*p1).dhist)),(*p1).dhist, color=color1
@@ -153,6 +155,8 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
          ENDELSE
          !x.style=1         
          !p.multi=[2,1,2,0,0]
+         ymarginsave=!y.margin
+         !y.margin=[4,4]
          
          ;For contour plots
          nlevels=30
@@ -162,7 +166,10 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                'IWC':BEGIN
                   plot,x,(*p1).iwc[a:b],ytitle='IWC (g/m!u3!n)',/nodata
                   oplot,x,(*p1).iwc[a:b],color=color1
-                  ;legend_old,['All','Round','Non-Round'],line=0,color=[color1],box=0
+               END
+               'LWC':BEGIN
+                  plot,x,(*p1).lwc[a:b],ytitle='LWC (g/m!u3!n)',/nodata
+                  oplot,x,(*p1).lwc[a:b],color=color1
                END
                'Extinction':BEGIN
                   plot,x,(*p1).area[a:b]*2000,ytitle='Extinction (1/km)',/nodata
@@ -171,7 +178,6 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
               'dBZ':BEGIN
                   plot,x,(*p1).dbz[a:b],ytitle='Reflectivity (dBZ)',/nodata
                   oplot,x,(*p1).dbz[a:b],color=color1
-                  ;legend_old,['All','Round','Non-Round'],line=0,color=[color1],box=0
                END
                'Total Concentration':BEGIN
                   y=(*p1).nt[a:b]/1.0e3
@@ -179,24 +185,21 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                   IF max(y) lt 10 THEN yr=[0, max(y)] ELSE yr=[0.1,max(y,/nan)>1]
                   plot,x,(*p1).nt[a:b]/1.0e3,ytitle='N!lt!n (#/L)',ylog=ylog,yr=yr,/nodata
                   oplot,x,(*p1).nt[a:b]/1.0e3,color=color1
-                  ;IF total(tag_names((*p1)) eq 'NT_ROUND') THEN oplot,x,(*p1).nt_round[a:b]/1.0e6,color=color2
-                  ;IF total(tag_names((*p1)) eq 'NT_IRREG') THEN oplot,x,(*p1).nt_irreg[a:b]/1.0e6,color=color3
-                  ;legend_old,['All','Round','Non-Round'],line=0,color=[color1,color2,color3]
                END
                 'Diameter':BEGIN             
                   plot,x,(*p1).mnd[a:b],ytitle='Diameter (um)',/yl,yr=sizerange,/ys,/nodata
                   oplot,x,(*p1).mnd[a:b],color=color1
                   oplot,x,(*p1).dmass[a:b],color=color2
                   oplot,x,(*p1).mvd[a:b],color=color3
-                  legend_old,['Mean','Mass Weighted','Median Volume'],line=0,color=[color1,color2,color3],box=0
+                  legend_old,['Mean','Median Mass','Median Volume'],line=0,thick=2,color=[color1,color2,color3],box=0,/top,/right,charsize=1
                END
                 'Rejection Codes':BEGIN
                   total_count=float((*p1).count_rejected_total[a:b]+(*p1).count_accepted[a:b])>1
-                  plot,x,(*p1).count_rejected[a:b,1]/total_count*100,ytitle='Percent Rejected',yr=[0,105],/ys,psym=1,symsize=0.3
-                  colorchoices=[color1,color2,color3,color4,color5,color6]
-                  FOR i=1,6 DO oplot,x,(*p1).count_rejected[a:b,i]/total_count*100,color=colorchoices[i-1],psym=1,symsize=0.3
-                  legend_old,['Area Ratio','Interarrival','Size Range','Edge Touch','Cluster','Centerin'],$
-                      line=0,color=colorchoices,charsize=1.0,box=0
+                  plot,x,(*p1).count_rejected[a:b,1]/total_count*100,ytitle='Percent Rejected',yr=[0,105],/ys,psym=1,symsize=0.5
+                  colorchoices=[color1,color2,color3,color5,color4,color6]
+                  FOR i=0,5 DO oplot,x,(*p1).count_rejected[a:b,i]/total_count*100,color=colorchoices[i],psym=1,symsize=0.5
+                  legend_old,['Area Ratio','Interarrival','Size Range','Edge Touch','Cluster','Water'],$
+                      line=0,thick=2,color=colorchoices,charsize=1.0,box=0,/right
                END
                'Particle Counts':BEGIN
                   maxy=max([(*p1).count_missed[a:b],(*p1).count_accepted[a:b],(*p1).count_rejected_total[a:b]])
@@ -204,15 +207,49 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                   oplot,x,(*p1).count_missed[a:b],color=color4
                   oplot,x,(*p1).count_accepted[a:b],color=color2
                   oplot,x,(*p1).count_rejected_total[a:b],color=color3
-                  legend_old,['Accepted','Rejected','Missed'],line=0,color=[color2,color3,color4],box=0
+                  legend_old,['Accepted','Rejected','Missed'],line=0,color=[color2,color3,color4],box=0,charsize=1,/right
+               END
+               'Active Time':BEGIN
+                  maxy=max((*p1).activetime[a:b]) < ((*p1).op.rate*2)
+                  plot,x,(*p1).activetime[a:b],ytitle='Active Time',yr=[0,maxy*1.1],/ys,/nodata
+                  oplot,x,(*p1).activetime[a:b],color=color1
+                  oplot,x,fltarr(n_elements(x))+(*p1).op.rate,color=color3,line=2
+                  legend_old,['Measured','Rate'],line=[0,2],color=[color1,color3],box=0,/bottom,/right,charsize=1
+               END
+              'TAS':BEGIN
+                  maxy=max((*p1).tas[a:b])
+                  IF total(tag_names(*p1) eq 'PROBETAS') THEN maxy=max([(*p1).tas[a:b], (*p1).probetas[a:b]])
+                  plot,x,(*p1).tas[a:b],ytitle='True Air Speed (m/s)',yr=[0,maxy*1.1],/ys,/nodata
+                  oplot,x,(*p1).tas[a:b],color=color1
+                  IF total(tag_names(*p1) eq 'PROBETAS') THEN BEGIN
+                     oplot, x,(*p1).probetas[a:b],color=color3,line=2
+                     legend_old,['Aircraft','Probe'],line=[0,2],color=[color1,color3],box=0,/bottom,/right,charsize=1
+                  ENDIF
+               END
+              'Diode Voltages':BEGIN
+                  maxy=5
+                  colorarray=[color3, color5, color4, 0, color2, color1, color7]  ;Put these in a rainbow order array
+                  ss=size((*p1).house.volts, /dim)
+                  plot,x,(*p1).house.volts[a:b,0],ytitle='Diode Volts',yr=[0,maxy],/ys,/nodata
+                  FOR i=0, ss[1]-1 DO oplot, x, (*p1).house.volts[a:b,i], color=colorarray[i]
+                  legend_old,string((*p1).house.diodes, format='(i3)'),line=0,color=colorarray[0:ss[1]-1],box=1,/bottom,/right,/clear,charsize=1.0,thick=2
+               END
+              'Probe Temperature':BEGIN
+                  ;Set for SPEC probes for now, may need to eventually adjust
+                  colorarray=[color3, color5, color4, 0, color2, color1, color7]  ;Put these in a rainbow order array
+                  temps2plot=[0,2,6,7,9,10,12]  ;More available for SPEC
+                  miny=-20 & maxy=40
+                  plot,x,(*p1).house.temp[a:b,0],ytitle='Temperature (C)',yr=[miny,maxy],/ys,/nodata
+                  FOR i=0, n_elements(temps2plot)-1 DO oplot, x, (*p1).house.temp[a:b,temps2plot[i]], color=colorarray[i]
+                  legend_old,(*p1).house.tempid[temps2plot],line=0,color=colorarray[0:n_elements(temps2plot)-1],box=1,/bottom,/right,/clear,charsize=1.0,thick=2
                END
                'Color Concentration':BEGIN
                    conc=alog10((*p1).conc1d[a:b,*] > 1)
                    zrange=fix([3,max(alog10((*p1).conc1d),/nan)]) ;was [4,12]
                    contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/yl,/ys,yr=sizerange,zr=zrange,c_colors=c_colors ;min_val=max(conc)-10,
                    
-                   barposx=[0.05,0.35]*(!x.window[1]-!x.window[0]) + !x.window[0]
-                   barposy=[0.85,0.9]*(!y.window[1]-!y.window[0]) + !y.window[0]
+                   barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
+                   barposy=[1.01,1.04]*(!y.window[1]-!y.window[0]) + !y.window[0]
                    bar=findgen(nlevels+1)/nlevels*(zrange[1]-zrange[0])+zrange[0]
                    xsave=!x  ;Needed so clicking in plot works later
                    contour,[[bar],[bar]],findgen(nlevels+1),[0,1],/cell,nlevels=nlevels,$
@@ -229,8 +266,8 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                    IF (*pop).smethod eq 'fastcircle_aspectratio' THEN bartitle = 'Aspect Ratio'
                    contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/yl,/ys,yr=sizerange,zr=zrange,c_colors=c_colors
                    
-                   barposx=[0.05,0.35]*(!x.window[1]-!x.window[0]) + !x.window[0]
-                   barposy=[0.85,0.9]*(!y.window[1]-!y.window[0]) + !y.window[0]
+                   barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
+                   barposy=[1.01,1.04]*(!y.window[1]-!y.window[0]) + !y.window[0]
 ;                    k=0.002 ;Border thickness
 ;                    k2=0.015  ;Thickness for wiping the background where text will be
 ;                    polyfill,[barposx[0]-k,barposx[1]+k,barposx[1]+k,barposx[0]-k],[barposy[0]-k,barposy[0]-k,barposy[1]+k,barposy[1]+k],/norm
@@ -250,8 +287,8 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                    bartitle='Aspect Ratio'
                    contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/yl,/ys,yr=sizerange,zr=zrange,c_colors=c_colors
                    
-                   barposx=[0.05,0.35]*(!x.window[1]-!x.window[0]) + !x.window[0]
-                   barposy=[0.85,0.9]*(!y.window[1]-!y.window[0]) + !y.window[0]
+                   barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
+                   barposy=[1.01,1.04]*(!y.window[1]-!y.window[0]) + !y.window[0]
                    bar=findgen(nlevels+1)/nlevels*(zrange[1]-zrange[0])+zrange[0]
                    xsave=!x
                    contour,[[bar],[bar]],findgen(nlevels+1),[0,1],/cell,nlevels=nlevels,$
@@ -267,8 +304,8 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                    bartitle='Orientation Index'
                    contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/yl,/ys,yr=sizerange,zr=zrange,c_colors=c_colors
                    
-                   barposx=[0.05,0.35]*(!x.window[1]-!x.window[0]) + !x.window[0]
-                   barposy=[0.85,0.9]*(!y.window[1]-!y.window[0]) + !y.window[0]
+                   barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
+                   barposy=[1.01,1.04]*(!y.window[1]-!y.window[0]) + !y.window[0]
                    bar=findgen(nlevels+1)/nlevels*(zrange[1]-zrange[0])+zrange[0]
                    xsave=!x
                    contour,[[bar],[bar]],findgen(nlevels+1),[0,1],/cell,nlevels=nlevels,$
@@ -284,8 +321,8 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                    intrange=[min((*p1).intmidbins),max((*p1).intmidbins)]
                    contour,conc,x,(*p1).intmidbins,/cell,nlevels=nlevels,ytitle='Interarrival Time (s)',/yl,/ys,yr=intrange,zr=zrange,c_colors=c_colors
                    
-                   barposx=[0.05,0.35]*(!x.window[1]-!x.window[0]) + !x.window[0]
-                   barposy=[0.85,0.9]*(!y.window[1]-!y.window[0]) + !y.window[0]
+                   barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
+                   barposy=[1.01,1.04]*(!y.window[1]-!y.window[0]) + !y.window[0]
                    bar=findgen(nlevels+1)/nlevels*(zrange[1]-zrange[0])+zrange[0]
                    xsave=!x
                    contour,[[bar],[bar]],findgen(nlevels+1),[0,1],/cell,nlevels=nlevels,$
@@ -301,8 +338,8 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                    intrange=[min((*p1).intmidbins),max((*p1).intmidbins)]
                    contour,conc,x,(*p1).intmidbins,/cell,nlevels=nlevels,ytitle='Interarrival Time Accepted Particles (s)',/yl,/ys,yr=intrange,zr=zrange,c_colors=c_colors
                    
-                   barposx=[0.05,0.35]*(!x.window[1]-!x.window[0]) + !x.window[0]
-                   barposy=[0.85,0.9]*(!y.window[1]-!y.window[0]) + !y.window[0]
+                   barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
+                   barposy=[1.01,1.04]*(!y.window[1]-!y.window[0]) + !y.window[0]
                    bar=findgen(nlevels+1)/nlevels*(zrange[1]-zrange[0])+zrange[0]
                    xsave=!x
                    contour,[[bar],[bar]],findgen(nlevels+1),[0,1],/cell,nlevels=nlevels,$
@@ -320,11 +357,11 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                    contour,conc,x,yaxis,/cell,nlevels=nlevels,ytitle='Diode Number',/ys,yr=drange,zr=zrange,c_colors=c_colors
                    
                    barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
-                   barposy=([0.95,0.99])*(!y.window[1]-!y.window[0]) + !y.window[0]
+                   barposy=([1.01,1.04])*(!y.window[1]-!y.window[0]) + !y.window[0]
                    bar=findgen(nlevels+1)/nlevels*(zrange[1]-zrange[0])+zrange[0]
                    xsave=!x
-                   k=0.002
-                   polyfill,[barposx[0]-k,barposx[1]+k,barposx[1]+k,barposx[0]-k],[barposy[0]-k,barposy[0]-k,barposy[1]+k,barposy[1]+k],/norm,color=255
+                   ;k=0.002
+                   ;polyfill,[barposx[0]-k,barposx[1]+k,barposx[1]+k,barposx[0]-k],[barposy[0]-k,barposy[0]-k,barposy[1]+k,barposy[1]+k],/norm,color=255
                    contour,[[bar],[bar]],findgen(nlevels+1),[0,1],/cell,nlevels=nlevels,$
                       position=[barposx[0],barposy[0],barposx[1],barposy[1]],$
                       xstyle=5,ystyle=5,zr=zrange,/noerase,noclip=0,c_colors=c_colors,$
@@ -337,8 +374,9 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                ELSE:dummy=0
             ENDCASE
          ENDFOR
-         !x.style=0 & !x.tickformat='' & !x.title='' & !x.tickunits='' & !x.ticks=0 & !p.multi=[0,1,1,0,0]   
+         !x.style=0 & !x.tickformat='' & !x.title='' & !x.tickunits='' & !x.ticks=0 & !p.multi=[0,1,1,0,0]  & !y.margin=ymarginsave  
       END
    ENDCASE
+   !p.charsize=psave.charsize
 END
 
