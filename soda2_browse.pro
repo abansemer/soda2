@@ -17,7 +17,8 @@ PRO soda2_browse_event, ev
         ;====================================================================================================
         uname eq 'load':BEGIN
             IF ptr_valid(pinfo) THEN path=(*pinfo).outdir ELSE path=''
-            fn=dialog_pickfile(/read,filter=['*.dat'],dialog_parent=widget_info(ev.top,find='tab'),path=path)
+            IF ev.select eq 999 THEN fn=ev.fn ELSE $  ;Loaded as argument
+               fn=dialog_pickfile(/read,filter=['*.dat'],dialog_parent=widget_info(ev.top,find='tab'),path=path)
             IF (file_test(fn) eq 0) or (file_test(fn,/directory) eq 1) THEN return
             
             ;Get window IDs to store in pinfo
@@ -64,7 +65,8 @@ PRO soda2_browse_event, ev
 
                widget_control,widget_info(ev.top,find='ts_type1'),set_value=soda1_plots
                widget_control,widget_info(ev.top,find='ts_type2'),set_value=soda1_plots
-            ENDIF ELSE BEGIN
+               widget_control,widget_info(ev.top,find='ts_type2'),set_droplist_select=1
+           ENDIF ELSE BEGIN
                ;SODA-2
                sodaversion=2
                count_rejected_total=long(total(data.count_rejected,2))
@@ -74,6 +76,16 @@ PRO soda2_browse_event, ev
                   meanaspr=(compute_meanar(data.spec2d_aspr, armidbins)) * binary  ;Uses same bins as area ratio
                   data=create_struct(data, 'meanaspr', meanaspr)
                ENDIF
+               ;Set available plot types
+               soda2_plots=['Total Concentration','IWC','LWC','dBZ','Diameter',$
+                  'Color Concentration','Color Interarrival', 'Color Interarrival Accepted','Color Diode Histogram',$
+                  'Color Area Ratio','Color Aspect Ratio','Color Orientation','Rejection Codes',$
+                  'Particle Counts','Active Time','TAS']
+               ;Add housekeeping plots if available
+               IF total(tag_names(data) eq 'HOUSE') eq 1 THEN soda2_plots=[soda2_plots,'Diode Voltages','Probe Temperature']
+               widget_control,widget_info(ev.top,find='ts_type1'),set_value=soda2_plots
+               widget_control,widget_info(ev.top,find='ts_type2'),set_value=soda2_plots
+               widget_control,widget_info(ev.top,find='ts_type2'),set_droplist_select=1
             ENDELSE
             p1=ptr_new(data)
             pop=ptr_new(op)
@@ -134,6 +146,7 @@ PRO soda2_browse_event, ev
             widget_control,widget_info(ev.top,find='properties'),sensitive=1
             widget_control,widget_info(ev.top,find='color_invert'),sensitive=1
             widget_control,widget_info(ev.top,find='massparammenu'),sensitive=1
+            widget_control,widget_info(ev.top,find='newbrowser'),sensitive=1
             widget_control,widget_info(ev.top,find='filedisplay'),set_value=file_basename(fn)
 
             ;Establish mouse info
@@ -306,6 +319,10 @@ PRO soda2_browse_event, ev
            soda2_properties,p1,pop,ev.top
         END
         ;====================================================================================================
+        uname eq 'newbrowser': BEGIN
+           soda2_browse
+        END
+        ;====================================================================================================
         uname eq 'quit': BEGIN
            IF ptr_valid(p1) THEN ptr_free,p1   
            IF ptr_valid(pinfo) THEN ptr_free,pinfo 
@@ -388,7 +405,7 @@ PRO soda2_browse_event, ev
            binstart=min(where((*pop).endbins ge 100))         
            bulk=compute_bulk_simple((*p1).conc1d,(*pop).endbins,binstart=binstart,ac=a,bc=b)
            (*p1).iwc=bulk.iwc
-           (*p1).dmass=bulk.dmass
+           (*p1).dmass=bulk.dmedianmass
            (*p1).dbz=bulk.dbz
            (*p1).mvd=bulk.mvd
            (*p1).mnd=bulk.mnd
@@ -422,7 +439,7 @@ END
 
 
 
-PRO soda2_browse
+PRO soda2_browse, fn
    ;Main GUI for SODA-2 data browsing
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
@@ -447,6 +464,7 @@ PRO soda2_browse
     mp1ID=widget_button(massparamID, value='Brown/Francis',uname='massparam_bf')
     mp2ID=widget_button(massparamID, value='CRYSTAL',uname='massparam_crystal')
     mp3ID=widget_button(massparamID, value='Heymsfield 2012',uname='massparam_2012')
+    newbrowserID=widget_button(fileID, value='Open new browser',uname='newbrowser',sensitive=0)
     quitID=widget_button(fileID, value='Quit',uname='quit')
 
     
@@ -472,10 +490,10 @@ PRO soda2_browse
     drawbase5=widget_base(tab,column=1,title='Time Series',uname='tab5')
     plot5=widget_draw(drawbase5,xsize=screen_x,ysize=screen_y-30,uname='w5',/button_events,/motion_events)
     drawbase5b=widget_base(drawbase5,row=1)
-    plottypes=['Total Concentration','IWC','dBZ','Diameter',$
+    plottypes=['Total Concentration','IWC','LWC','dBZ','Diameter',$
         'Color Concentration','Color Interarrival', 'Color Interarrival Accepted','Color Diode Histogram',$
        'Color Area Ratio','Color Aspect Ratio','Color Orientation','Rejection Codes',$
-       'Particle Counts']
+       'Particle Counts','Active Time','TAS']
     ts_type1=widget_droplist(drawbase5b,uname='ts_type1',value=plottypes,title='Plot 1',/frame)
     ts_type2=widget_droplist(drawbase5b,uname='ts_type2',value=plottypes,title='Plot 2',/frame)
     widget_control,ts_type2,set_droplist_select=1
@@ -510,4 +528,6 @@ PRO soda2_browse
     
     WIDGET_CONTROL, base, /REALIZE
     XMANAGER, 'soda2_browse', base, cleanup='soda2_browse_cleanup', /no_block
+  
+    IF n_elements(fn) eq 1 THEN soda2_browse_event, {id:loadID, top:base, handler:base, select:999, fn:fn}
 END
