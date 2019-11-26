@@ -12,7 +12,8 @@ PRO soda2_properties,p1,pop,top
     dummy=widget_label(subbase1,value='Resolution: '+strtrim(string((*pop).res),2),/align_left)
     dummy=widget_label(subbase1,value='Sizing Method: '+strtrim(string((*pop).smethod),2),/align_left)
     dummy=widget_label(subbase1,value='Interarrival Rejection: '+strtrim(string((*pop).inttime_reject,form='(i3)'),2),/align_left)
-    dummy=widget_label(subbase1,value='Reconstruction: '+strtrim(string((*pop).reconstruct,form='(i3)'),2),/align_left)
+    IF total(where(tag_names(*pop) eq 'RECONSTRUCT')) ne -1 THEN v=(*pop).reconstruct ELSE v=(*pop).eawmethod
+    dummy=widget_label(subbase1,value='Reconstruction Method: '+strtrim(string(v),2),/align_left)
     dummy=widget_label(subbase1,value='Stuck Bit Detection: '+strtrim(string((*pop).stuckbits,form='(i3)'),2),/align_left)
     dummy=widget_label(subbase1,value='Water Processing: '+strtrim(string((*pop).water,form='(i3)'),2),/align_left)
     dummy=widget_label(subbase1,value='Time Offset: '+strtrim(string((*pop).timeoffset),2),/align_left)
