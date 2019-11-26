@@ -1,13 +1,15 @@
-FUNCTION soda2_findsize, img, xres, yres
+FUNCTION soda2_findsize, img, xres, yres, voidarea=voidarea
    ;Returns the diameter of a binary image based on the size of a pixel in each dir (xres and yres)
    ;Aaron Bansemer, NCAR, 2009
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
    
    ;Predefine output struct to ensure consistent data types
-   out={diam:0.0, xsize:0.0, ysize:0.0, areasize:0.0, ar:0.0, aspr:0.0, allin:0b, c:fltarr(2), centerin:1b, $
-            orientation:0.0, perimeterarea:0L, edgetouch:0b}
+   IF n_elements(voidarea) eq 0 THEN voidarea=0
+   out={diam:0.0, xsize:0.0, ysize:0.0, areasize:0.0, ar:0.0, arfilled:0.0, aspr:0.0, allin:0b, c:fltarr(2), centerin:1b, $
+            orientation:0.0, perimeterarea:0L, edgetouch:0b, xextent:0.0}
    
    area_original=total(img) * (yres/xres) ;area of particle
+   area_original_filled=(total(img)+voidarea) * (yres/xres) ;area of particle with filled voids
    IF area_original eq 0 THEN return, out ;zero area image, return
    s=size(img)
    ;ndims=size(img,/n_dim)
@@ -54,6 +56,10 @@ FUNCTION soda2_findsize, img, xres, yres
       IF extent[iright] ge max(extent) THEN out.centerin=0b
    ENDIF
    
+   ;Compute max extent in x-direction.  Equivalent to 'Ly' in Korolev papers
+   img2[x_ind, y_ind]=x_ind          ;Fill image with the diode index of each shadowed pixel
+   out.xextent = max(max(img2, dim=1) - min(img2, dim=1) + 1) * xres  
+
    r=out.diam/xres/2.0
    x=circle.center[0]
    ;out.centerin=1b
@@ -67,6 +73,7 @@ FUNCTION soda2_findsize, img, xres, yres
       circle_area_imaged=x*r*sin(theta) + (s[1]-1-x)*r*sin(phi) + !pi*r^2*((!pi-phi-theta)/!pi)     
    ENDIF ELSE circle_area_imaged = !pi * r^2  
    out.ar=(area_original/circle_area_imaged) < 1.0
+   out.arfilled=(area_original_filled/circle_area_imaged) < 1.0
 
    out.areasize=out.diam*sqrt(out.ar)   ;Can show by derivation.  This also adjusts for partial images.
    return, out
