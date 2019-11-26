@@ -62,7 +62,7 @@ FUNCTION spec_index, lun, lite=lite, minimagesize=minimagesize, pointerstart=poi
    
    ;Get all the time buffers
     FOR i=0L,numbuffs-2 DO BEGIN
-        IF (header.year lt 2005) or (header.year gt 2030) THEN stop, 'File misaligned'
+        IF (header.year lt 2005) or (header.year gt 2050) THEN stop, 'File misaligned'
         ;bufftime[i]=(header.day ne firstday)*86400D + header.hour*3600D + header.minute*60D + header.second + header.millisecond/1000D
         ;Will take care of midnight crossings elsewhere
         bufftime[i]=header.hour*3600D + header.minute*60D + header.second + header.millisecond/1000D
