@@ -13,6 +13,7 @@ PRO soda2_update_op, op
    IF total(where(tag_names(op) eq 'PARTICLEFILE')) eq -1 THEN op=create_struct(op,'particlefile',0)
    IF total(where(tag_names(op) eq 'NCDFPARTICLEFILE')) eq -1 THEN op=create_struct(op,'ncdfparticlefile',0)
    IF total(where(tag_names(op) eq 'CLUSTERTHRESH')) eq -1 THEN op=create_struct(op,'clusterthresh',0.0)   
+   IF total(where(tag_names(op) eq 'STUCKBITS')) eq -1 THEN op=create_struct(op,'stuckbits',0)   
    IF total(where(tag_names(op) eq 'SAVFILE')) eq -1 THEN op=create_struct(op,'savfile',1)  
    IF total(where(tag_names(op) eq 'SHORTNAME')) eq -1 THEN op=create_struct(op,'shortname',op.probetype)
    IF total(where(tag_names(op) eq 'RAKEFIX')) eq -1 THEN op=create_struct(op,'rakefix',0)  ;1 fixes odd diodes, 2 fixes even ones
@@ -31,10 +32,10 @@ PRO soda2_update_op, op
    IF total(where(tag_names(op) eq 'STRETCHCORRECT')) eq -1 THEN op=create_struct(op,'stretchcorrect',0)  ;Adjust yres when aircraft TAS and probe TAS mismatch
    
    ;Check for incompatible options
-   IF (op.water eq 1) and (op.apply_psc eq 1) THEN BEGIN
-      print, 'op.water and op.apply_psc are both flagged and will result in double correction.'
-      print, 'Setting op.apply_psc to 0.'
-      op.apply_psc = 0
+   IF (op.format eq 'SPEC') and (op.stuckbits eq 1) THEN BEGIN
+      print, 'op.stuckbits will not work for SPEC probe data.'
+      print, 'Setting op.stuckbits to 0.'
+      op.stuckbits = 0
    ENDIF
    IF (op.stretchcorrect eq 1) and (op.format ne 'SPEC') THEN print, 'Stretch correction not available for this format, will not be applied.'
 END

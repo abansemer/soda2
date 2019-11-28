@@ -103,7 +103,6 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
                ELSE:binningsize=x[iparticles[j]].diam
             ENDCASE        
             ;Apply poisson-spot correction
-            ;apply_psc is for HIWC, where they want it applied to ice.  This correction should not be used with 'water', checked in soda2_update_op.pro.
             IF ((*pop).apply_psc eq 1) or ((*pop).water eq 1) THEN BEGIN               
                binningsize /= x[iparticles[j]].sizecorrection
             ENDIF 
