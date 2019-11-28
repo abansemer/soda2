@@ -79,7 +79,7 @@ PRO soda2_browse_event, ev
                ;Set available plot types
                soda2_plots=['Total Concentration','IWC','LWC','dBZ','Diameter',$
                   'Color Concentration','Color Interarrival', 'Color Interarrival Accepted','Color Diode Histogram',$
-                  'Color Area Ratio','Color Aspect Ratio','Color Orientation','Rejection Codes',$
+                  'Color Area Ratio','Color Aspect Ratio','Color Mass Distribution','Color Orientation','Rejection Codes',$
                   'Particle Counts','Active Time','TAS']
                ;Add housekeeping plots if available
                IF total(tag_names(data) eq 'HOUSE') eq 1 THEN soda2_plots=[soda2_plots,'Diode Voltages','Probe Temperature']

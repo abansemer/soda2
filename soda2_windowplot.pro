@@ -194,10 +194,12 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                   legend_old,['Mean','Median Mass','Median Volume'],line=0,thick=2,color=[color1,color2,color3],box=0,/top,/right,charsize=1
                END
                 'Rejection Codes':BEGIN
+                  IF (b-a) lt 50 THEN psym=0 ELSE psym=1   ;Plot symbols if there is a lot of data, otherwise lines
+                  print,b-a
                   total_count=float((*p1).count_rejected_total[a:b]+(*p1).count_accepted[a:b])>1
-                  plot,x,(*p1).count_rejected[a:b,1]/total_count*100,ytitle='Percent Rejected',yr=[0,105],/ys,psym=1,symsize=0.5
+                  plot,x,(*p1).count_rejected[a:b,1]/total_count*100,ytitle='Percent Rejected',yr=[0,105],/ys,psym=psym,symsize=0.5
                   colorchoices=[color1,color2,color3,color5,color4,color6]
-                  FOR i=0,5 DO oplot,x,(*p1).count_rejected[a:b,i]/total_count*100,color=colorchoices[i],psym=1,symsize=0.5
+                  FOR i=0,5 DO oplot,x,(*p1).count_rejected[a:b,i]/total_count*100,color=colorchoices[i],psym=psym,symsize=0.5
                   legend_old,['Area Ratio','Interarrival','Size Range','Edge Touch','Cluster','Water'],$
                       line=0,thick=2,color=colorchoices,charsize=1.0,box=0,/right
                END
@@ -297,6 +299,27 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                    !x=xsave
                    xyouts, barposx, barposy[1]+0.01, string(zrange, form='(f3.1)'),/norm,align=0.5
                    xyouts, mean(barposx), barposy[1]+0.01, bartitle ,/norm,align=0.5
+               END
+               'Color Mass Distribution':BEGIN
+                   conc=(lognormalize((*p1).msdnorm[a:b,*],(*p1).op.endbins))
+                   zrange=[0.001,max(conc)/1.5]
+                   zlog=0
+                   IF zlog eq 1 THEN BEGIN
+                     conc=alog10(conc)
+                     zrange=alog10(zrange)
+                   ENDIF
+                   contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/ys,/yl,yr=sizerange,zr=zrange,c_colors=c_colors ;min_val=max(conc)-10,
+                   
+                   barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
+                   barposy=[1.01,1.04]*(!y.window[1]-!y.window[0]) + !y.window[0]
+                   bar=findgen(nlevels+1)/nlevels*(zrange[1]-zrange[0])+zrange[0]
+                   xsave=!x  ;Needed so clicking in plot works later
+                   contour,[[bar],[bar]],findgen(nlevels+1),[0,1],/cell,nlevels=nlevels,$
+                      position=[barposx[0],barposy[0],barposx[1],barposy[1]],$
+                      xtickname=string(zrange, form='(i2)') ,xstyle=5,ystyle=5,zr=zrange,/noerase,noclip=1,c_colors=c_colors
+                   !x=xsave
+                   xyouts, barposx, barposy[1]+0.01, [string(zrange[0], form='(f4.1)'),string(zrange[1],form='(f4.1)')],/norm,align=0.5
+                   xyouts, mean(barposx), barposy[1]+0.01, 'Mass (g/m!u3!n/dlogD)',/norm,align=0.5
                END
                'Color Orientation':BEGIN
                    conc=(*p1).orientation_index[a:b,*]
