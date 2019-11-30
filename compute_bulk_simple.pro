@@ -43,6 +43,7 @@ FUNCTION compute_bulk_simple, conc1d, endbins, binstart=binstart, binstop=binsto
    mass=(acoeff*(midbins/1.0e4)^bcoeff)
    massLWC=!pi/6 * (midbins/1.0e4)^3 
    mass=mass<(massLWC*0.91)
+   IF (acoeff gt 0.52) and (bcoeff eq 3.0) THEN mass=massLWC ;Switch to water for water coefficients
    dm6=(6/!pi)^2 * mass^2 * 1.e6
    midbins_melted=(6/!pi*mass)^(1.0/3.0)*1e4
    msd=conc1d*0.0

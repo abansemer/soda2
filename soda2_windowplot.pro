@@ -73,7 +73,7 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
          buffermargin=10
          panelwidth=(*pop).numdiodes+buffermargin
          num2plot=!d.x_size/fix(panelwidth)
-         charsize=((*pop).numdiodes/50.0) < 1.4 > 0.8  ;Character size for the timestamp depends on buffer width
+         charsize=((*pop).numdiodes/50.0) < 1.0 > 0.8  ;Character size for the timestamp depends on buffer width
          
          ibuffer=0
          panelstart=(*pinfo).panelstart
@@ -195,7 +195,6 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                END
                 'Rejection Codes':BEGIN
                   IF (b-a) lt 50 THEN psym=0 ELSE psym=1   ;Plot symbols if there is a lot of data, otherwise lines
-                  print,b-a
                   total_count=float((*p1).count_rejected_total[a:b]+(*p1).count_accepted[a:b])>1
                   plot,x,(*p1).count_rejected[a:b,1]/total_count*100,ytitle='Percent Rejected',yr=[0,105],/ys,psym=psym,symsize=0.5
                   colorchoices=[color1,color2,color3,color5,color4,color6]

@@ -66,7 +66,7 @@ PRO soda2_browse_event, ev
                widget_control,widget_info(ev.top,find='ts_type1'),set_value=soda1_plots
                widget_control,widget_info(ev.top,find='ts_type2'),set_value=soda1_plots
                widget_control,widget_info(ev.top,find='ts_type2'),set_droplist_select=1
-           ENDIF ELSE BEGIN
+            ENDIF ELSE BEGIN
                ;SODA-2
                sodaversion=2
                count_rejected_total=long(total(data.count_rejected,2))
@@ -125,10 +125,11 @@ PRO soda2_browse_event, ev
             pmisc=ptr_new(misc)
             widget_control,widget_info(ev.top,find='tab2'),set_uvalue=pmisc
                                    
-            ;Plot bin 2 in the time bar window
+            ;Plot Nt in the time bar window
             wset,wt
-            plot,smooth(data.conc1d[*,1],5,/nan),xsty=5,ysty=5,pos=[0,0,1,1],yr=[1e2,1e12],/yl
-            info.bmp=tvrd()     ;The raw plot
+            plot,smooth(alog10(data.nt),5,/nan),xsty=5,ysty=5,pos=[0,0,1,1],yr=[2,8],/yl
+            ;plot,smooth(data.conc1d[*,1],5,/nan),xsty=5,ysty=5,pos=[0,0,1,1],yr=[1e2,1e12],/yl
+            info.bmp=(tvrd(/true))[0,*,*]     ;The raw plot
             tsbmp=info.bmp
             tsbmp[info.i,*]=150 ;Add a time bar at the beginning
             tv,tsbmp
@@ -391,6 +392,7 @@ PRO soda2_browse_event, ev
         (strmid(uname,0,9) eq 'massparam'): BEGIN
            ;Adjust mass/size param
            ;Make all bulk computations starting at 100um
+           ;Note: may be small differences from original due to declutter application
            CASE uname OF
               'massparam_bf':BEGIN
                  a=0.00294 & b=1.9
@@ -401,12 +403,16 @@ PRO soda2_browse_event, ev
               'massparam_2012':BEGIN
                  a=0.00528 & b=2.1
               END
+              'massparam_water':BEGIN
+                 a=!pi/6 & b=3.0
+              END
            ENDCASE
            binstart=min(where((*pop).endbins ge 100))         
            bulk=compute_bulk_simple((*p1).conc1d,(*pop).endbins,binstart=binstart,ac=a,bc=b)
            (*p1).iwc=bulk.iwc
            (*p1).dmass=bulk.dmedianmass
            (*p1).dbz=bulk.dbz
+           IF uname eq 'massparam_water' THEN (*p1).dbz=bulk.dbzw  ;Use water dBZ in this case
            (*p1).mvd=bulk.mvd
            (*p1).mnd=bulk.mnd
            soda2_windowplot,ev.top,p1,pinfo,pop,pmisc
@@ -464,6 +470,7 @@ PRO soda2_browse, fn
     mp1ID=widget_button(massparamID, value='Brown/Francis',uname='massparam_bf')
     mp2ID=widget_button(massparamID, value='CRYSTAL',uname='massparam_crystal')
     mp3ID=widget_button(massparamID, value='Heymsfield 2012',uname='massparam_2012')
+    mp4ID=widget_button(massparamID, value='Water',uname='massparam_water')
     newbrowserID=widget_button(fileID, value='Open new browser',uname='newbrowser',sensitive=0)
     quitID=widget_button(fileID, value='Quit',uname='quit')
 

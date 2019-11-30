@@ -60,7 +60,7 @@ PRO soda2_merge_event, ev
             widget_control,widget_info(ev.top,find='bcoeff'),set_value=2.05
          ENDIF
          IF paramtype eq 'Water' THEN BEGIN
-            widget_control,widget_info(ev.top,find='acoeff'),set_value=1.0
+            widget_control,widget_info(ev.top,find='acoeff'),set_value=!pi/6
             widget_control,widget_info(ev.top,find='bcoeff'),set_value=3.0
          ENDIF
          IF paramtype eq 'Other' THEN BEGIN
