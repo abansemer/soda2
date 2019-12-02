@@ -87,6 +87,7 @@ PRO soda2_merge_event, ev
            merge_master, fn1, fn2=fn2, pth=pthfile, outdir=outdir, kcoeff=acoeff*6/!pi, ncoeff=0, $
                alpha=bcoeff-3.0, crossover=crossover, binstart=binstart, suffix=suffix, computeradar=0, allspec=0
            widget_control,widget_info(ev.top,find='process'),set_value='BEGIN PROCESSING'
+           dummy=dialog_message('Operation Complete',dialog_parent=widget_info(ev.top,find='process'),/info)
          ENDIF ELSE BEGIN
             widget_control,widget_info(ev.top,find='process'),set_value='INVALID FILENAME, TRY ANOTHER'
             wait,3
@@ -110,7 +111,18 @@ PRO soda2_merge_event, ev
             widget_control,widget_info(ev.top,find='suffix'),set_value=data.op.suffix
          ENDIF
       END
-        
+      
+      'compare':BEGIN
+         widget_control,widget_info(ev.top,find='fn1'),get_value=fn1
+         widget_control,widget_info(ev.top,find='fn2'),get_value=fn2
+         widget_control,widget_info(ev.top,find='crossover'),get_value=crossover
+         IF file_test(fn1) eq 1 and (file_test(fn2) eq 1) THEN soda2_compare, fn1, fn2, crossover=crossover ELSE BEGIN
+            widget_control,widget_info(ev.top,find='compare'),set_value='INVALID FILENAME, TRY ANOTHER'
+            wait,3
+            widget_control,widget_info(ev.top,find='compare'),set_value='Compare Data'
+         ENDELSE
+      END
+      
       'quit': WIDGET_CONTROL, ev.TOP, /DESTROY 
 
       ELSE: dummy=0
@@ -120,7 +132,7 @@ END
 
 
 PRO soda2_merge
-   base = WIDGET_BASE(COLUMN=1,title='Compute Bulk Values / Merge Spectra',MBar=menubarID)
+   base = WIDGET_BASE(COLUMN=1,title='Compare and Merge Spectra',MBar=menubarID)
 
    fileID=widget_button(menubarID, value='File', /menu)
    loadID=widget_button(fileID, value='Load Settings...',uname='load')
@@ -159,6 +171,7 @@ PRO soda2_merge
    acoeffID=cw_field(coeffbase2,/float, title='a=  ',uname='acoeff',value=0.00294)
    bcoeffID=cw_field(coeffbase2,/float, title='b=  ',uname='bcoeff',value=1.9)
 
+   compare = WIDGET_BUTTON(base, value='Compare Data', uname='compare')
    process = WIDGET_BUTTON(base, value='BEGIN PROCESSING', uname='process')
 
    WIDGET_CONTROL, base, /REALIZE
