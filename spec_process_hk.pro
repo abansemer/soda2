@@ -11,7 +11,7 @@ PRO spec_process_hk, op, textwidgetid=textwidgetid, fn_out=fn_out, y=y, nosav=no
    
    ;---Initialize variables--------------------------------------- 
    
-   numrecords=(op.stoptime-op.starttime)/op.rate + 1   ;Number of records that will be saved
+   numrecords=long((op.stoptime-op.starttime)/op.rate + 1)   ;Number of records that will be saved
    time=op.starttime + op.rate*dindgen(numrecords)     ;This is the start time for each record
    hk=fltarr(numrecords, 49)
    tas=fltarr(numrecords)
