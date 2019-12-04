@@ -82,7 +82,7 @@ PRO soda2_browse_event, ev
                   'Color Area Ratio','Color Aspect Ratio','Color Mass Distribution','Color Orientation','Rejection Codes',$
                   'Particle Counts','Active Time','TAS']
                ;Add housekeeping plots if available
-               IF total(tag_names(data) eq 'HOUSE') eq 1 THEN soda2_plots=[soda2_plots,'Diode Voltages','Probe Temperature']
+               IF (total(tag_names(data) eq 'HOUSE') eq 1) && (n_elements(tag_names(data.house)) gt 1) THEN soda2_plots=[soda2_plots,'Diode Voltages','Probe Temperature']
                widget_control,widget_info(ev.top,find='ts_type1'),set_value=soda2_plots
                widget_control,widget_info(ev.top,find='ts_type2'),set_value=soda2_plots
                widget_control,widget_info(ev.top,find='ts_type2'),set_droplist_select=1
