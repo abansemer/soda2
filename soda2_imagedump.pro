@@ -26,6 +26,13 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    IF nofile eq 1 THEN data=file ELSE restore, file
    op=data.op
    soda2_update_op,op
+
+   ft=file_test(op.fn[0])
+   IF (ft eq 0) THEN BEGIN
+      rawdir=dialog_pickfile(/read,/directory,title='Can''t find '+op.fn[0]+', where is it?')
+      IF file_test(rawdir+file_basename(op.fn[0])) eq 1 THEN op.fn=rawdir+file_basename(op.fn) ELSE stop,'No data found'     
+   ENDIF 
+
    ;Need to index SPEC files for frame locations
    IF op.format eq 'SPEC' THEN BEGIN
       openr,lun,op.fn[0],/get_lun
