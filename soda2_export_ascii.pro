@@ -31,7 +31,7 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b
       diam=bulk100.mvd
    ENDIF ELSE BEGIN
       printf,lun,'Size distributions were processed using ice rejection criteria.'
-      printf,lun,'Mass-size parameterization coefficients: a='+string(a,format='(e8.2)')+', b='+string(b,format='(f4.2)')
+      printf,lun,'Mass-size parameterization coefficients: a='+string(a,format='(e10.2)')+', b='+string(b,format='(f4.2)')
       masstitle='Estimated Ice Water Content [g/m3]'
       massshortname='IWC'
       mass=bulk100.iwc
@@ -50,11 +50,11 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b
    printf,lun,'Variables:'
    FOR i=0,n_elements(titles)-1 DO printf,lun,'   '+titles[i]
    printf,lun,''
-   printf,lun,shortnames,format='(a6, 200a10)'
+   printf,lun,shortnames,format='(a6, 200a12)'
    printf,lun,'----------------------------------------------------'
 
    FOR i=0,n_elements(data.time)-1 DO BEGIN
-      printf,lun,data.time[i],bulk100.nt[i],mass[i],diam[i],transpose(data.conc1d[i,*]),form='(i6, 2e10.2,200e10.2)' 
+      printf,lun,data.time[i],bulk100.nt[i],mass[i],diam[i],transpose(data.conc1d[i,*]),form='(i6, 2e12.2,200e12.2)' 
    ENDFOR
    
    ;Close the file
