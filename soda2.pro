@@ -27,7 +27,7 @@ PRO soda2_event, ev
             widget_control,widget_info(ev.top,find='tascheckbox'),set_value=op.stretchcorrect
              
             ;--------Checkboxes
-            checkboxarray=[0,0,0,0,0,0,0]
+            checkboxarray=[0,0,0,0,0,0,0,0]
             id=widget_info(ev.top,find='options')
             widget_control,id,get_uvalue=values
             IF total(where(tag_names(op) eq 'RECONSTRUCT')) ne -1 THEN IF op.reconstruct eq 0 THEN checkboxarray[where(values eq 'All-In')]=1
@@ -40,6 +40,7 @@ PRO soda2_event, ev
             IF op.juelichfilter eq 1 THEN checkboxarray[where(values eq 'Pixel Noise Filter')]=1
             IF op.keeplargest eq 1 THEN checkboxarray[where(values eq 'Largest Particle')]=1
             IF op.apply_psc eq 1 THEN checkboxarray[where(values eq 'Force PSC')]=1
+            IF op.dofreject eq 1 THEN checkboxarray[where(values eq 'DoF Reject')]=1
             widget_control,id,set_value=checkboxarray
 
             ;--------Output checkboxes
@@ -204,6 +205,7 @@ PRO soda2_event, ev
             IF iadv[where(values eq 'Pixel Noise Filter')] eq 1 THEN juelichfilter=1 ELSE juelichfilter=0
             IF iadv[where(values eq 'Largest Particle')] eq 1 THEN keeplargest=1 ELSE keeplargest=0
             IF iadv[where(values eq 'Force PSC')] eq 1 THEN apply_psc=1 ELSE apply_psc=0
+            IF iadv[where(values eq 'DoF Reject')] eq 1 THEN dofreject=1 ELSE dofreject=0
             widget_control,widget_info(ev.top,find='tascheckbox'),get_value=stretchcorrect
            
             ;--------Size Method
@@ -259,7 +261,7 @@ PRO soda2_event, ev
 
             ;--------Bins
             widget_control,widget_info(ev.top,find='endbins'),get_value=binstring
-            endbins=long(strsplit(binstring, '[ ,]+', /regex, /extract))
+            endbins=float(strsplit(binstring, '[ ,]+', /regex, /extract))
             
             ;-------Bin size checks
             warn=0 & go='Yes'
@@ -285,7 +287,7 @@ PRO soda2_event, ev
                fixedtas:fixedtas, outdir:outdir[0], project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
                numdiodes:probe.numdiodes, probeid:probe.probeid, shortname:probe.shortname, greythresh:greythresh, $
                wavelength:probe.wavelength, seatag:probe.seatag, ncdfparticlefile:ncdfparticlefile, stretchcorrect:stretchcorrect[0],$
-               keeplargest:keeplargest, apply_psc:apply_psc}
+               keeplargest:keeplargest, apply_psc:apply_psc, dofreject:dofreject}
 
             ;Process housekeeping if flagged
             IF (housefile eq 1) and (probe.format eq 'SPEC') THEN BEGIN
@@ -343,7 +345,7 @@ PRO soda2
     fileID=widget_button(menubarID, value='Menu', /menu, uname='base', uvalue=pinfo)
     loadfile=widget_button(fileID, value='Load settings...',uname='loadfile')
     browseID=widget_button(fileID, value='Browse data...',uname='browse')
-    mergeID=widget_button(fileID, value='Merge data...',uname='merge')
+    mergeID=widget_button(fileID, value='Compare/Merge data...',uname='merge')
     exportID=widget_button(fileID, value='Export data...',uname='export')
     quitID=widget_button(fileID, value='Quit',uname='quit')
 
@@ -397,8 +399,8 @@ PRO soda2
     timeoffset=cw_field(subbase2a,/float, title='Clock Correction (s):',uname='timeoffset' , xsize=6, value=0.0)
    
     subbase2c=widget_base(subbase2,row=1)
-    vals=['Shatter Correct','All-In','Water Processing','Stuck Bit Correct','Pixel Noise Filter','Largest Particle','Force PSC']
-    advanced=cw_bgroup(subbase2c,vals,uname='options',row=2,/nonexclusive,uval=vals,set_value=[1,0,0,0,0,0,0])
+    vals=['Shatter Correct','All-In','Water Processing','Stuck Bit Correct','Pixel Noise Filter','Largest Particle','Force PSC','DoF Reject']
+    advanced=cw_bgroup(subbase2c,vals,uname='options',row=2,/nonexclusive,uval=vals,set_value=[1,0,0,0,0,0,0,0])
 
 
     ;---------Output directory and process button-------------------------

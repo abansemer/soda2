@@ -115,6 +115,7 @@ PRO soda2_merge_event, ev
       'compare':BEGIN
          widget_control,widget_info(ev.top,find='fn1'),get_value=fn1
          widget_control,widget_info(ev.top,find='fn2'),get_value=fn2
+         IF fn2 eq '' THEN fn2=fn1  ;Just compare with itself if no extra file listed
          widget_control,widget_info(ev.top,find='crossover'),get_value=crossover
          IF file_test(fn1) eq 1 and (file_test(fn2) eq 1) THEN soda2_compare, fn1, fn2, crossover=crossover ELSE BEGIN
             widget_control,widget_info(ev.top,find='compare'),set_value='INVALID FILENAME, TRY ANOTHER'
