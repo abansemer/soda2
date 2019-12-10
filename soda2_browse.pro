@@ -12,7 +12,7 @@ PRO soda2_browse_event, ev
     widget_control,widget_info(ev.top,find='tab'),get_uvalue=screen
     screen_x=screen[0]
     screen_y=screen[1]
-    
+
     CASE 1 OF
         ;====================================================================================================
         uname eq 'load':BEGIN
@@ -171,6 +171,17 @@ PRO soda2_browse_event, ev
             i1=(*pinfo).i1
             i2=(*pinfo).i2
             update=0  ;Flag to enact updates
+            
+            ;Typed in new time
+            IF uname eq 'time' THEN BEGIN
+               widget_control,widget_info(ev.top,find='time'),get_value=texttime
+               time=long(texttime)
+               IF (*pinfo).timeformat eq 1 THEN time=hms2sfm(time)
+               w=where((*p1).time eq time[0])
+               IF w[0] ne -1 THEN i=w[0]
+               update=1
+               tabnum=-1  ;To skip over the conditionals below
+            ENDIF
                         
             ;Mouse events draw selection boxes when in the time series tab
             IF  (tabnum eq 3) THEN BEGIN
@@ -240,20 +251,13 @@ PRO soda2_browse_event, ev
             ENDIF
             
             ;In other tabs just use release events
-            IF (tabnum ne 3) and ((ev.release ne 0) or (ev.type eq 7)) THEN BEGIN
+            IF (tabnum ne 3) and (tabnum ge 0) && ((ev.release ne 0) or (ev.type eq 7)) THEN BEGIN
                IF (uname eq 'w1') or (uname eq 'w2') or (uname eq 'w3') THEN BEGIN               
                   ;Left click, middle click, or scroll down
                   IF (ev.release eq 1) or (ev.release eq 2) or (ev.release eq 16) THEN advance=1
                   ;Right click or scroll up
                   IF (ev.release eq 4) or (ev.release eq 8) THEN advance=-1           
                   IF (ev.type eq 7) THEN advance=-(ev.clicks)   ;For Windows compatibility    
-               ENDIF
-               IF uname eq 'time' THEN BEGIN
-                  widget_control,widget_info(ev.top,find='time'),get_value=texttime
-                  time=long(texttime)
-                  IF (*pinfo).timeformat eq 1 THEN time=hms2sfm(time)
-                  w=where((*p1).time eq time[0])
-                  IF w[0] ne -1 THEN i=w[0]
                ENDIF
                IF uname eq 'wt' THEN BEGIN   ;Left click on the wt window moves to the click location
                   IF (ev.release eq 1) THEN i=ev.x/float(screen_x) * n_elements((*p1).time)
