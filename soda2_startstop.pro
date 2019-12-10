@@ -13,6 +13,8 @@ FUNCTION soda2_startstop, fn
    ;Get file stats
    openr, lun, fn, /get_lun
    f=fstat(lun)
+   IF f.size lt 5000 THEN return, badfile
+  
 
    ;First check if this is an SEA file, need to use a different method
    ;==================================================================
@@ -40,7 +42,6 @@ FUNCTION soda2_startstop, fn
       ENDIF
    ENDIF
    
-
    ;Next check for DMT, SPEC, or NCAR
    ;==================================================================
    ;Find the buffer size from the position of 'year' data, should typically be 4114 bytes
@@ -60,8 +61,12 @@ FUNCTION soda2_startstop, fn
          out.format = 'SPEC'
          header={year:0s, month:0s, weekday:0s, day:0s, hour:0s, minute:0s, second:0s, millisecond:0s}
       END
-      4112: BEGIN
+      4112: BEGIN   ;PADS - Subformat=1
          out.format = 'DMT'
+         header={year:0S, month:0S, day:0S, hour:0S, minute:0S, second:0S, millisecond:0S, weekday:0S}
+      END
+      4124: BEGIN   ;PACS - Subformat=0
+         out.format = 'DMT'  
          header={year:0S, month:0S, day:0S, hour:0S, minute:0S, second:0S, millisecond:0S, weekday:0S}
       END
       4116: BEGIN
