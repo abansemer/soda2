@@ -53,6 +53,16 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b
    printf,lun,shortnames,format='(a6, 200a12)'
    printf,lun,'----------------------------------------------------'
 
+   ;Check for Nan and Inf, set to zero
+   bad=where(finite(bulk100.nt) eq 0,nbad)
+   IF nbad gt 0 THEN bulk100.nt[bad]=0
+   bad=where(finite(mass) eq 0,nbad)
+   IF nbad gt 0 THEN mass[bad]=0
+   bad=where(finite(diam) eq 0,nbad)
+   IF nbad gt 0 THEN diam[bad]=0   
+   bad=where(finite(data.conc1d) eq 0,nbad)
+   IF nbad gt 0 THEN data.conc1d[bad]=0   
+
    FOR i=0,n_elements(data.time)-1 DO BEGIN
       printf,lun,data.time[i],bulk100.nt[i],mass[i],diam[i],transpose(data.conc1d[i,*]),form='(i6, 2e12.2,200e12.2)' 
    ENDFOR
