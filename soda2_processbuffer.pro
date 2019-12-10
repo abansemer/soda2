@@ -223,7 +223,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           previoustime=[(*pmisc).lastclock, x.time_sfm[good]]
           inttime=x.time_sfm[good]-previoustime
           particle_count=x.particle_count[good]
-          dof=bytarr(num_images)+1  ;No dof flag, assume all are good
+          dof=(greymax[good]-2)>0  ;Should only flag particles with a level-3 pixel
+          ;dof=bytarr(num_images)+1  ;No dof flag, assume all are good
           ;Need to reform previouscount now to only use good particles
           previouscount=[(*pmisc).lastparticlecount, x.particle_count[good]]
           diffcount=x.particle_count[good]-previouscount

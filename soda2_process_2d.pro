@@ -233,7 +233,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
                  ['ypos', 'Y-position of particle center (along airflow)', 'pixels', 'float'],$
                  ['allin', 'All-in flag', 'unitless', 'byte'],$
                  ['centerin', 'Center-in flag', 'unitless', 'byte'],$
-                 ['dofflag', 'Depth of field flag from probe', 'unitless', 'byte'],$
+                 ['dofflag', 'Depth of field flag from probe (1=accepted)', 'unitless', 'byte'],$
                  ['edgetouch', 'Edge touch (1=left, 2=right, 3=both)', 'unitless', 'byte'],$
                  ['sizecorrection', 'Size correction factor from Korolev 2007 (D_edge/D0), use to adjust sizes in this file if necessary', 'unitless', 'float'],$
                  ['zd', 'Z position from Korolev correction', 'microns', 'float'],$

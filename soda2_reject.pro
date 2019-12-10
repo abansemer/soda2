@@ -24,6 +24,11 @@ FUNCTION soda2_reject, a, inttime, nextinttime, cutoff, clustercount, binningsiz
    IF (*pop).water eq -1 THEN BEGIN
       IF (a.arearatio ge 0.50) or (a.arearatio ge 0.40 and a.diam le (*pop).res*10.0) THEN reject+=64
    ENDIF
- 
+
+   ;Depth of field flag rejection, 66% threshold flagged for CIP/PIP/F2DC, or level 3 pixel on CIP-G
+   IF (*pop).dofreject eq 1 THEN BEGIN
+      IF a.dofflag eq 0 THEN reject+=128
+   ENDIF
+
    return,reject
 END
