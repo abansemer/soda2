@@ -14,32 +14,33 @@ PRO soda2_compare_event, ev
          i=(*pinfo).i
          update=0  ;Flag to enact updates
          p1=(*pinfo).p1
-                                           
-         ;In other tabs just use release events
-         IF ((ev.release ne 0) or (ev.type eq 7)) THEN BEGIN
-            IF (uname eq 'plot') THEN BEGIN               
-               ;Left click, middle click, or scroll down
-               IF (ev.release eq 1) or (ev.release eq 2) or (ev.release eq 16) THEN advance=1
-               ;Right click or scroll up
-               IF (ev.release eq 4) or (ev.release eq 8) THEN advance=-1           
-               IF (ev.type eq 7) THEN advance=-(ev.clicks)   ;For Windows compatibility    
-            ENDIF
-            IF uname eq 'time' THEN BEGIN
-               widget_control,widget_info(ev.top,find='time'),get_value=texttime
-               time=long(texttime)
-               IF (*pinfo).timeformat eq 1 THEN time=hms2sfm(time)
-               w=where((*p1).time eq time[0])
-               IF w[0] ne -1 THEN i=w[0]
-            ENDIF
-            IF uname eq 'wt' THEN BEGIN   ;Left click on the wt window moves to the click location
-               IF (ev.release eq 1) THEN i=ev.x/float((*pinfo).screen_x) * n_elements((*p1).time)
-               IF (ev.release eq 8) THEN advance =-1
-               IF (ev.release eq 16) THEN advance=1  
-               IF (ev.type eq 7) THEN advance=-(ev.clicks)   ;For Windows compatibility
-            ENDIF
+
+         IF uname eq 'time' THEN BEGIN
+            widget_control,widget_info(ev.top,find='time'),get_value=texttime
+            time=long(texttime)
+            IF (*pinfo).timeformat eq 1 THEN time=hms2sfm(time)
+            w=where((*p1).time eq time[0])
+            IF w[0] ne -1 THEN i=w[0]
             update=1
-         ENDIF
-         
+         ENDIF ELSE BEGIN
+            ;In other tabs just use release events
+            IF ((ev.release ne 0) or (ev.type eq 7)) THEN BEGIN
+               IF (uname eq 'plot') THEN BEGIN               
+                  ;Left click, middle click, or scroll down
+                  IF (ev.release eq 1) or (ev.release eq 2) or (ev.release eq 16) THEN advance=1
+                  ;Right click or scroll up
+                  IF (ev.release eq 4) or (ev.release eq 8) THEN advance=-1           
+                  IF (ev.type eq 7) THEN advance=-(ev.clicks)   ;For Windows compatibility    
+               ENDIF
+               IF uname eq 'wt' THEN BEGIN   ;Left click on the wt window moves to the click location
+                  IF (ev.release eq 1) THEN i=ev.x/float((*pinfo).screen_x) * n_elements((*p1).time)
+                  IF (ev.release eq 8) THEN advance =-1
+                  IF (ev.release eq 16) THEN advance=1  
+                  IF (ev.type eq 7) THEN advance=-(ev.clicks)   ;For Windows compatibility
+               ENDIF
+               update=1
+            ENDIF
+         ENDELSE
          ;Update the plot if flagged
          IF update THEN BEGIN
             i=i + advance > 0 < (n_elements((*p1).time)-1)         
@@ -202,15 +203,15 @@ PRO soda2_compareplot, pinfo
 
    ;Left side plot
    plot,(*p1).midbins, conc1, xlog=(*pinfo).xlog, ylog=(*pinfo).ylog, /nodata, xtit='Diameter (microns)', ytit='Concentration '+concunit, xr=xrange, /xs, yr=yrangeconc
-   oplot,(*p1).midbins, conc1, color=color1
-   oplot,(*p2).midbins, conc2, color=color2
+   oplot,(*p1).midbins, conc1, color=color1, thick=3
+   oplot,(*p2).midbins, conc2, color=color2, thick=2
    oplot,[(*pinfo).crossover,(*pinfo).crossover], [1e-12, 1e12], line=1, thick=1
-   legend_old,[(*p1).op.shortname+(*p1).op.probeid,(*p2).op.shortname+(*p2).op.probeid],line=0,box=0,color=[color1, color2],/bottom,/left,charsize=1.0,thick=2
+   legend_old,[(*p1).op2.shortname+(*p1).op2.probeid,(*p2).op2.shortname+(*p2).op2.probeid],line=0,box=0,color=[color1, color2],/bottom,/left,charsize=1.0,thick=2
    
    ;Right side plot
    plot,(*p1).midbins, msd1, xlog=(*pinfo).xlog, ylog=(*pinfo).ylog, /nodata, xtit='Diameter (microns)', ytit='Mass '+msdunit, xr=xrange, /xs, yr=yrangemsd
-   oplot,(*p1).midbins, msd1,color=color1
-   oplot,(*p2).midbins, msd2, color=color2
+   oplot,(*p1).midbins, msd1,color=color1, thick=3
+   oplot,(*p2).midbins, msd2, color=color2, thick=2
    oplot,[(*pinfo).crossover,(*pinfo).crossover], [1e-12, 1e12], line=1, thick=1
 END
 
@@ -264,10 +265,14 @@ PRO soda2_compare, fn1, fn2, fn3=fn3, crossover=crossover
    ;Restore and organize data
    restore,fn1    
    bulk=compute_bulk_simple(data.conc1d,data.op.endbins)
-   data1=create_struct(data, bulk)
+   op2=data.op
+   soda2_update_op, op2  ;For back compatibility
+   data1=create_struct(data, bulk, 'op2', op2)
    restore,fn2   
    bulk=compute_bulk_simple(data.conc1d,data.op.endbins)
-   data2=create_struct(data, bulk)
+   op2=data.op
+   soda2_update_op, op2  ;For back compatibility
+   data2=create_struct(data, bulk, 'op2', op2)
    IF ptr_valid(p1) THEN ptr_free,p1   
    IF ptr_valid(p1) THEN ptr_free,p1   
    IF ptr_valid(pinfo) THEN ptr_free,pinfo
