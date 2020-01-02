@@ -50,7 +50,7 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b
    printf,lun,'Variables:'
    FOR i=0,n_elements(titles)-1 DO printf,lun,'   '+titles[i]
    printf,lun,''
-   printf,lun,shortnames,format='(a6, 200a12)'
+   printf,lun,shortnames,format='(a6, 500a12)'
    printf,lun,'----------------------------------------------------'
 
    ;Check for Nan and Inf, set to zero
@@ -64,7 +64,7 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b
    IF nbad gt 0 THEN data.conc1d[bad]=0   
 
    FOR i=0,n_elements(data.time)-1 DO BEGIN
-      printf,lun,data.time[i],bulk100.nt[i],mass[i],diam[i],transpose(data.conc1d[i,*]),form='(i6, 2e12.2,200e12.2)' 
+      printf,lun,data.time[i],bulk100.nt[i],mass[i],diam[i],transpose(data.conc1d[i,*]),form='(i6, 2e12.2,500e12.2)' 
    ENDFOR
    
    ;Close the file
