@@ -23,7 +23,7 @@ PRO ncdf2sav, ncfile, data, varlist=varlist, lite=lite, nosave=nosave, compress=
    
    ;Netcdf allows more characters in variable names.  List of characters
    ;to be replaced.  Duplicate names (due to up/low case) will be skipped.
-   badchar='[. #,:-]'
+   badchar='[. #,:-]()'
    ;Reserved names can't be used as structure tags, add new ones here as needed.
    reservednames=['and','begin','break','case','common','continue','do','else','end',$
       'endcase','endelse','endfor','endif','endrep','endswitch','endwhile','eq,','for',$
@@ -38,7 +38,7 @@ PRO ncdf2sav, ncfile, data, varlist=varlist, lite=lite, nosave=nosave, compress=
       IF attinfo.datatype eq 'CHAR' then att=string(att)
       
       ;Replace bad characters with underscore
-      newattname=strjoin(strsplit(attname,badchar,/ext,/regex), '_')  
+      newattname=strjoin(strsplit(attname,badchar,/ext), '_')  
       ;Can't use IDL reserved names as structure tags, append underscore
       IF total(newattname eq reservednames) gt 0 THEN newattname=newattname+'_'
       firstletter_ascii=byte(strmid(newattname,0,1))  ;Make sure it doesn't start with a number
@@ -55,7 +55,7 @@ PRO ncdf2sav, ncfile, data, varlist=varlist, lite=lite, nosave=nosave, compress=
    FOR i=0,datainfo.nvars-1 DO BEGIN
       varinfo=ncdf_varinq(id,i)
       IF ((total(varlist eq strupcase(varinfo.name)) gt 0) or (extractall eq 1)) THEN BEGIN
-         varname=strjoin(strsplit(varinfo.name,badchar,/ext,/regex), '_')  
+         varname=strjoin(strsplit(varinfo.name,badchar,/ext), '_')  
          IF total(varname eq reservednames) gt 0 THEN varname=varname+'_'
          firstletter_ascii=byte(strmid(varname,0,1))  ;Make sure it doesn't start with a number
          IF (firstletter_ascii ge 48) and (firstletter_ascii le 57) THEN varname='x'+varname
@@ -69,7 +69,7 @@ PRO ncdf2sav, ncfile, data, varlist=varlist, lite=lite, nosave=nosave, compress=
                ncdf_attget,id,varinfo.name,attname,att  
                IF attinfo.datatype eq 'CHAR' then att=string(att)
             
-               newattname=strjoin(strsplit(attname,badchar,/ext,/regex), '_')
+               newattname=strjoin(strsplit(attname,badchar,/ext), '_')
                IF total(newattname eq reservednames) gt 0 THEN newattname=newattname+'_'
                firstletter_ascii=byte(strmid(newattname,0,1))  ;Make sure it doesn't start with a number
                IF (firstletter_ascii ge 48) and (firstletter_ascii le 57) THEN newattname='x'+newattname
