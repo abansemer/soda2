@@ -14,9 +14,9 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b
    printf,lun,'Raw data source:  '+data.op.fn
    printf,lun,''
    printf,lun,'Bin midpoints (microns):'
-   printf,lun,data.midbins,format='(35f9.2)'
+   printf,lun,data.midbins,format='(500f9.2)'
    printf,lun,'Bin endpoints (microns):'
-   printf,lun,data.op.endbins,format='(36f9.2)'
+   printf,lun,data.op.endbins,format='(500f9.2)'
    printf,lun,''
    printf,lun,'Time is UTC in seconds from midnight.'
    printf,lun,'Nt is total concentration of particles with diameter greater than 100 microns.'

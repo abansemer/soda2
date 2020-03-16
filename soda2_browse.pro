@@ -404,7 +404,7 @@ PRO soda2_browse_event, ev
               'massparam_crystal':BEGIN
                  a=0.0061 & b=2.05
               END
-              'massparam_2012':BEGIN
+              'massparam_2010':BEGIN
                  a=0.00528 & b=2.1
               END
               'massparam_water':BEGIN
@@ -473,7 +473,7 @@ PRO soda2_browse, fn
     massparamID=widget_button(fileID, value='Change mass/size parameterization',uname='massparammenu',sensitive=0,/menu)
     mp1ID=widget_button(massparamID, value='Brown/Francis',uname='massparam_bf')
     mp2ID=widget_button(massparamID, value='CRYSTAL',uname='massparam_crystal')
-    mp3ID=widget_button(massparamID, value='Heymsfield 2012',uname='massparam_2012')
+    mp3ID=widget_button(massparamID, value='Heymsfield 2010',uname='massparam_2010')
     mp4ID=widget_button(massparamID, value='Water',uname='massparam_water')
     newbrowserID=widget_button(fileID, value='Open new browser',uname='newbrowser',sensitive=0)
     quitID=widget_button(fileID, value='Quit',uname='quit')

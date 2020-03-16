@@ -69,11 +69,12 @@ PRO merge_master, fn1, fn2=fn2, pthfile=pthfile, crossover=crossover, outdir=out
    ;Water or ice density limit
    densitylimit=0.91
    water=0
-   IF (kcoeff eq 1) and (ncoeff eq 0) and (alpha eq 0) THEN BEGIN
+   IF (kcoeff gt 0.98) and (ncoeff eq 0) and (alpha eq 0) THEN BEGIN  ;>0.98 due to round off errors
       densitylimit=1.0
       water=1
+      kcoeff=1.0  ;eliminate round off errors
    ENDIF
-   
+ 
    ;Compute mass, area, reflectivity arrays
    mass=!pi/6 * ((kcoeff * (m.midbins/10000.)^(3+alpha) # (m.ar_midbins^ncoeff)) )
    massLWC=!pi/6 * (m.midbins/10000.)^3 # (m.ar_midbins^0)
