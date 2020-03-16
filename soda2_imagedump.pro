@@ -1,6 +1,7 @@
 PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime, $
               all=all, skip=skip, showdividers=showdividers, maxwidth=maxwidth, nofile=nofile,$
-              textwidgetid=textwidgetid, writejunk=writejunk, numcolumns=numcolumns, rakefixtype=rakefixtype
+              textwidgetid=textwidgetid, writejunk=writejunk, numcolumns=numcolumns, rakefixtype=rakefixtype,$
+              hourly=hourly
    ;Make a series of particle image png files from processed OAP data.
    ;Uses the SODA2 '.dat' files to find raw data locations and pointers.
    ;File: the processed SODA2 file for flight of interest
@@ -22,6 +23,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    IF n_elements(textwidgetid) eq 0 THEN textwidgetid=0
    IF n_elements(writejunk) eq 0 THEN writejunk=1
    IF n_elements(numcolumns) eq 0 THEN numcolumns=2
+   IF n_elements(hourly) eq 0 THEN hourly=0
 
    IF nofile eq 1 THEN data=file ELSE restore, file
    op=data.op
@@ -88,7 +90,20 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    
    IF n_elements(stoptime) eq 0 THEN stoptime2=data.time[n-1] ELSE stoptime2=stoptime
    numframes=long(stoptime2-starttime2)/60 - 1
-      
+   
+   ;Create setup for hourly files
+   IF hourly ne 0 THEN BEGIN
+      hourstart = fix(data.time[0]/3600)
+      hourstop = fix(data.time[-1]/3600)+1
+      numframes = hourstop-hourstart+1
+      rate = fix(hourly)  ;Defaults to one image per minute, but set hourly to another number for 5-minute, etc
+      i = 0
+      ;Refigure data.ind to put into minutes rather than 'rate' frequency
+      indtime = data.op.starttime + data.ind*data.op.rate
+      indminute = (indtime - hourstart*3600l)/60
+      i = min(where(indminute eq 0))
+   ENDIF
+   
    
    ;----------------------------------------------------------------------
    ;--------------Main loop start-----------------------------------------
@@ -103,6 +118,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
       emptyimage=bytarr(op.numdiodes,numslices)
       FOR minute=0,numframes DO BEGIN
          imagetime=string(sfm2hms(data.time[i]),form='(i06)')
+         IF hourly ne 0 THEN imagetime=string(sfm2hms((hourstart+minute)*3600l),form='(i06)')  ;Minute here is really hours
          IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=imagetime,/append ELSE print,imagetime
          gotimage=0                          ;flag to write only if there are some images.
          device,/close
@@ -111,15 +127,17 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
          ;-------Write image header-------
          xyouts,20,imheight-30, op.date+' '+imagetime+'  Buffer width = '+wid+' microns.',/device,color=1
          xyouts,20,imheight-50, 'Project: '+op.project+'  Probe: '+probename+ '   Resolution: '+strtrim(string(op.res),2)+' microns',/device,color=1
-         xyouts,50,imheight-70, 'This image represents one minute of flight time, one panel every '+strtrim(string(rate),2)+' seconds.',/device,color=1
-         xyouts,50,imheight-90, 'Many more images are not shown.  Contact PI for complete images.',/device,color=1
+         IF hourly ne 0 THEN xyouts,50,imheight-70, 'This image represents one hour of flight time, one panel every '+strtrim(string(rate),2)+' minutes.',/device,color=1 ELSE $
+            xyouts,50,imheight-70, 'This image represents one minute of flight time, one panel every '+strtrim(string(rate),2)+' seconds.',/device,color=1
+         xyouts,50,imheight-90, 'Many more images are not shown.  Contact PI for complete imagery.',/device,color=1
          ;xyouts,50,imheight-110,'Contacts: Andy Heymsfield (heyms1@ncar.ucar.edu ) or  Aaron Bansemer (bansemer@ucar.edu)',/device,color=1
          
          numaccepted = 0 ;Keep track of the number of accepted particles to avoid writing junk
-         
+        
          ;------ Loop for each sub-image -------
          FOR sec=0,59,rate DO BEGIN
             ind=where(data.ind eq i,buffcount)
+            IF hourly ne 0 THEN ind=where(indminute eq minute*60l+sec, buffcount)  ;Minutes are really hours, seconds are really minutes
 
             IF buffcount gt 0 THEN BEGIN
                buff=soda2_bitimage(op.fn[data.currentfile[ind[0]]], data.pointer[ind[0]], pop, pmisc, divider=showdividers)
