@@ -13,6 +13,7 @@ FUNCTION meandiam, conc_raw, midbins, nan=nan, minimum=minimum
    n=n_elements(midbins)
    z=fltarr(n)
    s=size(conc_raw)  
+   IF n ne s[2] THEN stop,'Need to enter midbins rather than endbins to meandiam'  ;Catch common error
    meand=fltarr(s[1])
    FOR i=0L,s[1]-1 DO BEGIN
       meand[i]=total(conc_raw[i,*]*midbins)/(total(conc_raw[i,*]) > 0.0001)  ;0.0001 just to avoid divide by zero errors

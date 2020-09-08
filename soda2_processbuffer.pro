@@ -213,7 +213,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           IF (*pop).format eq 'SEA' THEN maxdiff = 5000 ELSE maxdiff = 50  ;Allow a greater counter diff for SEA due to missing buffers
           
           good=where((diffcount gt 0) and (diffcount lt maxdiff) and (difftime gt 0) and $
-                     (x.slice_count ne 0) and (x.slice_count lt 150) and (greymax ge 2) and (x.time_sfm gt 0),num_images)
+                     (x.slice_count ne 0) and (x.slice_count lt 150) and (greymax ge (*pop).greythresh) and (x.time_sfm gt 0),num_images)
           IF num_images lt 4 THEN return, nullbuffer  ; This is a bad buffer after num_images updated
           startline=startline[good]
           stopline=stopline[good]
