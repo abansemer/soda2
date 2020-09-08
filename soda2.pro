@@ -276,8 +276,6 @@ PRO soda2_event, ev
                return
             ENDIF
             
-            ;-------Grey Threshold
-            IF probe.probetype eq 'CIPG' THEN greythresh=2 ELSE greythresh=0
             
             ;Can add bindistribution to this structure if desired
             op={fn:fn, date:date[0], starttime:hms2sfm(starttime[0]), stoptime:hms2sfm(stoptime[0]), format:probe.format, $
@@ -285,7 +283,7 @@ PRO soda2_event, ev
                arendbins:arendbins, rate:rate, smethod:smethod, pth:pthfile[0], particlefile:particlefile, $
                savfile:savfile, inttime_reject:inttime_reject, eawmethod:eawmethod, stuckbits:stuckbits, juelichfilter:juelichfilter, water:water,$
                fixedtas:fixedtas, outdir:outdir[0], project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
-               numdiodes:probe.numdiodes, probeid:probe.probeid, shortname:probe.shortname, greythresh:greythresh, $
+               numdiodes:probe.numdiodes, probeid:probe.probeid, shortname:probe.shortname, greythresh:probe.greythresh, $
                wavelength:probe.wavelength, seatag:probe.seatag, ncdfparticlefile:ncdfparticlefile, stretchcorrect:stretchcorrect[0],$
                keeplargest:keeplargest, apply_psc:apply_psc, dofreject:dofreject}
 
@@ -337,6 +335,8 @@ PRO soda2
     IF !version.os_family eq 'windows' THEN widget_control,default_font='Helvetica*fixed*12'
     IF !version.os_family eq 'unix' THEN widget_control,default_font='-adobe-helvetica-medium-r-normal--12-120-75-75-p-67-iso8859-1' ;use xlsfonts to see more
     ;IF !version.os_family eq 'unix' THEN widget_control,default_font='-adobe-helvetica-bold-r-normal--14-100-100-100-p-82-iso8859-1'
+   device,get_screen_size=screen_size
+   IF screen_size[1] lt 900 THEN compact=1 ELSE compact=0  ;For smaller screens
   
     ;----------Main widget setup-------------------------------------------
     base = WIDGET_BASE(COLUMN=1,title='SODA-2 Processing Software Version 1.0',MBar=menubarID)
@@ -352,17 +352,17 @@ PRO soda2
 
     ;-----------File names widget block------------------------------------
     subbase1=widget_base(base,column=1,frame=5)
-    dummy=widget_label(subbase1,value='---OAP Data---',/align_left)
+    IF compact ne 1 THEN dummy=widget_label(subbase1,value='---OAP Data---',/align_left)
     addfile = cw_bgroup(subbase1,['Add file...','Clear files'], uname='addfile',/row,label_left='Raw data file(s):')
-    filelist= widget_text(subbase1,/scroll,uname='filelist',ysize=5,xsize=62,/editable) ;/editable
+    filelist= widget_text(subbase1,/scroll,uname='filelist',ysize=2,xsize=62,/editable) ;/editable
  
  
     ;------------TAS widget block ------------------------------------
     subbase3=widget_base(base,column=1,frame=5)
-    dummy=widget_label(subbase3,value='---Aircraft TAS Data---',/align_left)
+    IF compact ne 1 THEN dummy=widget_label(subbase3,value='---Aircraft TAS Data---',/align_left)
     subbase3a=widget_base(subbase3,row=1)
     subbase3b=widget_base(subbase3,row=1)
-    addpthfile=cw_bgroup(subbase3a,['Select...','Clear'], uname='findpthfile',/row,label_left='Flight data file (SODA or ASCII format):')
+    addpthfile=cw_bgroup(subbase3a,['Select...','Clear'], uname='findpthfile',/row,label_left='Aircraft TAS data file (SODA or ASCII format):')
     pthfile=widget_text(subbase3,uname='pthfile',/editable,xsize=62,/all_events) 
     subbase3c=widget_base(subbase3,row=1)
     tas=cw_field(subbase3c,/int, title='or use fixed TAS of (m/s):',uname='tas', value='0', xsize=4)
@@ -372,7 +372,7 @@ PRO soda2
 
     ;-----------Processing options widget block----------------------------
     subbase2=widget_base(base,column=1,frame=5)
-    dummy=widget_label(subbase2,value='---Processing Options---',/align_left)
+    IF compact ne 1 THEN dummy=widget_label(subbase2,value='---Processing Options---',/align_left)
     
     subbase2d=widget_base(subbase2,row=1)
     projectname=cw_field(subbase2d,/string,title='Project Name',uname='project',xsize=15,value='NONE',/column)
@@ -405,7 +405,7 @@ PRO soda2
 
     ;---------Output directory and process button-------------------------
     subbase4=widget_base(base,column=1,frame=5)
-    dummy=widget_label(subbase4,value='---Output Options---',/align_left)
+    IF compact ne 1 THEN dummy=widget_label(subbase4,value='---Output Options---',/align_left)
     
     subbase4a=widget_base(subbase4,row=1)
     vals=['IDL sav','Particle-by-Particle','Particle-by-Particle(netCDF)','Housekeeping']
