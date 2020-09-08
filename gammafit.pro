@@ -77,8 +77,8 @@ FUNCTION gammafit, spectra_in, endbins_in, cgs=cgs, lite=lite, minsize=minsize
       nonzero_exp=where((spectra[*,c] gt 0) and (endbins_in ge minsize))   
       IF n_elements(nonzero_exp) ge 5 THEN BEGIN
          temp=fitexp((midbins[nonzero_exp]/(1.0e6/f)), spectra[nonzero_exp,c]/f^4)
-         lam_exp[c]=temp[1] & n0_exp[c]=temp[0]
-         exp_spec[*,c]=n0_exp[c] * exp(lam_exp[c]*midbins/(1.0e6/f))
+         lam_exp[c]=-temp[1] & n0_exp[c]=temp[0]
+         exp_spec[*,c]=n0_exp[c] * exp(-lam_exp[c]*midbins/(1.0e6/f))
          cc_exp[c]=correlate(alog10(exp_spec[nonzero,c]),alog10(spectra[nonzero,c]))
          nfitted_exp[c]=n_elements(nonzero_exp)
       ENDIF 
