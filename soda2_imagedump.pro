@@ -1,7 +1,7 @@
 PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime, $
               all=all, skip=skip, showdividers=showdividers, maxwidth=maxwidth, nofile=nofile,$
               textwidgetid=textwidgetid, writejunk=writejunk, numcolumns=numcolumns, rakefixtype=rakefixtype,$
-              hourly=hourly
+              hourly=hourly, naming_convention=naming_convention, version=version
    ;Make a series of particle image png files from processed OAP data.
    ;Uses the SODA2 '.dat' files to find raw data locations and pointers.
    ;File: the processed SODA2 file for flight of interest
@@ -24,10 +24,15 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    IF n_elements(writejunk) eq 0 THEN writejunk=1
    IF n_elements(numcolumns) eq 0 THEN numcolumns=2
    IF n_elements(hourly) eq 0 THEN hourly=0
+   IF n_elements(naming_convention) eq 0 THEN naming_convention='standard'
+   IF n_elements(version) eq 0 THEN version='v01'  ;GHRC default
 
    IF nofile eq 1 THEN data=file ELSE restore, file
    op=data.op
    soda2_update_op,op
+   month=strmid(op.date,0,2)
+   day=strmid(op.date,2,2)
+   year=strmid(op.date,4,4)
 
    ft=file_test(op.fn[0])
    IF (ft eq 0) THEN BEGIN
@@ -50,7 +55,9 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    pmisc=ptr_new(misc)
 
    probename=op.shortname
-   IF op.probetype eq '2DS' THEN probename=op.shortname+'_'+op.probeid  ;Add 'H' or 'V' specifier
+   IF (op.probetype eq '2DS') THEN probename=op.shortname+'_'+op.probeid  ;Add 'H' or 'V' specifier
+   IF (op.probetype eq '2DS') and (naming_convention eq 'GHRC') THEN probename=op.shortname+op.probeid
+   IF (naming_convention eq 'GHRC') THEN probename+='-P3'  ;Add aircraft ID for both 2DS/HVPS
    rate=fix(op.rate)
 
    ;Output images using a different rakefix than what is in the op structure (for HIWC PIP, mainly)
@@ -109,7 +116,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    ;--------------Main loop start-----------------------------------------
    ;----------------------------------------------------------------------
    numslices=700
-   imwidth=numcolumns*numslices+200  ;1600
+   imwidth=numcolumns*(numslices+50)+50  ;1600
    headerheight=150 ;Pixels for header
    imheight=headerheight+(60.0/numcolumns)/rate*(op.numdiodes+7)+50 ;Total image height
    pop=ptr_new(op)
@@ -163,8 +170,12 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
          ENDFOR
          
          ;-------Write the image---------
+         pngfile=op.date+'_'+imagetime+'_'+probename+'.png'
+         IF naming_convention eq 'GHRC' THEN BEGIN
+            pngfile=op.project+'_'+probename+'_'+year+month+day+'-'+imagetime+'_images_'+version+'.png'
+         ENDIF
          IF (writejunk eq 0) and (numaccepted eq 0) THEN gotimage = 0  ;Cull bad images
-         IF (gotimage eq 1) THEN write_png,outdir+op.date+'_'+imagetime+'_'+probename+'.png',tvrd(),r,g,b
+         IF (gotimage eq 1) THEN write_png,outdir+pngfile,tvrd(),r,g,b
       ENDFOR
    
    ;----------------------------------------------------------------------   
@@ -233,8 +244,14 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
                xyouts,20,imheight-30, op.date+' '+imagetime+'  Buffer width = '+wid+' microns.',/device,color=1
                xyouts,20,imheight-50, 'Project: '+op.project+'  Probe: '+probename+ '   Resolution: '+strtrim(string(op.res),2)+' microns',/device,color=1
                ;xyouts,50,imheight-110,'Contacts: Andy Heymsfield (heyms1@ncar.ucar.edu ) or  Aaron Bansemer (bansemer@ucar.edu)',/device,color=1
+
+               ;-------Write the image---------
+               pngfile=op.date+'_'+imagetime+'_'+probename+'.png'
+               IF naming_convention eq 'GHRC' THEN BEGIN
+                  pngfile=op.project+'_'+probename+'_'+year+month+day+'-'+imagetime+'_images_'+version+'.png'
+               ENDIF
+               write_png,outdir+pngfile,tvrd(),r,g,b
                
-               write_png,outdir+op.date+'_'+imagetime+'_'+probename+'.png',tvrd(),r,g,b
                device,/close
                device,set_resolution=[imwidth,imheight]
                panelcount=0
