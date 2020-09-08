@@ -22,6 +22,8 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       ;Buffertime is not exact, but close enough with accuracy usually <0.1seconds. 
       ;Considering rawtime gets far too complicated, with repeating buffer times, floating clock speed, delta-time mismatches, etc.
       ;May also consider interpolation between buffertimes, but must be sure they are monotonic first.
+      ;Can now get better time by reprocessing entire file from PBP, which will replace buffertime with improved timing
+      ;See reprocess loop in soda2_process_2d.pro and spec_newtime.pro
       truetime=x.buffertime 
    ENDIF
    IF op.format eq 'SEA' THEN BEGIN
@@ -88,7 +90,31 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
          ENDIF 
       
          ;Accumulate deadtime and missed particles
-         d.deadtime[itime]=d.deadtime[itime]+total(deadtime[iparticles])
+         IF (op.format) eq 'SPEC' THEN BEGIN
+            ;Use this method for SPEC probes, applying deadtime backward rather than forward
+            FOR j=0L,n_elements(iparticles)-1 DO BEGIN
+               IF x[iparticles[j]].overloadflag THEN BEGIN
+                  deadtimestart = truetime[iparticles[j]] - interarrival[iparticles[j]]
+                  deadtimestop = truetime[iparticles[j]]
+                  timeindexstart = long((deadtimestart-op.starttime)/op.rate) > 0
+                  timeindexstop = long((deadtimestop-op.starttime)/op.rate)  ;Index when overload ends
+                  IF timeindexstart eq timeindexstop THEN BEGIN
+                     d.deadtime[timeindexstart] += interarrival[iparticles[j]]
+                  ENDIF ELSE BEGIN
+                     ;Portion in start index
+                     d.deadtime[timeindexstart] += (d.time[timeindexstart]+op.rate - deadtimestart)
+                     ;Portion in stop index
+                     d.deadtime[timeindexstop] += (deadtimestop-d.time[timeindexstop])
+                     ;Portion in intermediate indices will be have full deadtime
+                     IF timeindexstop-timeindexstart gt 1 THEN d.deadtime[timeindexstart+1:timeindexstop-1] = op.rate
+                  ENDELSE
+               ENDIF
+            ENDFOR
+         ENDIF ELSE BEGIN
+            d.deadtime[itime]=d.deadtime[itime]+total(deadtime[iparticles])
+         ENDELSE
+         
+         ;Missed particles
          d.count_missed[itime]=d.count_missed[itime]+total(x[iparticles].missed > 0)
          d.missed_hist[itime,*]=d.missed_hist[itime,*]+histogram([x[iparticles].missed],min=0,max=49)
          
