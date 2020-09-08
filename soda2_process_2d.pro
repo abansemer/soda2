@@ -479,10 +479,22 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
       infoline='Sorting Particles...'
       IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
       
+      ;2DS time recomputation, this is necessary to get good dead time estimates when rate is 1Hz or greater
+      IF (*pop).format eq 'SPEC' THEN BEGIN
+         infoline='Recomputing improved probe time...'
+         IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
+         newtime=spec_newtime(fn_pbp)
+         gotnt=1
+      ENDIF ELSE gotnt=0
+      
       FOR i = 0, n_elements(pbp.time)/num2process DO BEGIN  ;Don't apply -1 to i, last iteration does remainder particles
          x=soda2_restore_pbp(fn_pbp, offset=i*num2process, count=num2process)
          istop=n_elements(x.time)-1
          inewbuffer=0  ;Only for 2DC/2DP, ignore for now, should cause crash if tried
+         
+         ;Replace buffertime with newtime for SPEC probes
+         IF gotnt eq 1 THEN x.buffertime=newtime[i*num2process:i*num2process+n_elements(x.buffertime)-1]
+         
          soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id
          
          percentcomplete=fix(float(i+1)*num2process / n_elements(pbp.time) * 100) < 100
