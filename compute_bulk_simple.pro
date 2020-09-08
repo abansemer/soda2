@@ -64,7 +64,7 @@ FUNCTION compute_bulk_simple, conc1d, endbins, binstart=binstart, binstop=binsto
    
    u=unnormalize(conc1d,endbins)
    nt=total(u[*,binstart:binstop],2,/nan)
-   mvd=mvdiam(u[*,binstart:binstop],midbins[binstart:binstop])
+   mvd=mvdiam(u[*,binstart:binstop],endbins[binstart:binstop+1])
    mnd=meandiam(u[*,binstart:binstop],midbins[binstart:binstop])
 
    return, {iwc:iwc, lwc:lwc, dmass:dmass, dmedianmass:dmedianmass, dmassw:dmassw, dmassmelted:dmassmelted, $
