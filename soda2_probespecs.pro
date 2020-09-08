@@ -7,7 +7,7 @@ FUNCTION soda2_probespecs, name=name, id=id
         
    base={probename:'', shortname:'', format:'', subformat:0s, probetype:'', probeid:'', $
          res:0.0, armwidth:0.0, numdiodes:0.0, tau:0.0, firstsliceskip:0, arrayid:0s, $
-         dofthreshold:0.0, wavelength:0.0, dofconst:3.0, seatag:[33000,0,0]}
+         dofthreshold:0.0, wavelength:0.0, dofconst:3.0, seatag:[33000,0,0], greythresh:0}
    ;Tau is the response time in seconds as in Baumgardner 1997 JTECH   
    ;Legacy probes use mean value from Strapp et al JTECH 2001, newer probes various communications.
 
@@ -34,6 +34,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.format='DMT'
    x.subformat=1
    x.probetype='CIPG'
+   x.greythresh=2
    x.probeid=''
    x.res=15
    x.armwidth=10
@@ -48,6 +49,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.format='DMT'
    x.subformat=1
    x.probetype='CIPG'
+   x.greythresh=2
    x.probeid=''
    x.res=25
    x.armwidth=6.1
@@ -57,14 +59,30 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.wavelength=0.658e-6
    all=[all,x]   
 
-   x.probename='CAPS-Grey (DLR)'
+   x.probename='DLR CAPS-Grey (PADS)'
    x.shortname='CIP_DLR'
    x.format='DMT'
    x.subformat=1
    x.probetype='CIPG'
+   x.greythresh=2
    x.probeid=''
    x.res=25
    x.armwidth=4.0
+   x.numdiodes=64
+   x.tau=0.051e-6
+   x.firstsliceskip=0
+   x.wavelength=0.658e-6
+   all=[all,x]
+
+   x.probename='DLR PIP (PADS)'
+   x.shortname='PIP'
+   x.format='DMT'
+   x.subformat=1
+   x.probetype='CIPG'  ;This probe uses the grey array board.  All shadows are at grey level 1.
+   x.greythresh=1
+   x.probeid=''
+   x.res=100
+   x.armwidth=26.0
    x.numdiodes=64
    x.tau=0.051e-6
    x.firstsliceskip=0
@@ -202,6 +220,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.format='DMT'
    x.subformat=1
    x.probetype='CIPG'
+   x.greythresh=2
    x.probeid=''
    x.res=15
    x.armwidth=4.0
@@ -216,6 +235,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.format='SEA'
    x.subformat=1
    x.probetype='CIPG'
+   x.greythresh=2
    x.probeid=''
    x.res=25
    x.armwidth=7.0
@@ -231,6 +251,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.format='SEA'
    x.subformat=1
    x.probetype='CIPG'
+   x.greythresh=2
    x.probeid=''
    x.res=15
    x.armwidth=10.0
@@ -274,6 +295,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.format='DMT'
    x.subformat=1
    x.probetype='CIPG'
+   x.greythresh=2
    x.probeid=''
    x.res=100
    x.armwidth=26.0
