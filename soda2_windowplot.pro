@@ -40,9 +40,9 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
     
          xyouts,0.07,0.30,'N!dT!n(#/L):',/norm & xyouts,0.2,0.30,strtrim(string((*p1).nt[i]/1.0e3,form='(f10.1)'),2),/normal         
          xyouts,0.07,0.27,'IWC(g/m!u3!n):',/norm & xyouts,0.2,0.27,strtrim(string((*p1).iwc[i],form='(f7.4)'),2),/normal        
-         xyouts,0.07,0.24,'MVD(um):',/norm & xyouts,0.2,0.24,strtrim(string((*p1).mvd[i],form='(f7.1)'),2),/normal         
-         xyouts,0.07,0.21,'MeanD(um):',/norm & xyouts,0.2,0.21,strtrim(string((*p1).mnd[i],form='(f7.1)'),2),/normal         
-        ;xyouts,0.07,0.18,'Mean Af:',/norm & xyouts,0.2,0.18,strtrim(string((*p1).meanaf[i],form='(f5.1)'),2),/normal
+         xyouts,0.07,0.24,'MeanD(um):',/norm & xyouts,0.2,0.21,strtrim(string((*p1).mnd[i],form='(f7.1)'),2),/normal         
+         xyouts,0.07,0.21,'MMD(um):',/norm & xyouts,0.2,0.18,strtrim(string((*p1).dmedianmass[i],form='(f5.1)'),2),/normal
+         xyouts,0.07,0.18,'MVD(um):',/norm & xyouts,0.2,0.24,strtrim(string((*p1).mvd[i],form='(f7.1)'),2),/normal         
          xyouts,0.07,0.12,'Accepted:',/norm & xyouts,0.2,0.12,strtrim(string((*p1).count_accepted[i]),2),/normal
          xyouts,0.07,0.09,'Rejected:',/norm & xyouts,0.2,0.09,strtrim(string((*p1).count_rejected_total[i]),2),/normal
          xyouts,0.07,0.06,'Missed:',/norm & xyouts,0.2,0.06,strtrim(string((*p1).count_missed[i]),2),/normal

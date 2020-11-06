@@ -141,7 +141,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
             fields=float(strsplit(v, '[ ,' + STRING(9B) + ']+', /regex, /extract))
             i=(round(fields[0])-op.starttime)/op.rate > 0 ;find index for each variable
             ;Fill TAS array, don't bother with averaging.  Note use of i:*, which makes sure gaps are filled in for hirate data.
-            IF (i ge 0) and (i lt numrecords) and (fields[1] gt 0) and (fields[1] lt 500) THEN pth_tas[i:*]=fields[1]
+            IF (n_elements(fields) gt 1) && (i ge 0) and (i lt numrecords) and (fields[1] gt 0) and (fields[1] lt 500) THEN pth_tas[i:*]=fields[1]
             bad:dummy=0
          ENDREP UNTIL eof(lun)
          on_ioerror, null
