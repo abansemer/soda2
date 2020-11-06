@@ -6,10 +6,12 @@ FUNCTION soda2_probespecs, name=name, id=id
 
         
    base={probename:'', shortname:'', format:'', subformat:0s, probetype:'', probeid:'', $
-         res:0.0, armwidth:0.0, numdiodes:0.0, tau:0.0, firstsliceskip:0, arrayid:0s, $
+         res:0.0, yres:0.0, armwidth:0.0, numdiodes:0.0, tau:0.0, firstsliceskip:0, arrayid:0s, $
          dofthreshold:0.0, wavelength:0.0, dofconst:3.0, seatag:[33000,0,0], greythresh:0}
    ;Tau is the response time in seconds as in Baumgardner 1997 JTECH   
    ;Legacy probes use mean value from Strapp et al JTECH 2001, newer probes various communications.
+   ;Yres is the nominal resolution in airflow direction, as controlled by slicing rate.  May be 
+   ;   adjusted to correct airflow speed distortions.  Can be further modified by stretch correction option.
 
    x=base
    
@@ -21,6 +23,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=25
+   x.yres=25
    x.armwidth=10
    x.numdiodes=64
    x.tau=0.051e-6
@@ -37,6 +40,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.greythresh=2
    x.probeid=''
    x.res=15
+   x.yres=15
    x.armwidth=10
    x.numdiodes=64
    x.tau=0.051e-6
@@ -52,6 +56,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.greythresh=2
    x.probeid=''
    x.res=25
+   x.yres=25
    x.armwidth=6.1
    x.numdiodes=64
    x.tau=0.051e-6
@@ -67,6 +72,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.greythresh=2
    x.probeid=''
    x.res=25
+   x.yres=25
    x.armwidth=4.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -82,6 +88,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.greythresh=1
    x.probeid=''
    x.res=100
+   x.yres=100
    x.armwidth=26.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -96,6 +103,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=25
+   x.yres=25
    x.armwidth=6.1
    x.numdiodes=64
    x.tau=0.051e-6
@@ -110,6 +118,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=100
+   x.yres=100
    x.armwidth=10
    x.numdiodes=64
    x.tau=0.051e-6
@@ -124,6 +133,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=25
+   x.yres=25
    x.armwidth=6.1
    x.numdiodes=64
    x.tau=0.051e-6
@@ -138,6 +148,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='PIP'
    x.probeid=''
    x.res=100
+   x.yres=100
    x.armwidth=10
    x.numdiodes=64
    x.tau=0.051e-6
@@ -152,6 +163,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=25
+   x.yres=25
    x.armwidth=10.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -166,6 +178,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='PIP'
    x.probeid=''
    x.res=100
+   x.yres=100
    x.armwidth=26.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -180,6 +193,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=25
+   x.yres=25
    x.armwidth=10.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -194,6 +208,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='PIP'
    x.probeid=''
    x.res=100
+   x.yres=100
    x.armwidth=40.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -208,6 +223,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=100
+   x.yres=100
    x.armwidth=7.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -223,6 +239,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.greythresh=2
    x.probeid=''
    x.res=15
+   x.yres=15
    x.armwidth=4.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -238,6 +255,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.greythresh=2
    x.probeid=''
    x.res=25
+   x.yres=25
    x.armwidth=7.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -254,6 +272,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.greythresh=2
    x.probeid=''
    x.res=15
+   x.yres=15
    x.armwidth=10.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -269,6 +288,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=25
+   x.yres=25
    x.armwidth=10.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -283,6 +303,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=100
+   x.yres=100
    x.armwidth=26.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -298,6 +319,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.greythresh=2
    x.probeid=''
    x.res=100
+   x.yres=100
    x.armwidth=26.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -312,6 +334,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=25
+   x.yres=25
    x.armwidth=7.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -326,6 +349,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=15
+   x.yres=15
    x.armwidth=7.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -341,6 +365,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=100
+   x.yres=100
    x.armwidth=22.7
    x.numdiodes=64
    x.tau=0.051e-6
@@ -356,6 +381,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='2DC'
    x.probeid=''
    x.res=50
+   x.yres=50
    x.armwidth=7.7
    x.numdiodes=32
    x.tau=0.58e-6
@@ -371,6 +397,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='2DC'
    x.probeid=''
    x.res=200
+   x.yres=200
    x.armwidth=26.0
    x.numdiodes=32
    x.tau=0.58e-6
@@ -386,6 +413,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=100
+   x.yres=100
    x.armwidth=22.2  ;Has Korolev tips
    x.numdiodes=64
    x.tau=0.051e-6
@@ -401,6 +429,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=100
+   x.yres=100
    x.armwidth=22.2  ;Has Korolev tips
    x.numdiodes=64
    x.tau=0.051e-6
@@ -416,6 +445,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=15
+   x.yres=15
    x.armwidth=7.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -431,6 +461,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=15         ;Guess for now
+   x.yres=15
    x.armwidth=4.0   ;Just a guess, looks like they have Korolev tips/shoes
    x.numdiodes=64
    x.tau=0.051e-6
@@ -446,6 +477,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='F2DC'
    x.probeid='C4'
    x.res=25
+   x.yres=25
    x.armwidth=6.1
    x.numdiodes=64
    x.tau=0.051e-6
@@ -461,6 +493,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='F2DC_v2'
    x.probeid='C4'
    x.res=25
+   x.yres=25
    x.armwidth=6.1
    x.numdiodes=64
    x.tau=0.051e-6
@@ -476,6 +509,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='F2DC'
    x.probeid='C4'
    x.res=25
+   x.yres=25
    x.armwidth=6.1
    x.numdiodes=64
    x.tau=0.051e-6
@@ -492,6 +526,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='F2DC66'
    x.probeid='C4'
    x.res=25
+   x.yres=25
    x.armwidth=6.1
    x.numdiodes=64
    x.tau=0.051e-6
@@ -508,6 +543,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='F2DC'
    x.probeid='C5'
    x.res=25
+   x.yres=25
    x.armwidth=6.1
    x.numdiodes=64
    x.tau=0.051e-6
@@ -524,6 +560,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='F2DC'
    x.probeid='C6'
    x.res=10
+   x.yres=10
    x.armwidth=6.1
    x.numdiodes=64
    x.tau=0.051e-6
@@ -539,6 +576,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='F2DC_v2'
    x.probeid='C6'
    x.res=10
+   x.yres=10
    x.armwidth=6.1
    x.numdiodes=64
    x.tau=0.051e-6
@@ -554,6 +592,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='2DC'
    x.probeid='P1'
    x.res=200
+   x.yres=200
    x.armwidth=26.1
    x.numdiodes=32
    x.tau=0.6e-6
@@ -569,6 +608,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='F2DP'
    x.probeid='P4'
    x.res=150
+   x.yres=150
    x.armwidth=26.1
    x.numdiodes=64
    x.tau=0.6e-6
@@ -583,6 +623,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='F2DC'
    x.probeid='C5'
    x.res=25
+   x.yres=25
    x.armwidth=6.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -597,6 +638,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='2DP'
    x.probeid='P1'
    x.res=200
+   x.yres=200
    x.armwidth=26.0
    x.numdiodes=32
    x.tau=0.6e-6
@@ -612,6 +654,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='HVPS3'
    x.probeid='V'
    x.res=150
+   x.yres=150
    x.armwidth=16.25
    x.numdiodes=128
    x.tau=41.0e-9
@@ -628,6 +671,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='2DS'
    x.probeid='H'
    x.res=10
+   x.yres=10
    x.armwidth=6.3
    x.numdiodes=128
    x.tau=41.0e-9
@@ -644,6 +688,41 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='2DS'
    x.probeid='V'
    x.res=10
+   x.yres=10
+   x.armwidth=6.3
+   x.numdiodes=128
+   x.tau=41.0e-9
+   x.firstsliceskip=0
+   x.dofconst=8.12
+   x.wavelength=0.785e-6
+   all=[all,x]
+
+   x=base
+   x.probename='2D-S Horizontal Array (11um)'
+   x.shortname='2DS'
+   x.format='SPEC'
+   x.subformat=0
+   x.probetype='2DS'
+   x.probeid='H'
+   x.res=11
+   x.yres=10    ;For most probes the slice rate is still set to 10um
+   x.armwidth=6.3
+   x.numdiodes=128
+   x.tau=41.0e-9
+   x.firstsliceskip=0
+   x.dofconst=8.12
+   x.wavelength=0.785e-6
+   all=[all,x]
+   
+   x=base
+   x.probename='2D-S Vertical Array (11um)'
+   x.shortname='2DS'
+   x.format='SPEC'
+   x.subformat=0
+   x.probetype='2DS'
+   x.probeid='V'
+   x.res=11
+   x.yres=10    ;For most probes the slice rate is still set to 10um
    x.armwidth=6.3
    x.numdiodes=128
    x.tau=41.0e-9
@@ -660,6 +739,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='3VCPI'
    x.probeid='H'
    x.res=10
+   x.yres=10
    x.armwidth=5.08
    x.numdiodes=128
    x.tau=41.0e-9
@@ -676,6 +756,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='3VCPI'
    x.probeid='H'
    x.res=50
+   x.yres=50
    x.armwidth=5.08
    x.numdiodes=128
    x.tau=41.0e-9
@@ -693,6 +774,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='3VCPI'
    x.probeid='V'
    x.res=10
+   x.yres=10
    x.armwidth=5.08
    x.numdiodes=128
    x.tau=41.0e-9
@@ -709,6 +791,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='2DC'
    x.probeid=''
    x.res=30
+   x.yres=30
    x.armwidth=6.1
    x.numdiodes=32
    x.tau=0.6e-6
@@ -725,6 +808,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='2DC'
    x.probeid=''
    x.res=30
+   x.yres=30
    x.armwidth=7.0
    x.numdiodes=32
    x.tau=0.6e-6
@@ -740,6 +824,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='CIP'
    x.probeid=''
    x.res=25
+   x.yres=25
    x.armwidth=6.0
    x.numdiodes=64
    x.tau=0.051e-6
@@ -756,6 +841,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probetype='2DC'
    x.probeid=''
    x.res=25
+   x.yres=25
    x.armwidth=6.1
    x.numdiodes=32
    x.tau=0.58e-6
