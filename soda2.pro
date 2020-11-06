@@ -61,7 +61,7 @@ PRO soda2_event, ev
 
             ;--------Size method
             id=widget_info(ev.top,find='sizemethod')
-            widget_control,id,get_value=methods
+            methods=['Circle fit','X-size (across array)','Y-size (with airflow)','Area equivalent','Lx (max slice width)']
             CASE op.smethod OF
                'fastcircle':w=where(strmid(methods,0,1) eq 'C')
                'xsize':w=where(strmid(methods,0,1) eq 'X')
@@ -139,6 +139,7 @@ PRO soda2_event, ev
 
         'autofill': BEGIN ;===========================================================================
             widget_control,widget_info(ev.top,find='filelist'),get_value=fn
+            widget_control,widget_info(ev.top,find='timeoffset'),get_value=timeoffset
             starttime=9999999d  
             stoptime=0d
             gottime=0
@@ -151,6 +152,8 @@ PRO soda2_event, ev
                ENDIF
             ENDFOR
             IF gottime THEN BEGIN
+               starttime+=timeoffset/86400d  ;Adjust for the time offset
+               stoptime+=timeoffset/86400d
                caldat, starttime, month, startday, year, hour, minute, second
                datestring = string(month, startday, year, format='(i02,i02,i04)')
                starttimestring = string(hour, minute, second, format='(3i02)')
@@ -168,8 +171,18 @@ PRO soda2_event, ev
                specs=soda2_probespecs()
                w=where(specs.format eq ss.format, nw)
                IF nw gt 0 THEN probenames=specs[w].probename ELSE probenames=specs.probename
-               widget_control,widget_info(ev.top,find='probetype'),set_value=probenames
-               widget_control,widget_info(ev.top,find='probetype'),set_uvalue=probenames[0]
+               
+               id=widget_info(ev.top,find='probetype')  ;Get the current probe to avoid changing it
+               widget_control,id,get_uvalue=currentprobename
+               
+               w=where(probenames eq currentprobename)
+               IF w ne -1 THEN BEGIN  ;Keep the current probe
+                  widget_control,id,set_value=[currentprobename, probenames]     
+                  widget_control,id,set_uvalue=currentprobename
+               ENDIF ELSE BEGIN   ;Don't keep current probe
+                  widget_control,id,set_value=probenames     
+                  widget_control,id,set_uvalue=probenames[0]
+               ENDELSE
             ENDIF ELSE BEGIN
                ;Reset the full probe list
                specs=soda2_probespecs()
@@ -279,8 +292,8 @@ PRO soda2_event, ev
             
             ;Can add bindistribution to this structure if desired
             op={fn:fn, date:date[0], starttime:hms2sfm(starttime[0]), stoptime:hms2sfm(stoptime[0]), format:probe.format, $
-               subformat:probe.subformat, probetype:probe.probetype, res:probe.res, dofconst:probe.dofconst, endbins:endbins, $
-               arendbins:arendbins, rate:rate, smethod:smethod, pth:pthfile[0], particlefile:particlefile, $
+               subformat:probe.subformat, probetype:probe.probetype, res:probe.res, yres:probe.yres, dofconst:probe.dofconst, $
+               endbins:endbins, arendbins:arendbins, rate:rate, smethod:smethod, pth:pthfile[0], particlefile:particlefile, $
                savfile:savfile, inttime_reject:inttime_reject, eawmethod:eawmethod, stuckbits:stuckbits, juelichfilter:juelichfilter, water:water,$
                fixedtas:fixedtas, outdir:outdir[0], project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
                numdiodes:probe.numdiodes, probeid:probe.probeid, shortname:probe.shortname, greythresh:probe.greythresh, $
@@ -353,7 +366,9 @@ PRO soda2
     ;-----------File names widget block------------------------------------
     subbase1=widget_base(base,column=1,frame=5)
     IF compact ne 1 THEN dummy=widget_label(subbase1,value='---OAP Data---',/align_left)
-    addfile = cw_bgroup(subbase1,['Add file...','Clear files'], uname='addfile',/row,label_left='Raw data file(s):')
+    subbase1a=widget_base(subbase1,row=1)
+    addfile = cw_bgroup(subbase1a,['Add file...','Clear files'], uname='addfile',/row,label_left='Raw data file(s):')
+    timeoffset=cw_field(subbase1a,/float, title='Clock Correction (s):',uname='timeoffset' , xsize=6, value=0.0)
     filelist= widget_text(subbase1,/scroll,uname='filelist',ysize=2,xsize=62,/editable) ;/editable
  
  
@@ -396,7 +411,6 @@ PRO soda2
     
     subbase2a=widget_base(subbase2,row=1)  
     rate=cw_field(subbase2a,/float, title='Averaging Time (s):',uname='rate' , xsize=6, value=5.0)
-    timeoffset=cw_field(subbase2a,/float, title='Clock Correction (s):',uname='timeoffset' , xsize=6, value=0.0)
    
     subbase2c=widget_base(subbase2,row=1)
     vals=['Shatter Correct','All-In','Water Processing','Stuck Bit Correct','Pixel Noise Filter','Largest Particle','Force PSC','DoF Reject']
