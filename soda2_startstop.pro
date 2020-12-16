@@ -3,7 +3,7 @@ FUNCTION soda2_startstop, fn
    ;Output in Julian date format.  Use caldat procedure to convert.
    ;AB 2019
    
-   out = {starttime:0d, stoptime:0d, format:'', err:0}
+   out = {starttime:0d, stoptime:0d, format:'', size:0d, err:0}
    
    ;Define bad file structure and test for existence
    badfile = out
@@ -13,6 +13,7 @@ FUNCTION soda2_startstop, fn
    ;Get file stats
    openr, lun, fn, /get_lun
    f=fstat(lun)
+   out.size=f.size
    IF f.size lt 5000 THEN return, badfile
   
 
