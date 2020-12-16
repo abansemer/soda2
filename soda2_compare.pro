@@ -84,12 +84,10 @@ PRO soda2_compare_event, ev
      END
       ;====================================================================================================
       uname eq 'png': BEGIN
-         tabnum=widget_info(widget_info(ev.top,find='tab'),/tab_current) 
-         wset,(*pinfo).wid[tabnum]
          image=tvrd(/true)           
 
          base='comparison'
-         file=base+'_'+(*pop).date+'_'+(*pop).probetype+'_'+strtrim(string(sfm2hms((*p1).time[(*pinfo).i])),2)
+         file=base+'_'+(*p1).op.date+'_'+strtrim(string(sfm2hms((*p1).time[(*pinfo).i]),format='(i06)'),2)
          IF file_test((*pinfo).outdir,/write) eq 0 THEN $
             (*pinfo).outdir=dialog_pickfile(/read,/directory,title='Select output directory',dialog_parent=widget_info(ev.top,find='tab'))
          write_png,(*pinfo).outdir+file+'.png',image
@@ -261,6 +259,7 @@ PRO soda2_compare, fn1, fn2, fn3=fn3, crossover=crossover
    timeformatID=widget_button(timebarbase,uname='timeformat',value=' HMS ')
    vals=['Log Normalization', 'Log X', 'Log Y']
    paramtype=cw_bgroup(timebarbase, vals, uname='options', /row, /nonexclusive, uval=vals, set_value=[1,1,1])
+   pngID=widget_button(timebarbase,uname='png',value=' Create PNG ')
 
    ;Restore and organize data
    restore,fn1    
