@@ -6,7 +6,7 @@ FUNCTION soda2_findsize, img, xres, yres, voidarea=voidarea
    ;Predefine output struct to ensure consistent data types
    IF n_elements(voidarea) eq 0 THEN voidarea=0
    out={diam:0.0, xsize:0.0, ysize:0.0, areasize:0.0, ar:0.0, arfilled:0.0, aspr:0.0, allin:0b, c:fltarr(2), centerin:1b, $
-            orientation:0.0, perimeterarea:0L, edgetouch:0b, xextent:0.0}
+            orientation:0.0, perimeterarea:0L, edgetouch:0b, xextent:0.0, oned:0.0, twod:0.0}
    
    area_original=total(img) * (yres/xres) ;area of particle
    area_original_filled=(total(img)+voidarea) * (yres/xres) ;area of particle with filled voids
@@ -59,6 +59,15 @@ FUNCTION soda2_findsize, img, xres, yres, voidarea=voidarea
    ;Compute max extent in x-direction.  Equivalent to 'Ly' in Korolev papers
    img2[x_ind, y_ind]=x_ind          ;Fill image with the diode index of each shadowed pixel
    out.xextent = max(max(img2, dim=1) - min(img2, dim=1) + 1) * xres  
+   
+   ;Compute 1D emulation.  All diodes are latched once shadowed, then number of latched diodes determines size.
+   ;Gaps are not considered per communication with Lyle Lilie, 12/2020
+   latch = total(img,2) < 1
+   out.oned = total(latch) * xres
+
+   ;Compute 2D emulation.  No latching, the slice with maximum number of shaded pixels determines size.
+   ;Gaps are not considered per communication with Lyle Lilie, 12/2020
+   out.twod = max(total(img,1)) * xres
 
    r=out.diam/xres/2.0
    x=circle.center[0]

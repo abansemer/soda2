@@ -20,9 +20,6 @@ PRO soda2_update_op, op
    IF total(where(tag_names(op) eq 'WAVELENGTH')) eq -1 THEN op=create_struct(op,'wavelength',0.658e-6)  
    IF total(where(tag_names(op) eq 'KEEPLARGEST')) eq -1 THEN op=create_struct(op,'keeplargest',0)
    IF total(where(tag_names(op) eq 'JUELICHFILTER')) eq -1 THEN op=create_struct(op,'juelichfilter',0)
-;   IF total(where(tag_names(op) eq 'CENTERIN')) eq -1 THEN op=create_struct(op,'centerin',1)
-;   IF total(where(tag_names(op) eq 'CENTERINREJECTION')) eq -1 THEN op=create_struct(op,'centerinrejection',1)
-   ;Effective array width method, 'allin', 'reconstruct', or 'centerin'. Controls both rejection criteria and sample area
    IF total(where(tag_names(op) eq 'EAWMETHOD')) eq -1 THEN op=create_struct(op,'eawmethod','centerin') 
    IF total(where(tag_names(op) eq 'SEATAG')) eq -1 THEN op=create_struct(op,'seatag',[33000,0,0])  ;[Image, 1D_data, empty] for CIP
    IF total(where(tag_names(op) eq 'YRES')) eq -1 THEN op=create_struct(op,'yres',op.res)  ;Default to x, can change with stretchcorrect
@@ -39,5 +36,21 @@ PRO soda2_update_op, op
       op.stuckbits = 0
    ENDIF
    IF (op.stretchcorrect eq 1) and (op.format ne 'SPEC') THEN print, 'Stretch correction not available for this format, will not be applied.'
+   
+   ;For model TXT data, read in parameters from header and override
+   IF strmid(op.fn[0],3,4,/reverse) eq '.txt' THEN BEGIN
+      s=''
+      openr,lun,op.fn[0],/get_lun
+      readf,lun,s  ;Read header
+      v=str_sep(strcompress(s),' ')
+      op.res=float(v[1])
+      op.numdiodes=float(v[3])
+      op.armwidth=float(v[5])
+      op.format='TXT'
+      op.probetype='TXT'
+      tas=float(v[7])
+      close,lun
+      print,'Overriding probe geometry with header info.'
+   ENDIF
 END
   

@@ -1,15 +1,15 @@
 PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    ;PRO to make 'spectra' files for a 2D probe, and save them
    ;in IDL's native binary format.  This version places particles
-   ;individually in the appropriate time period, rather than the 
-   ;entire buffer.  Limited to probes with absolute time, i.e. 
+   ;individually in the appropriate time period, rather than the
+   ;entire buffer.  Limited to probes with absolute time, i.e.
    ;CIP and Fast2D probes.
    ;Aaron Bansemer, NCAR, 2009.
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
    ;Needed when running from GUI
    IF n_elements(textwidgetid) eq 0 THEN textwidgetid=0
-   
+
    ;Option to reprocess data using an already-generated pbp file to save time
    IF n_elements(fn_pbp) eq 0 THEN reprocess=0 ELSE BEGIN
       reprocess=1
@@ -17,47 +17,47 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
       op.ncdfparticlefile=0    ;Don't rewrite particle files
       op.particlefile=0
    ENDELSE
-   
+
    ;The current expected structure of op is:
    ;op={fn:fn, date:date, starttime:hms2sfm(starttime), stoptime:hms2sfm(stoptime), format:format, $
    ;subformat:subformat, probetype:probetype, res:res, endbins:endbins, arendbins:arendbins, rate:rate, $
    ;smethod:smethod, pth:pth, particlefile:0, inttime_reject:inttime_reject, reconstruct:1, stuckbits:0, water:water,$
    ;fixedtas:fixedtas, outdir:outdir, project:project, timeoffset:timeoffset, armwidth:armwidth, $
    ;numdiodes:numdiodes, greythresh:greythresh}
-  
+
 ;resolve_all
 ;profiler,/reset
-;profiler  
+;profiler
 ;profiler,/system
-  
-   
+
+
    soda2_update_op,op
    pop=ptr_new(op)      ;make a pointer to this for all other programs, these are constants
    ;Keep miscellaneous stuff here, things that change during processing
    misc={f2d_remainder:ulon64arr(512), f2d_remainder_slices:0, yres:op.yres, lastbufftime:0D, aircrafttas:0.0,$
-         nimages:0, imagepointers:lon64arr(500), hkpointers:lon64arr(500), lastclock:0d, lastparticlecount:0L, maxsfm:0D}    
-   pmisc=ptr_new(misc)  ;a different pointer, for stuff that changes 
-   
+         nimages:0, imagepointers:lon64arr(500), hkpointers:lon64arr(500), lastclock:0d, lastparticlecount:0L, maxsfm:0D}
+   pmisc=ptr_new(misc)  ;a different pointer, for stuff that changes
+
    ;====================================================================================================
    ;====================================================================================================
-   ;Initialize variables.  
+   ;Initialize variables.
    ;====================================================================================================
    ;====================================================================================================
    numrecords=long((op.stoptime-op.starttime)/op.rate + 1)   ;Number of records that will be saved
-   numbins=n_elements(op.endbins)-1 
-   numarbins=n_elements(op.arendbins)-1 
-   
-   numintbins=40 
+   numbins=n_elements(op.endbins)-1
+   numarbins=n_elements(op.arendbins)-1
+
+   numintbins=40
    iminpower=-7      ;lowest bin exponent
    imaxpower=1       ;highest bin exponent
    intendbins=10^((findgen(numintbins+1)/numintbins)*(imaxpower-iminpower)+iminpower)        ;log-spaced endbins from iminpower to maxpower
    intmidbins=10^(((findgen(numintbins)+0.5)/numintbins) *(imaxpower-iminpower)+iminpower)   ;midbins
-   
-   numzdbins=163 
-   
+
+   numzdbins=163
+
    d={numrecords:numrecords,$
    time:op.starttime + op.rate*dindgen(numrecords) ,$    ;This is the start time for each record
-   
+
    ;PSD
    numbins:numbins ,$
    numarbins:numarbins ,$
@@ -68,7 +68,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    spec2d:fltarr(numrecords, numbins, numarbins) ,$
    spec2d_aspr:fltarr(numrecords, numbins, numarbins) ,$
    spec2d_orientation:fltarr(numrecords, numbins, 18) ,$
- 
+
    ;Interarrival
    numintbins:numintbins ,$
    iminpower:iminpower  ,$    ;lowest bin exponent
@@ -77,13 +77,13 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    intmidbins:intmidbins ,$
    intspec_all:fltarr(numrecords,numintbins) ,$       ;interarrival time spectra for all (rejected too) particles
    intspec_accepted:fltarr(numrecords,numintbins) ,$  ;interarrival time spectra for accepted particles
-     
+
    ;Zd (from Korolev corrections)
    numzdbins:numzdbins ,$
    zdendbins:findgen(numzdbins)*0.05-0.025 ,$
    zdmidbins:findgen(numzdbins)*0.05 ,$
    zdspec:lonarr(numbins,numzdbins) ,$
-     
+
    ;Misc
    tas:fltarr(numrecords) ,$
    poisson_fac:fltarr(numrecords,3) ,$ ;the coefficients into the double poisson fit
@@ -98,15 +98,15 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    dhist=lonarr(numrecords,op.numdiodes)
    activetime_sea=dblarr(numrecords)
 
-   ;Set up the particle structure.  
+   ;Set up the particle structure.
    num2process=10000000L ;Limit to reduce memory consumption
    basestruct={buffertime:0d, probetime:0d, reftime:0d, rawtime:0d, inttime:0d, diam:0.0, xsize:0.0, ysize:0.0, xextent:0.0,$
                areasize:0.0, arearatio:0.0, arearatiofilled:0.0, aspectratio:0.0, area:0.0, areafilled:0.0, xpos:0.0, ypos:0.0,$
                allin:0b, centerin:0b, edgetouch:0b, probetas:0.0, aircrafttas:0.0, zd:0.0, sizecorrection:0.0, missed:0.0, $
-               overloadflag:0b, orientation:0.0, perimeterarea:0.0, dofflag:0b, particlecounter:0L}
+               overloadflag:0b, orientation:0.0, perimeterarea:0.0, dofflag:0b, particlecounter:0L, oned:0.0, twod:0.0}
    x=replicate(basestruct, num2process)
- 
-   
+
+
    ;====================================================================================================
    ;====================================================================================================
    ;Get tas from PTH file, if applicable
@@ -116,8 +116,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    pth_tas=fltarr(numrecords)
    IF file_test(op.pth) THEN BEGIN
       suffix=(strsplit(op.pth,'.',/extract))[-1]
-      ;IDL sav files      
-      IF (suffix eq 'dat') or (suffix eq 'sav') THEN BEGIN      
+      ;IDL sav files
+      IF (suffix eq 'dat') or (suffix eq 'sav') THEN BEGIN
          restore,op.pth
          IF total(d.time - data.time) ne 0 THEN BEGIN
             print, 'PTH time does not match, using nearest point.'
@@ -149,7 +149,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          got_pth=1
       ENDIF
       ;NetCDF (NCAR-style for now)
-      IF (suffix eq 'nc') THEN BEGIN      
+      IF (suffix eq 'nc') THEN BEGIN
          restorenc, op.pth, varlist=['TIME','TASX']
          ;Very basic error check
          good=where((data.tasx gt 0) and (data.tasx lt 400) and (data.time ge op.starttime) and (data.time le op.stoptime))
@@ -166,7 +166,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
 
       IF op.pth ne '' THEN BEGIN  ;Extra warning if a filename was actually entered
          infoline='TAS file does not exist.  Use default air speed instead?'
-         IF textwidgetid ne 0 THEN BEGIN 
+         IF textwidgetid ne 0 THEN BEGIN
             dummy=dialog_message(infoline,dialog_parent=textwidgetid,/question)
             IF dummy eq 'No' THEN return
          ENDIF ELSE BEGIN
@@ -175,8 +175,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          ENDELSE
       ENDIF ELSE print,'No TAS file entered, using default or fixed values'
    ENDELSE
-      
-   
+
+
    ;Set up particlefile
    lun_pbp=2
    ncdf_offset=0L
@@ -187,30 +187,30 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
       ncdf_id=ncdf_create(fn_ncdf, /netcdf4_format)
       ;Define the x-dimension, should be used in all variables
       xdimid=ncdf_dimdef(ncdf_id,'Time',/unlimited)
-      
+
       ;These are for ncplot compatibility
       opnames=tag_names(op)
       flightdate=strmid(op.date,0,2)+'/'+strmid(op.date,2,2)+'/'+strmid(op.date,4,4)
-      
+
       tb='0000'+strtrim(string(sfm2hms(op.starttime)),2)
       te='0000'+strtrim(string(sfm2hms(op.stoptime)),2)
       starttimestr=strmid(tb,5,2,/r)+':'+strmid(tb,3,2,/r)+':'+strmid(tb,1,2,/r)
       stoptimestr=strmid(te,5,2,/r)+':'+strmid(te,3,2,/r)+':'+strmid(te,1,2,/r)
       intervalstr=starttimestr+'-'+stoptimestr
-      
+
       ;Create global attributes
       ncdf_attput,ncdf_id,'Source','SODA-2 OAP Processing Software',/global
       ncdf_attput,ncdf_id,'FlightDate',flightdate[0],/global
       ncdf_attput,ncdf_id,'DateProcessed',systime(),/global
       ncdf_attput,ncdf_id,'TimeInterval',intervalstr,/global
-      opnames=tag_names(op)                  
+      opnames=tag_names(op)
       FOR i=0,n_elements(opnames)-1 DO BEGIN
          IF size(op.(i), /type) eq 7 THEN BEGIN  ;Look for strings, must be handled differently
             IF string(op.(i)[0]) eq '' THEN attdata='none' ELSE attdata=op.(i)[0] ;To avoid a ncdf error (empty string)
             ncdf_attput,ncdf_id,opnames[i],attdata,/global  ;Only put first element for string
-         ENDIF ELSE ncdf_attput,ncdf_id,opnames[i],op.(i),/global   ;Non-strings, all elements      
+         ENDIF ELSE ncdf_attput,ncdf_id,opnames[i],op.(i),/global   ;Non-strings, all elements
       ENDFOR
-      
+
       ;List of variables to include in netCDF file: [varname, longname, unit, datatype]
       ncdfprops=[['time', 'UTC time', 'seconds', 'double'],$
                  ['probetime', 'Unadjusted probe particle time', 'seconds', 'double'],$
@@ -222,6 +222,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
                  ['xsize', 'X-size (across array). No Poisson spot size corrections applied', 'microns', 'float'],$
                  ['ysize', 'Y-size (along airflow). No Poisson spot size corrections applied', 'microns', 'float'],$
                  ['xextent', 'Maximum x-extent (across array) for all individual slices. No Poisson spot size corrections applied', 'microns', 'float'],$
+                 ['oned', '1-D emulation size, number of latched pixels. No Poisson spot size corrections applied', 'microns', 'float'],$
+                 ['twod', '2-D emulation size, slice with maximum number of shaded pixels. No Poisson spot size corrections applied', 'microns', 'float'],$
                  ['areasize', 'Equivalent area size. No Poisson spot size corrections applied', 'microns', 'float'],$
                  ['arearatio', 'Area ratio', 'unitless', 'float'],$
                  ['arearatiofilled', 'Area ratio with particle voids filled', 'unitless', 'float'],$
@@ -244,7 +246,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
                  ['particlecounter', 'Particle counter', 'number', 'long'],$
                  ['orientation', 'Particle orientation relative to array axis', 'degrees', 'float'],$
                  ['rejectionflag', 'Particle rejection code', 'unitless', 'byte']]
-       
+
       tagnames=ncdfprops[0,*]
       FOR i=0,n_elements(tagnames)-1 DO BEGIN
          CASE ncdfprops[3,i] OF
@@ -253,13 +255,13 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
             'byte': varid = ncdf_vardef(ncdf_id,tagnames[i], xdimid, /byte, gzip=5)
             'short': varid = ncdf_vardef(ncdf_id,tagnames[i], xdimid, /short, gzip=5)
             'long': varid = ncdf_vardef(ncdf_id,tagnames[i], xdimid, /long, gzip=5)
-         ENDCASE              
+         ENDCASE
          ncdf_attput,ncdf_id,varid,'longname',ncdfprops[1,i]
          ncdf_attput,ncdf_id,varid,'units',ncdfprops[2,i]
       ENDFOR
-      ncdf_control,ncdf_id,/endef                ;put in data mode 
+      ncdf_control,ncdf_id,/endef                ;put in data mode
    ENDIF
-   
+
    IF op.particlefile eq 1 THEN BEGIN
       fn_pbp=soda2_filename(op,op.shortname,extension='.pbp')
       close, lun_pbp
@@ -285,18 +287,18 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
       printf, lun_pbp, '  14: Particle counter [number]'
       printf, lun_pbp, '-------------------------------------------'
    ENDIF
-   
-   
+
+
    ;====================================================================================================
    ;====================================================================================================
-   ;Build index of buffers for all files.  
+   ;Build index of buffers for all files.
    ;====================================================================================================
    ;====================================================================================================
-   
-   
+
+
    firstfile=1
    FOR i=0,n_elements(op.fn)-1 DO BEGIN
-      y=soda2_buildindex(op.fn[i], pop)      
+      y=soda2_buildindex(op.fn[i], pop)
       IF y.error eq 0 THEN BEGIN
          IF firstfile THEN BEGIN
             ;Create arrays
@@ -315,18 +317,18 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          firstfile=0
       ENDIF ELSE IF y.error eq 1 THEN stop,'Error on build index, check probe ID set correctly.'
    ENDFOR
-   
+
    ;Get housekeeping data, if available
    IF op.format eq 'SPEC' THEN spec_process_hk, op, y=y, /nosav, data=house ELSE house={op:op}
 
-   
+
    ;====================================================================================================
    ;====================================================================================================
    ;Process buffers that fall into the specified time period.  Write individual
    ;particle data to a structure.
    ;====================================================================================================
    ;====================================================================================================
-   
+
    ;Make sure buffers are sorted
    numbuffs=n_elements(bufftime)
    startdate=julday(strmid(op.date,0,2), strmid(op.date,2,2), strmid(op.date,4,4))
@@ -337,28 +339,28 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
       startdate=buffdate[0]
       print,usermo,userday,useryear,buffmo,buffday,buffyear,format='(i3,i3,i5,i5,i3,i5)'
       print,'Probe date stamps do not match user date, continuing...'
-   ENDIF   
-   bufftime=bufftime+86400d*(buffdate-startdate[0])  ;Midnight crossings  
-   s=sort(bufftime)   
+   ENDIF
+   bufftime=bufftime+86400d*(buffdate-startdate[0])  ;Midnight crossings
+   s=sort(bufftime)
    bufftime=bufftime[s]
    buffpoint=buffpoint[s]
    bufffile=bufffile[s]
    buffindex=long((bufftime-op.starttime)/op.rate)  ;keep these for output only
    imagepointers=0  ;Used for SPEC probes only, pointers to each image in a buffer
    pbpstartindex=lonarr(numbuffs)
-   
+
    firstbuff=max(where(bufftime lt op.starttime)) > 0
    lastbuff=min(where(bufftime gt op.stoptime,nlb))
    IF nlb eq 0 THEN lastbuff=numbuffs-1
    IF (lastbuff-firstbuff) le 0 THEN BEGIN
-      print,'No buffers in specified time range'    
+      print,'No buffers in specified time range'
       return
    ENDIF
- 
+
    IF reprocess eq 0 THEN BEGIN
-   
-      currentfile=-1      
-      ;lastbuffertime=0   
+
+      currentfile=-1
+      ;lastbuffertime=0
       lastpercentcomplete=0
       istop=-1L
       inewbuffer=lonarr(lastbuff-firstbuff+1)
@@ -369,28 +371,28 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
             openr,1,op.fn[bufffile[i]]
             currentfile=bufffile[i]
          ENDIF
-         
+
          ;Read in buffer
          point_lun,1,buffpoint[i]
          b=soda2_read2dbuffer(1,pop)
          b.time=bufftime[i]   ;In case time changed due to midnight crossing
          timeindex=long((b.time-op.starttime)/op.rate)>0<(numrecords-1)   ;Index each buffer into right time period
-         
+
          ;Active/dead time computation with SEA buffers
          IF (*pop).format eq 'SEA' THEN BEGIN
             timeindex_stoptime=long((b.stoptime-op.starttime)/op.rate)>0<(numrecords-1)
-            
+
             ;Add activetime if buffer starts and stop in the same time period
             IF timeindex eq timeindex_stoptime THEN activetime_sea[timeindex] += (b.stoptime-b.time)
-            
+
             ;If buffer brackets 2+ time periods:
             IF (timeindex lt timeindex_stoptime) and (timeindex_stoptime lt numrecords) THEN BEGIN
-               activetime_sea[timeindex] += ((d.time[timeindex+1]-b.time) < op.rate)  ;(Start of next time period) - (buffer start) 
+               activetime_sea[timeindex] += ((d.time[timeindex+1]-b.time) < op.rate)  ;(Start of next time period) - (buffer start)
                activetime_sea[timeindex_stoptime] += (b.stoptime - d.time[timeindex_stoptime]) ; (buffer stop)-(last time period start)
                IF (timeindex_stoptime - timeindex) gt 1 THEN activetime_sea[(timeindex+1):(timeindex_stoptime-1)]=op.rate ;Fill intervening buffers
             ENDIF
          ENDIF
-                     
+
          ;Process
          IF (*pop).format eq 'SPEC' THEN BEGIN
             (*pmisc).nimages=y.numimages[i]
@@ -398,8 +400,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
                (*pmisc).imagepointers=i*y.buffsize + y.imagep[(y.firstp[i]):(y.firstp[i]+y.numimages[i]-1)]
                (*pmisc).hkpointers=y.hkp[y.ihk[(y.firstp[i]):(y.firstp[i]+y.numimages[i]-1)]]
             ENDIF
-         ENDIF    
-         
+         ENDIF
+
          ;Send current aircraft TAS to processbuffer for y-sizing on SPEC probes
          (*pmisc).aircrafttas=pth_tas[timeindex]
          
@@ -414,7 +416,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          inewbuffer[i-firstbuff]=istart  ;Save these start positions
          pbpstartindex[i]=istart+ncdf_offset ;Save for final output
          istop=istop+n
-         
+
          x[istart:istop].buffertime=b.time
          x[istart:istop].probetime=p.probetime
          x[istart:istop].reftime=p.reftime
@@ -424,13 +426,15 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          x[istart:istop].xsize=p.xsize
          x[istart:istop].ysize=p.ysize
          x[istart:istop].xextent=p.xextent
+         x[istart:istop].oned=p.oned
+         x[istart:istop].twod=p.twod
          x[istart:istop].areasize=p.areasize
          x[istart:istop].arearatio=p.ar
          x[istart:istop].arearatiofilled=p.arfilled
          x[istart:istop].aspectratio=p.aspr
-         x[istart:istop].area=p.area_orig 
-         x[istart:istop].areafilled=p.area_filled 
-         x[istart:istop].perimeterarea=p.perimeterarea 
+         x[istart:istop].area=p.area_orig
+         x[istart:istop].areafilled=p.area_filled
+         x[istart:istop].perimeterarea=p.perimeterarea
          x[istart:istop].allin=p.allin
          x[istart:istop].centerin=p.centerin
          x[istart:istop].edgetouch=p.edgetouch
@@ -445,7 +449,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          x[istart:istop].overloadflag=p.overloadflag
          x[istart:istop].dofflag=p.dofflag
          x[istart:istop].orientation=p.orientation
-      
+
          ;Feedback to user
          percentcomplete=fix(float(i-firstbuff)/(lastbuff-firstbuff)*100)
          IF percentcomplete ne lastpercentcomplete THEN BEGIN
@@ -460,11 +464,11 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
             ;Memory limit reached, process particles and reset arrays
             soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id
             ncdf_offset=ncdf_offset + istop + 1
-            istop=-1L         
+            istop=-1L
          ENDIF
-         
+
       ENDFOR
-            
+
       IF istop lt 0 THEN return
       infoline='Sorting Particles...'
       IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
@@ -473,12 +477,12 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
 
 
    ENDIF ELSE BEGIN  ;Reprocessing IF statement
-   
+
       ;Reprocess straight from PBP netCDF file
       restorenc, fn_pbp, 'pbp', var='time'  ;Just to get number of particles
       infoline='Sorting Particles...'
       IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
-      
+
       ;2DS time recomputation, this is necessary to get good dead time estimates when rate is 1Hz or greater
       IF (*pop).format eq 'SPEC' THEN BEGIN
          infoline='Recomputing improved probe time...'
@@ -486,27 +490,27 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          newtime=spec_newtime(fn_pbp)
          gotnt=1
       ENDIF ELSE gotnt=0
-      
+
       FOR i = 0, n_elements(pbp.time)/num2process DO BEGIN  ;Don't apply -1 to i, last iteration does remainder particles
          x=soda2_restore_pbp(fn_pbp, offset=i*num2process, count=num2process)
          istop=n_elements(x.time)-1
          inewbuffer=0  ;Only for 2DC/2DP, ignore for now, should cause crash if tried
-         
+
          ;Replace buffertime with newtime for SPEC probes
          IF gotnt eq 1 THEN x.buffertime=newtime[i*num2process:i*num2process+n_elements(x.buffertime)-1]
-         
+
          soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id
-         
+
          percentcomplete=fix(float(i+1)*num2process / n_elements(pbp.time) * 100) < 100
          infoline=strtrim(string(percentcomplete))+'%'
          IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
       ENDFOR
-      
+
       IF (*pop).format eq 'SEA' THEN print, 'NOTE: Activetime from SEA buffers not computed.  Process from scratch if needed.'
    ENDELSE
-   
+
    ;====================================================================================================
-   ;====================================================================================================   
+   ;====================================================================================================
    ;Compute concentration, save data
    ;====================================================================================================
    ;====================================================================================================
@@ -521,28 +525,28 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
 
    ;Assume probe is always active, minus deadtime
    IF op.ignoredeadtime eq 1 THEN BEGIN
-      activetime=fltarr(numrecords)+op.rate 
+      activetime=fltarr(numrecords)+op.rate
    ENDIF ELSE BEGIN
-      activetime=(fltarr(numrecords)+op.rate-d.deadtime)>0 
+      activetime=(fltarr(numrecords)+op.rate-d.deadtime)>0
 ;      IF (*pop).format eq 'SEA' THEN activetime=activetime_sea
    ENDELSE
-   
+
    ;Figure out which TAS to use for concentration and compute sample volume
    probetas=d.tas
    IF (got_pth eq 1) THEN aircrafttas=pth_tas ELSE aircrafttas=probetas
    sv=sa*aircrafttas*activetime
-   
+
    ;Orientation
    orientation_index=fltarr(numrecords, numbins)
-   
+
    ;Make count/concentration arrays
    conc1d=fltarr(numrecords, numbins)  ;size spectra
    FOR i=0L,numrecords-1 DO BEGIN
       spec1d[i,*]=spec1d[i,*]*(d.corr_fac[i] > 1.0)          ;Make the correction
-      d.spec2d[i,*,*]=d.spec2d[i,*,*]*(d.corr_fac[i] > 1.0) 
+      d.spec2d[i,*,*]=d.spec2d[i,*,*]*(d.corr_fac[i] > 1.0)
       d.spec2d_aspr[i,*,*]=d.spec2d_aspr[i,*,*]*(d.corr_fac[i] > 1.0)
       IF aircrafttas[i]*activetime[i] gt 0 THEN BEGIN
-         conc1d[i,*]=spec1d[i,*]/(sa*aircrafttas[i]*activetime[i])/(binwidth/1.0e6) 
+         conc1d[i,*]=spec1d[i,*]/(sa*aircrafttas[i]*activetime[i])/(binwidth/1.0e6)
          ;Orientation index computation from histograms
          FOR j=0,numbins-1 DO BEGIN
             omax=max(d.spec2d_orientation[i,j,*], imax)
@@ -553,13 +557,13 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    ENDFOR
 
    data={op:op, time:d.time, tas:aircrafttas, probetas:probetas, midbins:midbins, activetime:activetime, Date_Processed:systime(), sa:sa, $
-         intspec_all:d.intspec_all, intspec_accepted:d.intspec_accepted, intendbins:intendbins, intmidbins:intmidbins,$  
+         intspec_all:d.intspec_all, intspec_accepted:d.intspec_accepted, intendbins:intendbins, intmidbins:intmidbins,$
          count_rejected:d.count_rejected,count_accepted:d.count_accepted, count_missed:d.count_missed, $
          missed_hist:d.missed_hist, conc1d:conc1d, spec1d:spec1d, spec2d:d.spec2d, spec2d_aspr:d.spec2d_aspr,$
          corr_fac:d.corr_fac, poisson_fac:d.poisson_fac, intcutoff:d.intcutoff, zdspec:d.zdspec, zdendbins:d.zdendbins, zdmidbins:d.zdmidbins,$
          pointer:buffpoint, ind:buffindex, currentfile:bufffile, numbuffsaccepted:numbuffsaccepted, numbuffsrejected:numbuffsrejected, dhist:dhist,$
          hist3d:d.hist3d, spec2d_orientation:d.spec2d_orientation, orientation_index:orientation_index, house:house, pbpstartindex:pbpstartindex}
-     
+
    ;Close pointers and luns
    ptr_free, pop, pmisc
    infoline=['Saved file:']
@@ -571,19 +575,17 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
       ncdf_close,ncdf_id
       infoline=[infoline, fn_ncdf]
    ENDIF
-   
+
    ;Save data and display notification
    fn_out=soda2_filename(op,op.shortname)
    IF op.savfile eq 1 THEN BEGIN
       save,file=fn_out,data,/compress
       infoline=[infoline,fn_out]
       IF textwidgetid ne 0 THEN BEGIN
-         dummy=dialog_message([infoline, '', 'Browse data?'],dialog_parent=textwidgetid,/question,/default_no) 
+         dummy=dialog_message([infoline, '', 'Browse data?'],dialog_parent=textwidgetid,/question,/default_no)
          IF dummy eq 'Yes' THEN call_procedure, 'soda2_browse', fn_out
       ENDIF ELSE print,infoline
    ENDIF
-   
-;profiler,/report  
+
+;profiler,/report
 END
-
-

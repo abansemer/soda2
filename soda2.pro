@@ -61,13 +61,16 @@ PRO soda2_event, ev
 
             ;--------Size method
             id=widget_info(ev.top,find='sizemethod')
-            methods=['Circle fit','X-size (across array)','Y-size (with airflow)','Area equivalent','Lx (max slice width)']
+            methods=['Circle fit','X-size (across array)','Y-size (with airflow)','Area equivalent','Lx (max slice width)',$
+                     '1D emulation', '2D emulation']
             CASE op.smethod OF
                'fastcircle':w=where(strmid(methods,0,1) eq 'C')
                'xsize':w=where(strmid(methods,0,1) eq 'X')
                'ysize':w=where(strmid(methods,0,1) eq 'Y')
                'areasize':w=where(strmid(methods,0,1) eq 'A')
                'xextent':w=where(strmid(methods,0,1) eq 'L')
+               'oned':w=where(strmid(methods,0,1) eq '1')
+               'twod':w=where(strmid(methods,0,1) eq '2')
             ENDCASE
             w=w[0]  ;Can double up when old data loaded
             widget_control,id,set_value=[methods[w], methods]     
@@ -230,6 +233,8 @@ PRO soda2_event, ev
                'Y':smethod='ysize'
                'A':smethod='areasize'
                'L':smethod='xextent'
+               '1':smethod='oned'
+               '2':smethod='twod'
                ELSE:print,'Unknkown size method'
             ENDCASE
                  
@@ -401,7 +406,8 @@ PRO soda2
     dummy=widget_label(subbase2b,value='Probe:',/align_left)
     probetype=widget_combobox(subbase2b,value=specs.probename,uname='probetype',uvalue=specs[0].probename)
     dummy=widget_label(subbase2b,value='  Sizing Method:',/align_left)
-    methodnames=['Circle fit','X-size (across array)','Y-size (with airflow)','Area equivalent','Lx (max slice width)']
+    methodnames=['Circle fit','X-size (across array)','Y-size (with airflow)','Area equivalent','Lx (max slice width)', $
+                 '1D emulation', '2D emulation']
     sizemethod=widget_combobox(subbase2b,value=methodnames,uname='sizemethod',uvalue=methodnames[0])
 
     subbase2e=widget_base(subbase2,row=1)

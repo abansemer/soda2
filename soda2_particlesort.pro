@@ -34,6 +34,10 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       ;errors in truetime still appear.  Might just use buffertime in future.
       truetime=x.probetime - x.reftime + x.buffertime
    ENDIF
+   IF op.format eq 'TXT' THEN BEGIN
+      interarrival=x.inttime
+      truetime=x.probetime ;Should be perfect
+   ENDIF
    
    ;Cluster analysis
    cluster=bytarr(numparticles)
@@ -126,6 +130,8 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
                'ysize':binningsize=x[iparticles[j]].ysize
                'areasize':binningsize=x[iparticles[j]].areasize
                'xextent':binningsize=x[iparticles[j]].xextent
+               'oned':binningsize=x[iparticles[j]].oned
+               'twod':binningsize=x[iparticles[j]].twod
                ELSE:binningsize=x[iparticles[j]].diam
             ENDCASE        
             ;Apply poisson-spot correction
@@ -182,6 +188,10 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       ncdf_varput,ncdf_id,varid,x[0:istop].ysize,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'xextent')
       ncdf_varput,ncdf_id,varid,x[0:istop].xextent,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'oned')
+      ncdf_varput,ncdf_id,varid,x[0:istop].oned,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'twod')
+      ncdf_varput,ncdf_id,varid,x[0:istop].twod,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'areasize')
       ncdf_varput,ncdf_id,varid,x[0:istop].areasize,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'arearatio')

@@ -108,4 +108,43 @@ FUNCTION soda2_read2dbuffer, lun, pop
 
       return, {time:time+(*pop).timeoffset, image:0, difftime:0.0, eof:0, tas:tas, pointer:pointer, date:date, overload:0}     
    ENDIF
+   
+   IF (*pop).format eq 'TXT' THEN BEGIN
+      ;Text data from the OAP model, read in up to 1024 slices and package into a buffer
+      point_lun,lun,0   ;Read header
+      s=''
+      readf,lun,s  ;Read header
+      v=str_sep(strcompress(s),' ')
+      tas=float(v[7])
+      IF pointer gt 0 THEN point_lun,lun,pointer  ;Move to original position
+   
+      image=bytarr((*pop).numdiodes, 1024)
+      startslice=intarr(500)
+      nslices=intarr(500)
+      particletime=dblarr(500)
+      inttime=dblarr(500)
+      n=0L
+      REPEAT BEGIN
+         readf,lun,s   ;Should be the start of a new particle 
+         IF strmid(s,0,1) ne '*' THEN stop,'File out of sync.'
+         v=str_sep(strcompress(s),' ')
+         nslices[n]=v[2]
+         particletime[n]=v[3]
+         inttime[n]=v[4]
+         IF startslice[n]+nslices[n] lt 1024 THEN BEGIN
+            roi=bytarr((*pop).numdiodes, nslices[n])
+            readf,lun,roi,format='('+v[1]+'i1)'
+            image[*,startslice[n]:startslice[n]+nslices[n]-1]=roi
+            startslice[n+1]=startslice[n]+nslices[n]+1  ;Final +1 is for spacing
+            n++
+            point_lun,-lun,pnextparticle 
+         ENDIF   
+      ENDREP UNTIL (eof(lun) eq 1) or (startslice[n]+nslices[n] ge 1024)
+      point_lun,lun,pnextparticle  ;Reset the pointer to the start of the unread particle
+
+      date=julday(1,1,2000)
+      return, {time:particletime[0], image:image, difftime:0.0, eof:0, tas:tas, pointer:pointer, date:date, overload:0, $
+               startslice:startslice[0:n-1], nslices:nslices[0:n-1], particletime:particletime[0:n-1], inttime:inttime[0:n-1]}     
+   ENDIF
+
 END
