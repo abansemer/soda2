@@ -48,7 +48,7 @@ PRO soda2_event, ev
             id=widget_info(ev.top,find='outputflags')
             widget_control,id,get_uvalue=values
             IF op.savfile THEN checkboxarray[where(values eq 'IDL sav')]=1
-            IF op.particlefile THEN checkboxarray[where(values eq 'Particle-by-Particle')]=1
+            IF op.asciipsdfile THEN checkboxarray[where(values eq 'ASCII PSD')]=1
             IF op.ncdfparticlefile THEN checkboxarray[where(values eq 'Particle-by-Particle(netCDF)')]=1
             widget_control,id,set_value=checkboxarray
 
@@ -138,6 +138,14 @@ PRO soda2_event, ev
             IF probe.res lt 15 THEN endbins=[5,15,25,35,45,55,65,75,85,95,105,125,145,175,225,275,325,400,475,550,625,700,800,900,1000,1200,1400,1600,1800,2000]
             IF probe.res gt 50 THEN endbins=[200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2200, 2600, 3000, 3400, 3800, 4200, 4600, 5000,6000,7000,8000,9000,10000,15000,20000,25000,30000]
             widget_control,widget_info(ev.top,find='endbins'),set_value=string(endbins,form='(100(i0," "))')
+        END
+        
+        'fullbins': BEGIN ;===========================================================================
+            id=widget_info(ev.top,find='probetype')
+            widget_control,id,get_uvalue=probename
+            probe=soda2_probespecs(name=probename)
+            endbins=findgen(probe.numdiodes+1)*probe.res + probe.res/2.0
+            widget_control,widget_info(ev.top,find='endbins'),set_value=string(endbins,form='(200(f0.1," "))')
         END
 
         'autofill': BEGIN ;===========================================================================
@@ -243,7 +251,7 @@ PRO soda2_event, ev
             widget_control,id,get_uvalue=values
             widget_control,id,get_value=iadv
             IF iadv[where(values eq 'IDL sav')] eq 1 THEN savfile=1 ELSE savfile=0
-            IF iadv[where(values eq 'Particle-by-Particle')] eq 1 THEN particlefile=1 ELSE particlefile=0
+            IF iadv[where(values eq 'ASCII PSD')] eq 1 THEN asciipsdfile=1 ELSE asciipsdfile=0
             IF iadv[where(values eq 'Particle-by-Particle(netCDF)')] eq 1 THEN ncdfparticlefile=1 ELSE ncdfparticlefile=0
             IF iadv[where(values eq 'Housekeeping')] eq 1 THEN housefile=1 ELSE housefile=0
 
@@ -298,7 +306,7 @@ PRO soda2_event, ev
             ;Can add bindistribution to this structure if desired
             op={fn:fn, date:date[0], starttime:hms2sfm(starttime[0]), stoptime:hms2sfm(stoptime[0]), format:probe.format, $
                subformat:probe.subformat, probetype:probe.probetype, res:probe.res, yres:probe.yres, dofconst:probe.dofconst, $
-               endbins:endbins, arendbins:arendbins, rate:rate, smethod:smethod, pth:pthfile[0], particlefile:particlefile, $
+               endbins:endbins, arendbins:arendbins, rate:rate, smethod:smethod, pth:pthfile[0], asciipsdfile:asciipsdfile, $
                savfile:savfile, inttime_reject:inttime_reject, eawmethod:eawmethod, stuckbits:stuckbits, juelichfilter:juelichfilter, water:water,$
                fixedtas:fixedtas, outdir:outdir[0], project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
                numdiodes:probe.numdiodes, probeid:probe.probeid, shortname:probe.shortname, greythresh:probe.greythresh, $
@@ -313,7 +321,7 @@ PRO soda2_event, ev
             ENDIF
             
             ;Process image data
-            IF (savfile eq 1) or (particlefile eq 1) or (ncdfparticlefile eq 1) THEN BEGIN
+            IF (savfile eq 1) or (asciipsdfile eq 1) or (ncdfparticlefile eq 1) THEN BEGIN
                widget_control,widget_info(ev.top,find='process'),set_value='Processing...'
                soda2_process_2d, op, textwidgetid=widget_info(ev.top,find='process')
                widget_control,widget_info(ev.top,find='process'),set_value='BEGIN PROCESSING'
@@ -399,7 +407,7 @@ PRO soda2
     date=cw_field(subbase2d,/string,       title='Date (mmddyyyy)',uname='date',xsize=15,value='01012000',/column)
     starttime=cw_field(subbase2d,/string,  title='Start Time (hhmmss)',uname='starttime',value='000000',xsize=15,/column)
     stoptime=cw_field(subbase2d,/string,   title='Stop Time (hhmmss)',uname='stoptime',value='240000',xsize=15,/column)
-    defaultbins=widget_button(subbase2d,   value='Auto-Fill',uname='autofill')
+    autofill=widget_button(subbase2d,   value='Auto-Fill',uname='autofill')
 
     subbase2b=widget_base(subbase2,row=1)
     specs=soda2_probespecs()
@@ -414,6 +422,7 @@ PRO soda2
     binstring=string([25, 50, 100, 150, 200, 250, 300, 350, 400, 500, 600,700,800,900,1000,1200,1400,1600,1800,2000],form='(100(i0," "))')
     endbins=cw_field(subbase2e, title='Bin end-points (um):  ', uname='endbins', xsize=52, value=binstring)
     defaultbins=widget_button(subbase2e, value=' Default ',uname='defaultbins')
+    fullbins=widget_button(subbase2e, value=' Channels ',uname='fullbins')
     
     subbase2a=widget_base(subbase2,row=1)  
     rate=cw_field(subbase2a,/float, title='Averaging Time (s):',uname='rate' , xsize=6, value=5.0)
@@ -428,7 +437,7 @@ PRO soda2
     IF compact ne 1 THEN dummy=widget_label(subbase4,value='---Output Options---',/align_left)
     
     subbase4a=widget_base(subbase4,row=1)
-    vals=['IDL sav','Particle-by-Particle','Particle-by-Particle(netCDF)','Housekeeping']
+    vals=['IDL sav','ASCII PSD','Particle-by-Particle(netCDF)','Housekeeping']
     outputflags=cw_bgroup(subbase4a,vals,uname='outputflags',/row,/nonexclusive,uval=vals,set_value=[1,0,0])
 
     subbase4b=widget_base(subbase4,row=1)

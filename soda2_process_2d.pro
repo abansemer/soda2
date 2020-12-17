@@ -575,6 +575,11 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
       ncdf_close,ncdf_id
       infoline=[infoline, fn_ncdf]
    ENDIF
+   IF op.asciipsdfile eq 1 THEN BEGIN
+      fn_asciipsd=soda2_filename(op,op.shortname,extension='.txt')
+      soda2_export_ascii, data, outfile=fn_asciipsd
+      infoline=[infoline, fn_asciipsd]
+   ENDIF
 
    ;Save data and display notification
    fn_out=soda2_filename(op,op.shortname)
@@ -585,7 +590,10 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          dummy=dialog_message([infoline, '', 'Browse data?'],dialog_parent=textwidgetid,/question,/default_no)
          IF dummy eq 'Yes' THEN call_procedure, 'soda2_browse', fn_out
       ENDIF ELSE print,infoline
-   ENDIF
+   ENDIF ELSE BEGIN  ;Notify if sav file not written (no option to browse)
+      IF textwidgetid ne 0 THEN dummy=dialog_message(infoline,dialog_parent=textwidgetid,/info) ELSE print,infoline
+   ENDELSE
+      
 
 ;profiler,/report
 END
