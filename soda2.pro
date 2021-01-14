@@ -18,6 +18,8 @@ PRO soda2_event, ev
             widget_control,widget_info(ev.top,find='starttime'),set_value=sfm2hms(data.op.starttime)
             widget_control,widget_info(ev.top,find='stoptime'),set_value=sfm2hms(data.op.stoptime)
             widget_control,widget_info(ev.top,find='rate'),set_value=data.op.rate
+            widget_control,widget_info(ev.top,find='xres'),set_value=data.op.res
+            widget_control,widget_info(ev.top,find='yres'),set_value=data.op.yres
             widget_control,widget_info(ev.top,find='date'),set_value=data.op.date
             widget_control,widget_info(ev.top,find='project'),set_value=data.op.project
             
@@ -57,7 +59,7 @@ PRO soda2_event, ev
             widget_control,widget_info(ev.top,find='outdir'),set_value=op.outdir
             
             ;--------Bins
-            widget_control,widget_info(ev.top,find='endbins'),set_value=string(data.op.endbins,form='(100(i0," "))')
+            widget_control,widget_info(ev.top,find='endbins'),set_value=string(data.op.endbins,form='(100(f0.1," "))')
 
             ;--------Size method
             id=widget_info(ev.top,find='sizemethod')
@@ -214,6 +216,8 @@ PRO soda2_event, ev
             ;Collect data from the GUI
             ;--------Boxes
             widget_control,widget_info(ev.top,find='rate'),get_value=rate
+            widget_control,widget_info(ev.top,find='xres'),get_value=xres
+            widget_control,widget_info(ev.top,find='yres'),get_value=yres
             widget_control,widget_info(ev.top,find='tas'),get_value=fixedtas
             widget_control,widget_info(ev.top,find='project'),get_value=project
             widget_control,widget_info(ev.top,find='date'),get_value=date
@@ -317,7 +321,7 @@ PRO soda2_event, ev
                         
             ;Can add bindistribution to this structure if desired
             op={fn:fn, date:date[0], starttime:hms2sfm(starttime[0]), stoptime:hms2sfm(stoptime[0]), format:probe.format, $
-               subformat:probe.subformat, probetype:probe.probetype, res:probe.res, yres:probe.yres, dofconst:probe.dofconst, $
+               subformat:probe.subformat, probetype:probe.probetype, res:xres, yres:yres, dofconst:probe.dofconst, $
                endbins:endbins, arendbins:arendbins, rate:rate, smethod:smethod, pth:pthfile[0], asciipsdfile:asciipsdfile, $
                savfile:savfile, inttime_reject:inttime_reject, eawmethod:eawmethod, stuckbits:stuckbits, juelichfilter:juelichfilter, water:water,$
                fixedtas:fixedtas, outdir:outdir[0], project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
@@ -340,7 +344,14 @@ PRO soda2_event, ev
             ENDIF
         END
         
-        'probetype': widget_control,ev.id,set_uvalue=ev.str    ;A workaround to be able to access current index with widget_control later on
+        'probetype':BEGIN ;===========================================================================
+            widget_control,ev.id,set_uvalue=ev.str    ;A workaround to be able to access current index with widget_control later on
+            id=widget_info(ev.top,find='probetype')
+            widget_control,id,get_uvalue=probename
+            probe=soda2_probespecs(name=probename)
+            widget_control,widget_info(ev.top,find='xres'),set_value=probe.res
+            widget_control,widget_info(ev.top,find='yres'),set_value=probe.yres
+         END
 
         'sizemethod': widget_control,ev.id,set_uvalue=ev.str   ;A workaround to be able to access current index with widget_control later on
         
@@ -439,6 +450,8 @@ PRO soda2
     
     subbase2a=widget_base(subbase2,row=1)  
     rate=cw_field(subbase2a,/float, title='Averaging Time (s):',uname='rate' , xsize=6, value=5.0)
+    xres=cw_field(subbase2a,/float, title='X-res (um):',uname='xres' , xsize=4, value=0)
+    yres=cw_field(subbase2a,/float, title='Y-res (um):',uname='yres' , xsize=4, value=0)
    
     subbase2c=widget_base(subbase2,row=1)
     vals=['Shatter Correct','All-In','Water Processing','Stuck Bit Correct','Pixel Noise Filter','Largest Particle','Force PSC','DoF Reject']
