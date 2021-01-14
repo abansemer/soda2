@@ -119,12 +119,12 @@ PRO soda2_compare_event, ev
               a=!pi/6 & b=3.0
            END
          ENDCASE
-         bulk=compute_bulk_simple((*p1).conc1d,(*p1).op.endbins,ac=a,bc=b)
+         bulk=compute_bulk_simple((*p1).conc1d,(*p1).op.endbins,ac=a,bc=b,binstart=(*pinfo).binstart)
          (*p1).msdnorm=bulk.msdnorm
          (*p1).iwc=bulk.iwc    ;Update these, will be displayed on the plot
          (*p1).dmedianmass=bulk.dmedianmass
 
-         bulk=compute_bulk_simple((*p2).conc1d,(*p2).op.endbins,ac=a,bc=b)
+         bulk=compute_bulk_simple((*p2).conc1d,(*p2).op.endbins,ac=a,bc=b,binstart=(*pinfo).binstart)
          (*p2).msdnorm=bulk.msdnorm
          (*p2).iwc=bulk.iwc    ;Update these, will be displayed on the plot
          (*p2).dmedianmass=bulk.dmedianmass
@@ -222,7 +222,7 @@ END
 
 
 
-PRO soda2_compare, fn1, fn2, fn3=fn3, crossover=crossover
+PRO soda2_compare, fn1, fn2, fn3=fn3, crossover=crossover, binstart=binstart
    ;Main GUI for SODA-2 data browsing
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
@@ -269,13 +269,18 @@ PRO soda2_compare, fn1, fn2, fn3=fn3, crossover=crossover
    pngID=widget_button(timebarbase,uname='png',value=' Create PNG ')
 
    ;Restore and organize data
+   IF n_elements(binstart) eq 0 THEN binstart=1
    restore,fn1    
-   bulk=compute_bulk_simple(data.conc1d,data.op.endbins)
+   a=0.00294 & b=1.9  ;Default to Brown and Francis
+   IF data.op.water eq 1 THEN BEGIN & a=!pi/6 & b=3.0 & ENDIF  ;Unless processed with water
+   bulk=compute_bulk_simple(data.conc1d,data.op.endbins,ac=a,bc=b,binstart=binstart)
    op2=data.op
    soda2_update_op, op2  ;For back compatibility
    data1=create_struct(data, bulk, 'op2', op2)
    restore,fn2   
-   bulk=compute_bulk_simple(data.conc1d,data.op.endbins)
+   a=0.00294 & b=1.9  ;Default to Brown and Francis
+   IF data.op.water eq 1 THEN BEGIN & a=!pi/6 & b=3.0 & ENDIF  ;Unless processed with water
+   bulk=compute_bulk_simple(data.conc1d,data.op.endbins,ac=a,bc=b,binstart=binstart)
    op2=data.op
    soda2_update_op, op2  ;For back compatibility
    data2=create_struct(data, bulk, 'op2', op2)
@@ -314,7 +319,7 @@ PRO soda2_compare, fn1, fn2, fn3=fn3, crossover=crossover
    IF n_elements(crossover) eq 0 THEN crossover=0
    info={i:0L, timeformat:1, wid:wid, wt:wt, p1:p1, p2:p2, pmouse:pmouse, bmp:bitmap, $
          outdir:outdir, screen_x:screen_x, screen_y:screen_y, crossover:crossover, $
-         lognormalize:1, xlog:1, ylog:1}
+         lognormalize:1, xlog:1, ylog:1, binstart:binstart}
    pinfo=ptr_new(info)
    widget_control,widget_info(base,find='base'),set_uvalue=pinfo
    

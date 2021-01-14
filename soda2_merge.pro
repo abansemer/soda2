@@ -117,7 +117,8 @@ PRO soda2_merge_event, ev
          widget_control,widget_info(ev.top,find='fn2'),get_value=fn2
          IF fn2 eq '' THEN fn2=fn1  ;Just compare with itself if no extra file listed
          widget_control,widget_info(ev.top,find='crossover'),get_value=crossover
-         IF file_test(fn1) eq 1 and (file_test(fn2) eq 1) THEN soda2_compare, fn1, fn2, crossover=crossover ELSE BEGIN
+         widget_control,widget_info(ev.top,find='binstart'),get_value=binstart
+         IF file_test(fn1) eq 1 and (file_test(fn2) eq 1) THEN soda2_compare, fn1, fn2, crossover=crossover, binstart=binstart ELSE BEGIN
             widget_control,widget_info(ev.top,find='compare'),set_value='INVALID FILENAME, TRY ANOTHER'
             wait,3
             widget_control,widget_info(ev.top,find='compare'),set_value='Compare Data'
