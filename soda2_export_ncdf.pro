@@ -15,6 +15,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
    ;Create the file
    id=ncdf_create(outfile[0],/clobber)
    
+   tags=tag_names(data)     
    
    ;Define the x-dimension, should be used in all variables
    xdimid=ncdf_dimdef(id,'Time',n_elements(data.time))
@@ -25,12 +26,15 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
    name='Vector'+strtrim(string(n_elements(data.op.endbins)),2)
    dimid_endbins=ncdf_dimdef(id,name,n_elements(data.op.endbins))
    ;This is for interarrival
-   name='Vector'+strtrim(string(n_elements(data.intmidbins)),2)
-   ydimid_int=ncdf_dimdef(id,name,n_elements(data.intmidbins))
+   IF total(tags eq 'INTMIDBINS') THEN BEGIN
+      name='Vector'+strtrim(string(n_elements(data.intmidbins)),2)
+      ydimid_int=ncdf_dimdef(id,name,n_elements(data.intmidbins))
+   ENDIF
    ;This is for area ratio
-   name='Vector'+strtrim(string(n_elements(data.op.arendbins)-1),2)
-   ydimid_ar=ncdf_dimdef(id,name,n_elements(data.op.arendbins)-1)
-         
+   IF total(tags eq 'ARENDBINS') THEN BEGIN
+      name='Vector'+strtrim(string(n_elements(data.op.arendbins)-1),2)
+      ydimid_ar=ncdf_dimdef(id,name,n_elements(data.op.arendbins)-1)
+   ENDIF
    ;These are for ncplot compatibility
    opnames=tag_names(data.op)
    ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -85,7 +89,6 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
    
    
    ;-------Write data to file, start with main structure tags------------------------    
-   tags=tag_names(data)     
    
    FOR j=0,n_elements(tags)-1 DO BEGIN
       ;Write each variable
@@ -176,14 +179,21 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
    bulkall=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=0)
    i100=min(where(data.op.endbins ge 100))
    bulk100=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=i100)
-   armidbins=(data.op.arendbins+data.op.arendbins[1:*])/2.0
-   meanar=compute_meanar(data.spec2d,armidbins)
-   meanaspr=compute_meanar(data.spec2d_aspr,armidbins)
-   area=compute_area(data)
-   area100=compute_area(data, binstart=i100)
-   bulk=create_struct(bulkall, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
-        'iwc100', bulk100.iwc, 'area', area, 'area100', area100, 'lwc100', bulk100.lwc, 'meanar', $
-        meanar, 'meanaspr', meanaspr)
+   IF total(tags eq 'ARENDBINS') THEN BEGIN
+      armidbins=(data.op.arendbins+data.op.arendbins[1:*])/2.0
+      meanar=compute_meanar(data.spec2d,armidbins)
+      meanaspr=compute_meanar(data.spec2d_aspr,armidbins)
+      area=compute_area(data)
+      area100=compute_area(data, binstart=i100)
+
+      bulk=create_struct(bulkall, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
+           'iwc100', bulk100.iwc, 'area', area, 'area100', area100, 'lwc100', bulk100.lwc, 'meanar', $
+           meanar, 'meanaspr', meanaspr)
+   ENDIF ELSE BEGIN
+       bulk=create_struct(bulkall, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
+            'iwc100', bulk100.iwc, 'lwc100', bulk100.lwc)
+   ENDELSE
+               
    tags=tag_names(bulk)     
    FOR j=0,n_elements(tags)-1 DO BEGIN
       ;Write each variable

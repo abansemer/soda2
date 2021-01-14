@@ -4,25 +4,32 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
    openw,lun,outfile,/get_lun   
-   i100=min(where(data.op.endbins ge 100))
+   minsize=100
+   IF data.op.res lt 15 THEN minsize=50  ;Go down to 50um for 2D-S
+   minsizestring=strtrim(string(minsize),2)
+   i100=min(where(data.op.endbins ge minsize))
    bulk100=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=i100,acoeff=a,bcoeff=b)
 
    ;Write header
    printf,lun,'Particle size distributions for the ',data.op.probetype,' probe in ',data.op.project
    printf,lun,'Flight date (mm/dd/yy):   '+strmid(data.op.date,0,2)+'/'+strmid(data.op.date,2,2)+'/'+strmid(data.op.date,6,2)
-   printf,lun,'Processed:   '+   data.date_processed
+   printf,lun,'Processed:   '+data.date_processed
    printf,lun,'Raw data source:  '+data.op.fn
+   printf,lun,'Sizing method:  '+data.op.smethod
+   printf,lun,'Partial particle method:  '+data.op.eawmethod
+   printf,lun,'Shattering correction:  '+(['off','on'])[data.op.inttime_reject]
+   printf,lun,'Liquid water processing:  '+(['off','on'])[data.op.water]
    printf,lun,''
    printf,lun,'Bin midpoints (microns):'
    printf,lun,data.midbins,format='(500f9.2)'
    printf,lun,'Bin endpoints (microns):'
    printf,lun,data.op.endbins,format='(500f9.2)'
    printf,lun,''
-   printf,lun,'Time is UTC in seconds from midnight.'
-   printf,lun,'Nt is total concentration of particles with diameter greater than 100 microns.'
+   printf,lun,'Notes:'
+   printf,lun,'   All bulk properties are computed using particles larger than '+minsizestring+' microns in size.'
    IF data.op.water eq 1 THEN BEGIN
-      printf,lun,'This file contains "round" particles only, with area ratio > 0.5 and diameter < 6mm.'
-      printf,lun,'The intent is to process liquid drops only, there may be substantial errors in LWC when ice particles are also present.' 
+      printf,lun,'   This file contains "round" particles only, with area ratio > 0.5 and diameter < 6mm.'
+      printf,lun,'   The intent is to process liquid drops only, there may be substantial errors in LWC when ice particles are also present.' 
       masstitle='Estimated Liquid Water Content [g/m3]'
       massshortname='LWC'
       mass=bulk100.lwc
@@ -30,8 +37,8 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b
       diamshortname='MVD'
       diam=bulk100.mvd
    ENDIF ELSE BEGIN
-      printf,lun,'Size distributions were processed using ice rejection criteria.'
-      printf,lun,'Mass-size parameterization coefficients: a='+string(a,format='(e10.2)')+', b='+string(b,format='(f4.2)')
+      printf,lun,'   Size distributions were processed using ice rejection criteria.'
+      printf,lun,'   Mass-size parameterization coefficients: a='+string(a,format='(e10.2)')+', b='+string(b,format='(f4.2)')
       masstitle='Estimated Ice Water Content [g/m3]'
       massshortname='IWC'
       mass=bulk100.iwc
@@ -41,7 +48,7 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b
    ENDELSE
    printf,lun,''
    titles=['Time at start of interval [UTC seconds]',$
-           'Total Concentration for Particles with D>100um [#/m3]',$
+           'Total Concentration for Particles with D>'+minsizestring+'um [#/m3]',$
            masstitle,$
            diamtitle,$
            'Concentration per size bin, normalized by bin width [#/m4]']

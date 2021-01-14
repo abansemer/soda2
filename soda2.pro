@@ -289,7 +289,7 @@ PRO soda2_event, ev
             widget_control,widget_info(ev.top,find='endbins'),get_value=binstring
             endbins=float(strsplit(binstring, '[ ,]+', /regex, /extract))
             
-            ;-------Bin size checks
+            ;-------Bin size and option checks
             warn=0 & go='Yes'
             IF probe.res ge 100 and mean(endbins) lt 2000 THEN warn=1
             IF probe.res lt 100 and mean(endbins) ge 2000 THEN warn=1
@@ -302,7 +302,11 @@ PRO soda2_event, ev
                return
             ENDIF
             
-            
+            warn=0 & go='Yes'
+            IF (total(smethod eq ['xsize','xextent','oned','twod']) gt 0) and (eawmethod ne 'allin') THEN warn=1
+            IF warn THEN go=dialog_message('All-in recommended for this sizing method... Continue?',/question,dialog_parent=widget_info(ev.top,find='process'))
+            IF go eq 'No' THEN return
+                        
             ;Can add bindistribution to this structure if desired
             op={fn:fn, date:date[0], starttime:hms2sfm(starttime[0]), stoptime:hms2sfm(stoptime[0]), format:probe.format, $
                subformat:probe.subformat, probetype:probe.probetype, res:probe.res, yres:probe.yres, dofconst:probe.dofconst, $

@@ -121,9 +121,13 @@ PRO soda2_compare_event, ev
          ENDCASE
          bulk=compute_bulk_simple((*p1).conc1d,(*p1).op.endbins,ac=a,bc=b)
          (*p1).msdnorm=bulk.msdnorm
+         (*p1).iwc=bulk.iwc    ;Update these, will be displayed on the plot
+         (*p1).dmedianmass=bulk.dmedianmass
 
          bulk=compute_bulk_simple((*p2).conc1d,(*p2).op.endbins,ac=a,bc=b)
          (*p2).msdnorm=bulk.msdnorm
+         (*p2).iwc=bulk.iwc    ;Update these, will be displayed on the plot
+         (*p2).dmedianmass=bulk.dmedianmass
          soda2_compareplot,pinfo
       END        
       ;====================================================================================================
@@ -204,13 +208,16 @@ PRO soda2_compareplot, pinfo
    oplot,(*p1).midbins, conc1, color=color1, thick=3
    oplot,(*p2).midbins, conc2, color=color2, thick=2
    oplot,[(*pinfo).crossover,(*pinfo).crossover], [1e-12, 1e12], line=1, thick=1
-   legend_old,[(*p1).op2.shortname+(*p1).op2.probeid,(*p2).op2.shortname+(*p2).op2.probeid],line=0,box=0,color=[color1, color2],/bottom,/left,charsize=1.0,thick=2
+   legend_old,[(*p1).op2.shortname+(*p1).op2.probeid,(*p2).op2.shortname+(*p2).op2.probeid],line=0,box=0,color=[color1, color2],/top,/right,charsize=1.0,thick=2
    
    ;Right side plot
    plot,(*p1).midbins, msd1, xlog=(*pinfo).xlog, ylog=(*pinfo).ylog, /nodata, xtit='Diameter (microns)', ytit='Mass '+msdunit, xr=xrange, /xs, yr=yrangemsd
    oplot,(*p1).midbins, msd1,color=color1, thick=3
    oplot,(*p2).midbins, msd2, color=color2, thick=2
    oplot,[(*pinfo).crossover,(*pinfo).crossover], [1e-12, 1e12], line=1, thick=1
+   legend_old,[string((*p1).iwc[i],format='(f0.2)')+' g/m3 '+string((*p1).dmedianmass[i],format='(f0.1)')+' um',$
+               string((*p2).iwc[i],format='(f0.2)')+' g/m3 '+string((*p2).dmedianmass[i],format='(f0.1)')+' um'],$
+               line=0,color=[color1, color2],thick=2,/top,/left,box=0,charsize=1.0
 END
 
 
