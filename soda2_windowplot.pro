@@ -189,7 +189,7 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                 'Diameter':BEGIN
                   plot,x,(*p1).mnd[a:b],ytitle='Diameter (um)',/yl,yr=sizerange,/ys,/nodata
                   oplot,x,(*p1).mnd[a:b],color=color1
-                  oplot,x,(*p1).dmass[a:b],color=color2
+                  oplot,x,(*p1).dmedianmass[a:b],color=color2
                   oplot,x,(*p1).mvd[a:b],color=color3
                   legend_old,['Mean','Median Mass','Median Volume'],line=0,thick=2,color=[color1,color2,color3],box=0,/top,/right,charsize=1
                END

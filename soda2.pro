@@ -147,6 +147,14 @@ PRO soda2_event, ev
             endbins=findgen(probe.numdiodes+1)*probe.res + probe.res/2.0
             widget_control,widget_info(ev.top,find='endbins'),set_value=string(endbins,form='(200(f0.1," "))')
         END
+        
+        'fullbinsx2': BEGIN ;===========================================================================
+            id=widget_info(ev.top,find='probetype')
+            widget_control,id,get_uvalue=probename
+            probe=soda2_probespecs(name=probename)
+            endbins=findgen(probe.numdiodes*2 + 1)*probe.res + probe.res/2.0
+            widget_control,widget_info(ev.top,find='endbins'),set_value=string(endbins,form='(500(f0.1," "))')
+        END
 
         'autofill': BEGIN ;===========================================================================
             widget_control,widget_info(ev.top,find='filelist'),get_value=fn
@@ -424,9 +432,10 @@ PRO soda2
 
     subbase2e=widget_base(subbase2,row=1)
     binstring=string([25, 50, 100, 150, 200, 250, 300, 350, 400, 500, 600,700,800,900,1000,1200,1400,1600,1800,2000],form='(100(i0," "))')
-    endbins=cw_field(subbase2e, title='Bin end-points (um):  ', uname='endbins', xsize=52, value=binstring)
+    endbins=cw_field(subbase2e, title='Bin end-points (um):  ', uname='endbins', xsize=45, value=binstring)
     defaultbins=widget_button(subbase2e, value=' Default ',uname='defaultbins')
-    fullbins=widget_button(subbase2e, value=' Channels ',uname='fullbins')
+    fullbins=widget_button(subbase2e, value=' Full ',uname='fullbins')
+    fullbinsx2=widget_button(subbase2e, value=' x2 ',uname='fullbinsx2')
     
     subbase2a=widget_base(subbase2,row=1)  
     rate=cw_field(subbase2a,/float, title='Averaging Time (s):',uname='rate' , xsize=6, value=5.0)

@@ -41,12 +41,7 @@ PRO soda2_browse_event, ev
             IF ptr_valid(pinfo) THEN ptr_free,pinfo
             IF ptr_valid(pop) THEN ptr_free,pop
 
-            ;Make all bulk computations starting at 100um
-            binstart=min(where(op.endbins ge 100))
-            a=0.00294 & b=1.9  ;Default to Brown and Francis
-            IF op.water eq 1 THEN BEGIN & a=!pi/6 & b=3.0 & ENDIF  ;Unless processed with water
-            bulk=compute_bulk_simple(data.conc1d,op.endbins,binstart=binstart,ac=a,bc=b)
-
+            ;Compute meanAR and declutter
             armidbins=(op.arendbins[1:*]+op.arendbins[1:*])/2.0
             meanar=compute_meanar(data.spec2d,armidbins)
             binary=data.conc1d and (data.conc1d*0 + 1)  ;Declutter the meanar and conc1d data
@@ -54,6 +49,12 @@ PRO soda2_browse_event, ev
             binary=morph_open(binary,kernel)
             meanar=meanar*binary
             data.conc1d=data.conc1d*binary
+      
+            ;Make all bulk computations starting at 100um
+            binstart=min(where(op.endbins ge 100))
+            a=0.00294 & b=1.9  ;Default to Brown and Francis
+            IF op.water eq 1 THEN BEGIN & a=!pi/6 & b=3.0 & ENDIF  ;Unless processed with water
+            bulk=compute_bulk_simple(data.conc1d,op.endbins,binstart=binstart,ac=a,bc=b)
 
             IF total(tag_names(data) eq 'COUNT_ALL') eq 1 THEN BEGIN
                ;SODA-1
@@ -416,7 +417,7 @@ PRO soda2_browse_event, ev
            binstart=min(where((*pop).endbins ge 100))
            bulk=compute_bulk_simple((*p1).conc1d,(*pop).endbins,binstart=binstart,ac=a,bc=b)
            (*p1).iwc=bulk.iwc
-           (*p1).dmass=bulk.dmedianmass
+           (*p1).dmedianmass=bulk.dmedianmass
            (*p1).dbz=bulk.dbz
            IF uname eq 'massparam_water' THEN (*p1).dbz=bulk.dbzw  ;Use water dBZ in this case
            (*p1).mvd=bulk.mvd
