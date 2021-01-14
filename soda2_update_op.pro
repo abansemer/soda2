@@ -45,6 +45,7 @@ PRO soda2_update_op, op
       readf,lun,s  ;Read header
       v=str_sep(strcompress(s),' ')
       op.res=float(v[1])
+      op.yres=op.res
       op.numdiodes=float(v[3])
       op.armwidth=float(v[5])
       op.format='TXT'

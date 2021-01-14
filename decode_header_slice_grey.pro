@@ -11,7 +11,6 @@ FUNCTION decode_header_slice_grey, header
    ind=indgen(64)
    fullslice=bytarr(128)
    
-   orig=header   
    ;Sometimes the header slice is misaligned, fix it here 
    IF header[0] ne 0 THEN header=shift(header,-1)
    IF header[0] ne 0 THEN header=shift(header,-1)  ;Try again
