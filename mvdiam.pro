@@ -23,17 +23,10 @@ FUNCTION mvdiam, conc_raw, endbins, nan=nan
       ;MVD interpolation is a little tricky: assume the high edge of each bin is where the value in z
       ;   is realized.  So interpolation is done on the high edge, endbins[1:*].  This can be 
       ;   double-checked by printing out: for q=0,n-1 do print,endbins[q],endbins[q+1],z[q],tvolume/2.0
-      mvd[i]=interpol(endbins[1:*], z, tvolume/2.0)
-      
-      ;Old way.  Tested against new way above, only minimal changes.
-      ;w=min(where(z ge 0.5*tvolume)) > 0
-      ;mvd[i]=midbins[w]
-      
-      ;f=(0.5*tvolume-z[w-1])/(z[w]-z[w-1])
-      ;mvd[i]=((midbins[w]+midbins[(w+1)<(n-1)])/2 - (midbins[w-1]+midbins[w])/2 )*f + (midbins[w-1]+midbins[w])/2 
-   
+      ;   Changed slightly to avoid interpolation errors, now endbins[*] and padding z with leading zero.
+      mvd[i]=interpol(endbins, [0,z], tvolume/2.0)
       IF tvolume eq 0 THEN mvd[i]=nullvalue
    ENDFOR
-   return,mvd
+   return, mvd
 END
    
