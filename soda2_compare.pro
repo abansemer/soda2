@@ -229,6 +229,13 @@ PRO soda2_compare, fn1, fn2, fn3=fn3, crossover=crossover, binstart=binstart
    device,decompose=0,get_screen_size=screen_size   ;Set to 8-bit color
    device, retain=2   
    loadct,39    ;A color table that works for Linux....
+   tvlct,r,g,b,/get
+   ;Load these to maintain color table for soda2_browse, if running concurrently
+   r[1]=220 & g[1]=220 & b[1]=220  ;add a grey color
+   r[2]=100 & g[2]=100 & b[2]=250  ;add three blue shades for images
+   r[3]=000 & g[3]=000 & b[3]=200  ;add three blue shades for images
+   r[4]=000 & g[4]=000 & b[4]=000  ;add three blue shades for images
+   tvlct,r,g,b
    !p.background=255
    !p.color=0
    !p.charsize=1.5

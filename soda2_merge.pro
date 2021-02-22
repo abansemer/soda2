@@ -84,7 +84,7 @@ PRO soda2_merge_event, ev
 
          IF file_test(fn1) THEN BEGIN
            widget_control,widget_info(ev.top,find='process'),set_value='Please wait...'
-           merge_master, fn1, fn2=fn2, pth=pthfile, outdir=outdir, kcoeff=acoeff*6/!pi, ncoeff=0, $
+           merge_main, fn1, fn2=fn2, pth=pthfile, outdir=outdir, kcoeff=acoeff*6/!pi, ncoeff=0, $
                alpha=bcoeff-3.0, crossover=crossover, binstart=binstart, suffix=suffix, computeradar=0, allspec=0
            widget_control,widget_info(ev.top,find='process'),set_value='BEGIN PROCESSING'
            dummy=dialog_message('Operation Complete',dialog_parent=widget_info(ev.top,find='process'),/info)

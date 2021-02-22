@@ -1,4 +1,4 @@
-PRO merge_master, fn1, fn2=fn2, pthfile=pthfile, crossover=crossover, outdir=outdir, cgs=cgs, $
+PRO merge_main, fn1, fn2=fn2, pthfile=pthfile, crossover=crossover, outdir=outdir, cgs=cgs, $
                   binstart=binstart, kcoeff=kcoeff, ncoeff=ncoeff, alpha=alpha, computeradar=computeradar,$
                   particle_aspect=particle_aspect, suffix=suffix, declutter=declutter, $
                   p1000=p1000, data=data, nosave=nosave, allspec=allspec, arvt1=arvt1, _extra=e

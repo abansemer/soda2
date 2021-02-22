@@ -146,7 +146,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           ;Due to rollovers diffcount will always be positive number.  Bad ones will be ~65000.
           ;Pattern is different if counter error is high vs. low.  Just check for neighbor too and reject
           ;   if either one is >10000, this takes care of both conditions.
-          good4 = where((diffcount lt 10000) and ([diffcount[1:*], 0us] lt 10000) and (inttime ge 0) and ([inttime[1:*], 0] ge 0))
+          good4 = where((diffcount lt 10000) and ([diffcount[1:*], 0us] lt 10000) and (inttime ge 0) and ([inttime[1:*], 0] ge 0), ngood4)
+          IF ngood4 lt 3 THEN return, nullbuffer
 
           ;Combine filters
           good = good3[good4]
