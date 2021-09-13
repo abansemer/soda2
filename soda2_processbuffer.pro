@@ -17,7 +17,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    ;Define the structure to return for bad buffers
    nullbuffer= {diam:0,probetime:0,reftime:0,ar:0, rawtime:0, aspr:0, rejectbuffer:1,bitimage:0,$
                 allin:0,streak:0,zd:0,dhist:0,nslices:0,missed:0,overloadflag:0,dofflag:0b,particlecounter:0L, inttime:0d, clocktas:0.0}
-      
+
    CASE 1 OF
       ;-----------------------------------------------------------------------------------------------
       ;-----------------------------------------------------------------------------------------------
@@ -42,8 +42,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           ENDIF
 
           IF (*pop).probetype eq 'F2DC_v2' THEN BEGIN
-             timelines = image[sync_ind] and '00007FFFFFFFFFFF'x
-             dof = ((image[sync_ind] and '0000800000000000'x)) < 1
+             timelines = image[sync_ind] and '00000FFFFFFFFFFF'x   ;SPICULE 2021, changed from '00007FFFFFFFFFFF' to '00000FFFFFFFFFF'
+             dof = ((image[sync_ind] and '0000100000000000'x)) < 1 ;changed from '0000800000000000'x to '0000100000000000'x
           ENDIF ELSE BEGIN
              timelines = image[sync_ind] and '000000FFFFFFFFFF'x  ;The timeline refers to how long AFTER the last particle this one arrived.
              dof = ((image[sync_ind] and '0000010000000000'x)) < 1
@@ -61,7 +61,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           ;ELSE truetime=(*pmisc).lastbufftime + (timelines - timelines[0])/double(12.0e6)
           ;time_sfm=(timelines[num_images-1] - timelines)/double(12.0e6)
           clockHz=12.0e6
-          IF (*pop).probetype eq 'F2DC_v2' THEN clockHz=33.0e6
+          IF (*pop).probetype eq 'F2DC_v2' THEN clockHz=1e8/3d ;was 33.0e6, now 33.33333e6, found by trial and error SPICULE
           time_sfm=timelines/double(clockHz)
           reftime=timelines[num_images-1]/double(clockHz) ;This is the time that -should- match the buffer time
           rawtime=timelines
@@ -340,7 +340,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           (*pmisc).lastbufftime=buffer.time
            dof=bytarr(num_images)+1  ;No dof flag, assume all are good
        END
-       
+
        ((*pop).probetype eq 'TXT'): BEGIN
           num_images=n_elements(buffer.particletime)
           time_sfm=buffer.particletime
