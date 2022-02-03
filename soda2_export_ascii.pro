@@ -3,11 +3,11 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b
    ;Aaron Bansemer, NCAR, 8/2014
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
-   openw,lun,outfile,/get_lun   
+   openw,lun,outfile,/get_lun
    minsize=100
    IF data.op.res lt 15 THEN minsize=50  ;Go down to 50um for 2D-S
-   minsizestring=strtrim(string(minsize),2)
    i100=min(where(data.op.endbins ge minsize))
+   minsizestring=string(data.op.endbins[i100], format='(f0.2)')  ;The minimum size actually used is on the bin edge
    bulk100=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=i100,acoeff=a,bcoeff=b)
 
    ;Write header
@@ -29,7 +29,7 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b
    printf,lun,'   All bulk properties are computed using particles larger than '+minsizestring+' microns in size.'
    IF data.op.water eq 1 THEN BEGIN
       printf,lun,'   This file contains "round" particles only, with area ratio > 0.5 and diameter < 6mm.'
-      printf,lun,'   The intent is to process liquid drops only, there may be substantial errors in LWC when ice particles are also present.' 
+      printf,lun,'   The intent is to process liquid drops only, there may be substantial errors in LWC when ice particles are also present.'
       masstitle='Estimated Liquid Water Content [g/m3]'
       massshortname='LWC'
       mass=bulk100.lwc
@@ -66,15 +66,15 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b
    bad=where(finite(mass) eq 0,nbad)
    IF nbad gt 0 THEN mass[bad]=0
    bad=where(finite(diam) eq 0,nbad)
-   IF nbad gt 0 THEN diam[bad]=0   
+   IF nbad gt 0 THEN diam[bad]=0
    bad=where(finite(data.conc1d) eq 0,nbad)
-   IF nbad gt 0 THEN data.conc1d[bad]=0   
+   IF nbad gt 0 THEN data.conc1d[bad]=0
 
    FOR i=0,n_elements(data.time)-1 DO BEGIN
-      printf,lun,data.time[i],bulk100.nt[i],mass[i],diam[i],transpose(data.conc1d[i,*]),form='(i6, 2e12.2,500e12.2)' 
+      printf,lun,data.time[i],bulk100.nt[i],mass[i],diam[i],transpose(data.conc1d[i,*]),form='(i6, 2e12.2,500e12.2)'
    ENDFOR
-   
+
    ;Close the file
    free_lun,lun
-   
+
 END
