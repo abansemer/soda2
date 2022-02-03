@@ -16,7 +16,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
 
    ;Define the structure to return for bad buffers
    nullbuffer= {diam:0,probetime:0,reftime:0,ar:0, rawtime:0, aspr:0, rejectbuffer:1,bitimage:0,$
-                allin:0,streak:0,zd:0,dhist:0,nslices:0,missed:0,overloadflag:0,dofflag:0b,particlecounter:0L, inttime:0d, clocktas:0.0}
+                allin:0,streak:0,zd:0,dhist:0,nslices:0,missed:0,overloadflag:0,dofflag:0b,particlecounter:0L, $
+                inttime:0d, clocktas:0.0}
 
    CASE 1 OF
       ;-----------------------------------------------------------------------------------------------
@@ -214,7 +215,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           IF (*pop).format eq 'SEA' THEN maxdiff = 5000 ELSE maxdiff = 50  ;Allow a greater counter diff for SEA due to missing buffers
 
           good=where((diffcount gt 0) and (diffcount lt maxdiff) and (difftime gt 0) and $
-                     (x.slice_count ne 0) and (x.slice_count lt 150) and (greymax ge (*pop).greythresh) and (x.time_sfm gt 0),num_images)
+                     (x.slice_count ne 0) and (x.slice_count lt 150) and $
+                     (greymax ge (*pop).greythresh) and (x.time_sfm gt 0),num_images)
           IF num_images lt 4 THEN return, nullbuffer  ; This is a bad buffer after num_images updated
           startline=startline[good]
           stopline=stopline[good]
@@ -358,6 +360,67 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           missed=0
        END
 
+       ((*pop).probetype eq '1D2D'): BEGIN
+
+          ;Make sure last slice is full alternating on/off pixels
+          IF buffer.image[-1] ne ulong64('AAAAAAAAAAAAAAAA'x) THEN print, 'Buffer may be misaligned'
+
+          ;Particle headers use 3 slices, should come in triplicate
+          sync_ind = where((buffer.image and 'FF00000000000000'x) eq ulong64('5500000000000000'x), nsync)
+          IF nsync mod 3 ne 0 THEN stop, 'Uneven number of sync slices in processbuffer'
+          num_timelines = nsync/3
+
+          ;Decode time and particle information
+          ;First index of each triplet, contains the time of the particle
+          i = indgen(num_timelines) * 3
+          timecounter = (buffer.image[sync_ind[i]] and '0000FFFFFFFFFFFF'x)
+
+          ;Second timeline contains probe settings, should usually be the same for all particles
+          secondtimeline = buffer.image[sync_ind[i+1]]
+          largereject = ishft(secondtimeline and '00FFF00000000000'x, -44)  ;Maximum number of slices, otherwise reject
+          smallreject = ishft(secondtimeline and '00000FFF00000000'x, -32)  ;Minimum number of slices, otherwise reject
+          dofpercent  = ishft(secondtimeline and '000000003C000000'x, -26)  ;Indicates which dof% setting is used, see manual
+          leftreject  = ishft(secondtimeline and '0000000000FFF000'x, -12)  ;Number of slices required on left edge to reject
+          rightreject = secondtimeline and '0000000000000FFF'x    ;Number of slices required on right edge to reject
+
+          ;Third timeline contains number of pixels at 50 and 75 percent shading, as well as the dofnumreject setting
+          thirdtimeline = buffer.image[sync_ind[i+2]]
+          dofnumreject = ishft(thirdtimeline and '00FFF00000000000'x, -44)  ;Number of pixels required at 75% to accept
+          pixels75     = ishft(thirdtimeline and '000003FFFF000000'x, -24)
+          pixels50     = thirdtimeline and '000000000003FFFF'x
+
+          ;Get particle times
+          time = timecounter * double(1e-8)  ;Clock is straight 100MHz from last 48 bits
+          bufferstarttime = time[0]   ;By definition first two timelines contain buffer start/stop
+          bufferstoptime = time[1]
+          num_images = num_timelines-2
+          time_sfm = time[2:*]        ;Particles start on third timeline
+          rawtime = timecounter[2:*]
+          inttime = time_sfm - [bufferstarttime, time_sfm]  ;Use buffer start time as the first time to use (may not be exactly right)
+          reftime = time[-1]    ;The time that should match the starttime on the SEA buffer
+
+          ;Update the SEA buffer stoptime, since the start/stop times in the particle headers are more accurate
+          buffer.stoptime = buffer.time + (time[-1] - time[0])
+
+          ;Make image
+          image = buffer.image
+          image[sync_ind] = 'FFFFFFFFFFFFFFFF'x    ;Replace timelines with blank(1) data
+          bitimage = dec2bin64(not(image))
+
+          ;Start/stop indexes of image, starting with third timeline
+          ;Note: The timelines in 1D2D come AFTER the particle itself, so will always start with line 6
+          startline = [6, (sync_ind[i[2:num_timelines-2]]+3)]   ;Don't use the last timeline as a startline, since only empty space after
+          stopline  = sync_ind[i[2:num_timelines-1]]-1
+
+          ;Misc
+          restore_slice = 0
+          missed = 0
+          particle_count = intarr(num_images) ;No counter
+          dof = pixels75[2:*] < 1             ;Set flag to 'accept' if at least one 75% pixel, flag must be 0 or 1
+          stretch = fltarr(num_images)+1.0    ;Not implemented yet for this probe, assume no stretch
+          clocktas = fltarr(num_images)+buffer.tas
+       END
+
        ELSE: PRINT, 'Probe type not available'
    ENDCASE
 
@@ -384,6 +447,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    area_orig=fltarr(num_images)
    area_filled=fltarr(num_images)
    perimeterarea=fltarr(num_images)  ;Number of pixels on the border, for water detection
+   area75=fltarr(num_images)
+   IF ((*pop).probetype eq '1D2D') THEN area75=pixels75[2:*]  ;Use directly from probe since not available in images
    zd=fltarr(num_images)
    sizecorrection=fltarr(num_images) + 1.0
    xpos=fltarr(num_images)
@@ -399,6 +464,12 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
 
       ;Adjust the particle for grey probes to the right threshold
       IF (*pop).greythresh gt 0 THEN BEGIN
+         ;Quickly compute area75 on level 3
+         thresh=2
+         roi75=((roi > thresh)-thresh)<1
+         area75[i]=total(roi75)
+
+         ;Get final roi for sizing
          thresh=(*pop).greythresh-1     ;makes next line easier
          roi=((roi > thresh)-thresh)<1  ;turn all pixels above threshold to 1
       ENDIF
@@ -465,6 +536,6 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
            rejectbuffer:0, bitimage:bitimage, allin:allin, centerin:centerin, streak:streak, zd:zd, $
            sizecorrection:sizecorrection, dhist:dhist, nslices:nslices, missed:missed, nsep:nsep, $
            overloadflag:overloadflag, dofflag:dof, xpos:xpos, ypos:ypos, orientation:orientation, area_orig:area_orig, $
-           area_filled:area_filled, perimeterarea:perimeterarea, particlecounter:particle_count, edgetouch:edgetouch, $
-           inttime:inttime, clocktas:clocktas, startline:startline, stopline:stopline}
+           area_filled:area_filled, perimeterarea:perimeterarea, area75:area75, particlecounter:particle_count, $
+           edgetouch:edgetouch, inttime:inttime, clocktas:clocktas, startline:startline, stopline:stopline}
 END

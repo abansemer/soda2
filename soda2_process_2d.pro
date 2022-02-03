@@ -14,8 +14,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    IF n_elements(fn_pbp) eq 0 THEN reprocess=0 ELSE BEGIN
       reprocess=1
       IF file_test(fn_pbp) eq 0 THEN stop, 'PBP file not found.'
-      op.ncdfparticlefile=0    ;Don't rewrite particle files
-      op.particlefile=0
+      ;op.ncdfparticlefile=0    ;Don't rewrite particle files
+      ;op.particlefile=0
    ENDELSE
 
    ;The current expected structure of op is:
@@ -103,7 +103,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    basestruct={buffertime:0d, probetime:0d, reftime:0d, rawtime:0d, inttime:0d, diam:0.0, xsize:0.0, ysize:0.0, xextent:0.0,$
                areasize:0.0, arearatio:0.0, arearatiofilled:0.0, aspectratio:0.0, area:0.0, areafilled:0.0, xpos:0.0, ypos:0.0,$
                allin:0b, centerin:0b, edgetouch:0b, probetas:0.0, aircrafttas:0.0, zd:0.0, sizecorrection:0.0, missed:0.0, $
-               overloadflag:0b, orientation:0.0, perimeterarea:0.0, dofflag:0b, particlecounter:0L, oned:0.0, twod:0.0}
+               overloadflag:0b, orientation:0.0, perimeterarea:0.0, dofflag:0b, particlecounter:0L, oned:0.0, twod:0.0, area75:0.0}
    x=replicate(basestruct, num2process)
 
 
@@ -231,6 +231,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
                  ['area', 'Number of shaded pixels', 'pixels', 'short' ],$
                  ['areafilled', 'Number of shaded pixels including voids', 'pixels', 'short' ],$
                  ['perimeterarea', 'Number of shaded perimeter pixels', 'pixels', 'short'],$
+                 ['area75', 'Number of shaded pixels at the 75% (or grey level-3) shading', 'pixels', 'short'],$
                  ['xpos', 'X-position of particle center (across array)', 'pixels', 'float'],$
                  ['ypos', 'Y-position of particle center (along airflow)', 'pixels', 'float'],$
                  ['allin', 'All-in flag', 'unitless', 'byte'],$
@@ -378,7 +379,22 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          b.time=bufftime[i]   ;In case time changed due to midnight crossing
          timeindex=long((b.time-op.starttime)/op.rate)>0<(numrecords-1)   ;Index each buffer into right time period
 
-         ;Active/dead time computation with SEA buffers
+         ;Process
+         IF (*pop).format eq 'SPEC' THEN BEGIN
+            (*pmisc).nimages=y.numimages[i]
+            IF (*pmisc).nimages gt 0 THEN BEGIN
+               (*pmisc).imagepointers=i*y.buffsize + y.imagep[(y.firstp[i]):(y.firstp[i]+y.numimages[i]-1)]
+               (*pmisc).hkpointers=y.hkp[y.ihk[(y.firstp[i]):(y.firstp[i]+y.numimages[i]-1)]]
+            ENDIF
+         ENDIF
+
+         ;Send current aircraft TAS to processbuffer for y-sizing on SPEC probes
+         (*pmisc).aircrafttas=pth_tas[timeindex]
+
+         ;Process the buffer
+         p=soda2_processbuffer(b,pop,pmisc)
+
+         ;Active/dead time computation with SEA buffers, must be after soda2_processbuffer since time updates can happen there
          IF (*pop).format eq 'SEA' THEN BEGIN
             timeindex_stoptime=long((b.stoptime-op.starttime)/op.rate)>0<(numrecords-1)
 
@@ -393,70 +409,60 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
             ENDIF
          ENDIF
 
-         ;Process
-         IF (*pop).format eq 'SPEC' THEN BEGIN
-            (*pmisc).nimages=y.numimages[i]
-            IF (*pmisc).nimages gt 0 THEN BEGIN
-               (*pmisc).imagepointers=i*y.buffsize + y.imagep[(y.firstp[i]):(y.firstp[i]+y.numimages[i]-1)]
-               (*pmisc).hkpointers=y.hkp[y.ihk[(y.firstp[i]):(y.firstp[i]+y.numimages[i]-1)]]
-            ENDIF
-         ENDIF
-
-         ;Send current aircraft TAS to processbuffer for y-sizing on SPEC probes
-         (*pmisc).aircrafttas=pth_tas[timeindex]
-         
-         p=soda2_processbuffer(b,pop,pmisc)
+         ;Update diode histogram
          dhist[timeindex,*]=dhist[timeindex,*]+p.dhist
 
+         ;Get particle metrics
          IF p.rejectbuffer eq 0 THEN BEGIN
-         numbuffsaccepted[timeindex]=numbuffsaccepted[timeindex]+1
-         ;Write data to structure
-         n=n_elements(p.diam)
-         istart=istop+1
-         inewbuffer[i-firstbuff]=istart  ;Save these start positions
-         pbpstartindex[i]=istart+ncdf_offset ;Save for final output
-         istop=istop+n
+            numbuffsaccepted[timeindex]=numbuffsaccepted[timeindex]+1
+            ;Write data to structure
+            n=n_elements(p.diam)
+            istart=istop+1
+            inewbuffer[i-firstbuff]=istart  ;Save these start positions
+            pbpstartindex[i]=istart+ncdf_offset ;Save for final output
+            istop=istop+n
 
-         x[istart:istop].buffertime=b.time
-         x[istart:istop].probetime=p.probetime
-         x[istart:istop].reftime=p.reftime
-         x[istart:istop].rawtime=p.rawtime
-         x[istart:istop].inttime=p.inttime
-         x[istart:istop].diam=p.diam
-         x[istart:istop].xsize=p.xsize
-         x[istart:istop].ysize=p.ysize
-         x[istart:istop].xextent=p.xextent
-         x[istart:istop].oned=p.oned
-         x[istart:istop].twod=p.twod
-         x[istart:istop].areasize=p.areasize
-         x[istart:istop].arearatio=p.ar
-         x[istart:istop].arearatiofilled=p.arfilled
-         x[istart:istop].aspectratio=p.aspr
-         x[istart:istop].area=p.area_orig
-         x[istart:istop].areafilled=p.area_filled
-         x[istart:istop].perimeterarea=p.perimeterarea
-         x[istart:istop].allin=p.allin
-         x[istart:istop].centerin=p.centerin
-         x[istart:istop].edgetouch=p.edgetouch
-         x[istart:istop].probetas=p.clocktas
-         x[istart:istop].aircrafttas=pth_tas[timeindex]
-         x[istart:istop].zd=p.zd
-         x[istart:istop].sizecorrection=p.sizecorrection
-         x[istart:istop].xpos=p.xpos
-         x[istart:istop].ypos=p.ypos
-         x[istart:istop].missed=p.missed
-         x[istart:istop].particlecounter=p.particlecounter
-         x[istart:istop].overloadflag=p.overloadflag
-         x[istart:istop].dofflag=p.dofflag
-         x[istart:istop].orientation=p.orientation
+            x[istart:istop].buffertime=b.time
+            x[istart:istop].probetime=p.probetime
+            x[istart:istop].reftime=p.reftime
+            x[istart:istop].rawtime=p.rawtime
+            x[istart:istop].inttime=p.inttime
+            x[istart:istop].diam=p.diam
+            x[istart:istop].xsize=p.xsize
+            x[istart:istop].ysize=p.ysize
+            x[istart:istop].xextent=p.xextent
+            x[istart:istop].oned=p.oned
+            x[istart:istop].twod=p.twod
+            x[istart:istop].areasize=p.areasize
+            x[istart:istop].arearatio=p.ar
+            x[istart:istop].arearatiofilled=p.arfilled
+            x[istart:istop].aspectratio=p.aspr
+            x[istart:istop].area=p.area_orig
+            x[istart:istop].areafilled=p.area_filled
+            x[istart:istop].perimeterarea=p.perimeterarea
+            x[istart:istop].area75=p.area75
+            x[istart:istop].allin=p.allin
+            x[istart:istop].centerin=p.centerin
+            x[istart:istop].edgetouch=p.edgetouch
+            x[istart:istop].probetas=p.clocktas
+            x[istart:istop].aircrafttas=pth_tas[timeindex]
+            x[istart:istop].zd=p.zd
+            x[istart:istop].sizecorrection=p.sizecorrection
+            x[istart:istop].xpos=p.xpos
+            x[istart:istop].ypos=p.ypos
+            x[istart:istop].missed=p.missed
+            x[istart:istop].particlecounter=p.particlecounter
+            x[istart:istop].overloadflag=p.overloadflag
+            x[istart:istop].dofflag=p.dofflag
+            x[istart:istop].orientation=p.orientation
 
-         ;Feedback to user
-         percentcomplete=fix(float(i-firstbuff)/(lastbuff-firstbuff)*100)
-         IF percentcomplete ne lastpercentcomplete THEN BEGIN
-               infoline=strtrim(string(percentcomplete))+'%'
-               IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
-         ENDIF
-         lastpercentcomplete=percentcomplete
+            ;Feedback to user
+            percentcomplete=fix(float(i-firstbuff)/(lastbuff-firstbuff)*100)
+            IF percentcomplete ne lastpercentcomplete THEN BEGIN
+                  infoline=strtrim(string(percentcomplete))+'%'
+                  IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
+            ENDIF
+            lastpercentcomplete=percentcomplete
          ENDIF ELSE BEGIN
             numbuffsrejected[timeindex]=numbuffsrejected[timeindex]+1
          ENDELSE
@@ -497,9 +503,9 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          inewbuffer=0  ;Only for 2DC/2DP, ignore for now, should cause crash if tried
 
          ;Replace buffertime with newtime for SPEC probes
-         IF gotnt eq 1 THEN x.buffertime=newtime[i*num2process:i*num2process+n_elements(x.buffertime)-1]
-
-         soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id
+         ;IF gotnt eq 1 THEN x.buffertime=newtime[i*num2process:i*num2process+n_elements(x.buffertime)-1]
+         reprocessed_time = newtime[i*num2process:i*num2process+n_elements(x.buffertime)-1]
+         soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id, reprocessed_time=reprocessed_time
 
          percentcomplete=fix(float(i+1)*num2process / n_elements(pbp.time) * 100) < 100
          infoline=strtrim(string(percentcomplete))+'%'
@@ -528,7 +534,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
       activetime=fltarr(numrecords)+op.rate
    ENDIF ELSE BEGIN
       activetime=(fltarr(numrecords)+op.rate-d.deadtime)>0
-;      IF (*pop).format eq 'SEA' THEN activetime=activetime_sea
+      IF (*pop).format eq 'SEA' THEN activetime=activetime_sea
    ENDELSE
 
    ;Figure out which TAS to use for concentration and compute sample volume
@@ -593,7 +599,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    ENDIF ELSE BEGIN  ;Notify if sav file not written (no option to browse)
       IF textwidgetid ne 0 THEN dummy=dialog_message(infoline,dialog_parent=textwidgetid,/info) ELSE print,infoline
    ENDELSE
-      
+
 
 ;profiler,/report
 END

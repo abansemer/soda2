@@ -1,4 +1,4 @@
-PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id
+PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id, reprocessed_time=reprocessed_time
    ;Sorts particle-by-particle data into the various accumulation arrays.
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
@@ -10,7 +10,7 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
 
    truetime=x.probetime + median(x.buffertime-x.reftime)
    difftime=[0,truetime[1:*]-truetime]>0
-  
+
    ;interarrival=difftime   ;/(x.missed+1)   ;Tried this correction, but it gives strange shape to intspec. Don't use.
    interarrival=difftime
 
@@ -19,12 +19,12 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
    ;instead.
    IF op.format eq 'SPEC' THEN BEGIN
       interarrival=x.inttime
-      ;Buffertime is not exact, but close enough with accuracy usually <0.1seconds. 
+      ;Buffertime is not exact, but close enough with accuracy usually <0.1seconds.
       ;Considering rawtime gets far too complicated, with repeating buffer times, floating clock speed, delta-time mismatches, etc.
       ;May also consider interpolation between buffertimes, but must be sure they are monotonic first.
       ;Can now get better time by reprocessing entire file from PBP, which will replace buffertime with improved timing
       ;See reprocess loop in soda2_process_2d.pro and spec_newtime.pro
-      truetime=x.buffertime 
+      IF n_elements(reprocessed_time) ne 0 THEN truetime=reprocessed_time ELSE truetime=x.buffertime
    ENDIF
    IF op.format eq 'SEA' THEN BEGIN
       ;Better computed at buffer level
@@ -38,7 +38,7 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       interarrival=x.inttime
       truetime=x.probetime ;Should be perfect
    ENDIF
-   
+
    ;Cluster analysis
    cluster=bytarr(numparticles)
    FOR i=1L,numparticles-1 DO BEGIN
@@ -58,31 +58,31 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       deadtimes=(truetime[inewbuffer[1:*]]-truetime[inewbuffer[1:*]-1])>0 ;Gap between last particle of one buffer and first of next
       ideadtime=timeindex[inewbuffer[1:*]]
       IF (*pop).format eq 'RAF' THEN deadtimes=0  ;Timelines are often off by a factor of 2 in this format, should be no deadtime, ignore it.
-      
+
       ;Loop through all the unique indices found
       FOR i=1L,n_elements(u)-1 DO BEGIN
          w=where(ideadtime eq i,ni)
          IF ni gt 0 THEN d.deadtime[i]=total(deadtimes[w]) < op.rate
       ENDFOR
    ENDIF
-    
+
    ;Loop through all the unique indices found
    FOR i=1L,n_elements(u)-1 DO BEGIN
       indstart=(u[i-1]+1)
       indstop=(u[i])
       iparticles=s[indstart:indstop]               ;Index to each particle in this step
       itime=timeindex[iparticles[0]]               ;Time index of this step
-      
-      IF (itime ge 0) and (itime lt d.numrecords) THEN BEGIN                     ;Make sure in time range  
+
+      IF (itime ge 0) and (itime lt d.numrecords) THEN BEGIN                     ;Make sure in time range
          ;Find TAS
-         d.tas[itime]=mean(x[iparticles].probetas)     
-         
+         d.tas[itime]=mean(x[iparticles].probetas)
+
          ;Get interarrival spectrum
          FOR j=0L,n_elements(iparticles)-1 DO BEGIN
-            intbin=max(where(d.intendbins le interarrival[iparticles[j]],nw)) 
+            intbin=max(where(d.intendbins le interarrival[iparticles[j]],nw))
             IF (nw gt 0)  and (intbin lt d.numintbins) THEN d.intspec_all[itime,intbin]=d.intspec_all[itime,intbin]+1
          ENDFOR
-                  
+
          ;Find cutoff time based on interarrival time, must have 100 particles
          IF ((*pop).inttime_reject eq 1) and (total(d.intspec_all[itime,*]) gt 100) THEN BEGIN
             dummy=max(d.intspec_all[itime,*],imax)       ;Use the maximum of the poisson dist as the first guess for fit.
@@ -91,8 +91,8 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
             d.poisson_fac[itime,*]=pf.a                  ;Save data for output structure
             d.intcutoff[itime]=1/pf.a[1]*0.05            ;Use the large peak divided by 20
             d.corr_fac[itime]=(1.0/(2*exp(-d.intcutoff[itime]*pf.a[1])-1))
-         ENDIF 
-      
+         ENDIF
+
          ;Accumulate deadtime and missed particles
          IF (op.format) eq 'SPEC' THEN BEGIN
             ;Use this method for SPEC probes, applying deadtime backward rather than forward
@@ -117,11 +117,11 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
          ENDIF ELSE BEGIN
             d.deadtime[itime]=d.deadtime[itime]+total(deadtime[iparticles])
          ENDELSE
-         
+
          ;Missed particles
          d.count_missed[itime]=d.count_missed[itime]+total(x[iparticles].missed > 0)
          d.missed_hist[itime,*]=d.missed_hist[itime,*]+histogram([x[iparticles].missed],min=0,max=49)
-         
+
          ;Reject particles and build size and area ratio spectra
          FOR j=0L,n_elements(iparticles)-1 DO BEGIN
             nextparticleindex=(iparticles[j]+1) < (numparticles-1)
@@ -133,15 +133,15 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
                'oned':binningsize=x[iparticles[j]].oned
                'twod':binningsize=x[iparticles[j]].twod
                ELSE:binningsize=x[iparticles[j]].diam
-            ENDCASE        
+            ENDCASE
             ;Apply poisson-spot correction
-            IF ((*pop).apply_psc eq 1) or ((*pop).water eq 1) THEN BEGIN               
+            IF ((*pop).apply_psc eq 1) or ((*pop).water eq 1) THEN BEGIN
                binningsize /= x[iparticles[j]].sizecorrection
-            ENDIF 
+            ENDIF
             IF ((*pop).water eq 1) THEN binningar=x[iparticles[j]].arearatiofilled ELSE binningar=x[iparticles[j]].arearatio
             reject=soda2_reject(x[iparticles[j]], interarrival[iparticles[j]], interarrival[nextparticleindex], d.intcutoff[itime], cluster[iparticles[j]], binningsize, pop)
             rejectionflag[iparticles[j]] =  reject
-            IF reject eq 0 THEN BEGIN   
+            IF reject eq 0 THEN BEGIN
                sizebin=max(where(op.endbins le binningsize),nws)
                IF binningsize eq op.endbins[0] THEN sizebin=0  ;Special case where size=first endbin
                arbin=max(where(op.arendbins lt (binningar<0.99>0.01)),nwa)
@@ -152,11 +152,11 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
                d.spec2d_orientation[itime, sizebin, obin]=d.spec2d_orientation[itime, sizebin, obin] + 1
                d.count_accepted[itime]=d.count_accepted[itime]+1
                d.hist3d[sizebin, arbin, asprbin]=d.hist3d[sizebin, arbin, asprbin] + 1
-               
-               intbin=max(where(d.intendbins le interarrival[iparticles[j]],nw)) 
+
+               intbin=max(where(d.intendbins le interarrival[iparticles[j]],nw))
                IF (nw gt 0)  and (intbin lt d.numintbins) THEN d.intspec_accepted[itime,intbin]=d.intspec_accepted[itime,intbin]+1
-               
-               zdbin=max(where(d.zdendbins le x[iparticles[j]].zd,nzd)) 
+
+               zdbin=max(where(d.zdendbins le x[iparticles[j]].zd,nzd))
                d.zdspec[sizebin,zdbin]=d.zdspec[sizebin,zdbin]+1
             ENDIF ELSE BEGIN
                ireject=where(reject and [1,2,4,8,16,32,64])  ;Gives a list of reasons.  Only increment count_rejected based on the first one.
@@ -165,7 +165,7 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
          ENDFOR
       END
    END
-   
+
    ;Print particles if flagged
    IF op.ncdfparticlefile eq 1 THEN BEGIN   ;NetCDF version, now default
       varid=ncdf_varid(ncdf_id,'time')
@@ -206,6 +206,8 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       ncdf_varput,ncdf_id,varid,x[0:istop].areafilled,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'perimeterarea')
       ncdf_varput,ncdf_id,varid,x[0:istop].perimeterarea,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'area75')
+      ncdf_varput,ncdf_id,varid,x[0:istop].area75,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'allin')
       ncdf_varput,ncdf_id,varid,x[0:istop].allin,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'centerin')
