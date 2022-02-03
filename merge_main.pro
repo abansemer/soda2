@@ -4,7 +4,7 @@ PRO merge_main, fn1, fn2=fn2, pthfile=pthfile, crossover=crossover, outdir=outdi
                   p1000=p1000, data=data, nosave=nosave, allspec=allspec, arvt1=arvt1, _extra=e
    ;pro to merge two probes at a specified crossover point, and compute
    ;the new bulk properties.
-   ;Also returns gamma/exponential fit coeffiecients 
+   ;Also returns gamma/exponential fit coeffiecients
    ;fn1 and fn2 are the SODA dat files for probes 1 and 2
    ;pth is the dat file with pth data.
    ;Crossover is merge point in microns
@@ -18,10 +18,10 @@ PRO merge_main, fn1, fn2=fn2, pthfile=pthfile, crossover=crossover, outdir=outdi
    ;arvt1 sets area ratio to 1.0 for fall velocity computations
    ;'data' returns the final structure to the command line, can use with 'nosave' option.
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
-   
+
    IF n_elements(cgs) eq 0 THEN cgs=1
    IF n_elements(outdir) eq 0 THEN outdir=''
-   IF n_elements(fn2) eq 0 THEN fn2='' 
+   IF n_elements(fn2) eq 0 THEN fn2=''
    IF n_elements(pthfile) eq 0 THEN pthfile=''
    IF n_elements(binstart) eq 0 THEN binstart=1     ;Default skip first bin
    IF n_elements(kcoeff) eq 0 THEN kcoeff=0.005615  ;Default to Brown and Francis
@@ -36,13 +36,13 @@ PRO merge_main, fn1, fn2=fn2, pthfile=pthfile, crossover=crossover, outdir=outdi
    IF n_elements(crossover) eq 0 THEN crossover=1000
    IF n_elements(allspec) eq 0 THEN allspec=0
    IF n_elements(computeradar) eq 0 THEN computeradar=1
-   
+
    ;Restore primary probe
-   IF file_test(fn1) eq 0 THEN stop,'File '+fn1+' not found. Stopping'  
+   IF file_test(fn1) eq 0 THEN stop,'File '+fn1+' not found. Stopping'
    restore,fn1
    one=data
    n=n_elements(one.time)
-   
+
    ;Restore PTH data and get TAS
    IF pthfile ne '' THEN BEGIN
       IF file_test(pthfile) eq 0 THEN stop,'File pthfile not found'
@@ -74,7 +74,7 @@ PRO merge_main, fn1, fn2=fn2, pthfile=pthfile, crossover=crossover, outdir=outdi
       water=1
       kcoeff=1.0  ;eliminate round off errors
    ENDIF
- 
+
    ;Compute mass, area, reflectivity arrays
    mass=!pi/6 * ((kcoeff * (m.midbins/10000.)^(3+alpha) # (m.ar_midbins^ncoeff)) )
    massLWC=!pi/6 * (m.midbins/10000.)^3 # (m.ar_midbins^0)
@@ -91,26 +91,26 @@ PRO merge_main, fn1, fn2=fn2, pthfile=pthfile, crossover=crossover, outdir=outdi
 
    ;Compute terminal velocity
    FOR i=0, s[0]-1 DO BEGIN
-      FOR j=0,s[1]-1 DO BEGIN        
+      FOR j=0,s[1]-1 DO BEGIN
          ar_vt=m.ar_midbins
          IF arvt1 eq 1 THEN ar_vt[*]=1.0    ;Force area ratio to unity for Vt calc
          v=compute_vt(m.midbins[j], mass[j,*], ar_vt, pth.t[i], pth.pres[i])
          vt[i,j,*]=v.vt
-         vtwater[i,j,*]=v.vtwater        
+         vtwater[i,j,*]=v.vtwater
       ENDFOR
    ENDFOR
 
    ;Compute Mie radar cross sections
    wavelength=[3.12, 2.20, 0.84, 0.319]   ;cm: X, Ku, Ka, W
    freqid=['X', 'Ku', 'Ka', 'W']
-   qmie0={ze:0} & qmie1={ze:0} & qmie2={ze:0} & qmie3={ze:0} 
+   qmie0={ze:0} & qmie1={ze:0} & qmie2={ze:0} & qmie3={ze:0}
    IF computeradar eq 1 THEN BEGIN
       qmie0=mie(wavelength[0]*10.0, m.midbins/10000.0, m.ar_midbins, k=kcoeff, n=ncoeff, alpha=alpha)
       qmie1=mie(wavelength[1]*10.0, m.midbins/10000.0, m.ar_midbins, k=kcoeff, n=ncoeff, alpha=alpha)
       qmie2=mie(wavelength[2]*10.0, m.midbins/10000.0, m.ar_midbins, k=kcoeff, n=ncoeff, alpha=alpha)
       qmie3=mie(wavelength[3]*10.0, m.midbins/10000.0, m.ar_midbins, k=kcoeff, n=ncoeff, alpha=alpha)
    ENDIF
-   
+
    ;T-matrix cross sections
    qtm0=fltarr(s[1], s[2]) &  qtm1=fltarr(s[1], s[2]) & qtm2=fltarr(s[1], s[2]) & qtm3=fltarr(s[1], s[2])
    IF (ncoeff eq 0) and (computeradar eq 1) THEN BEGIN  ;T-matrix does not support AR exponents, only straight mass-D
@@ -125,7 +125,7 @@ PRO merge_main, fn1, fn2=fn2, pthfile=pthfile, crossover=crossover, outdir=outdi
          qtm3[*,i]=q3
       ENDFOR
    ENDIF
-   
+
    ;Gamma and exponential fits, area ratio fits
    gam=gammafit(m.conc1d, m.endbins, cgs=cgs, lite=0, minsize=m.endbins[binstart])
    meanar=compute_meanar(m.conc2d_raw, m.ar_midbins)
@@ -163,7 +163,7 @@ PRO merge_main, fn1, fn2=fn2, pthfile=pthfile, crossover=crossover, outdir=outdi
          vztm2:linarray, vztm3:linarray,$
          dmass:linarray, darea:linarray,$
          dmean:linarray, dvol:linarray,$
-         dz:linarray,$
+         dmedianmass:linarray, dz:linarray,$
          wavelength:wavelength, freqid:freqid,$
          tas:pth.tas, t:pth.t, pres:pth.pres, $
          units:units, Date_Processed:systime()}
@@ -172,7 +172,7 @@ PRO merge_main, fn1, fn2=fn2, pthfile=pthfile, crossover=crossover, outdir=outdi
                          'zmie3spec', specarray, 'rrspec', specarray, 'qmie0', qmie0.ze, 'qmie1', qmie1.ze,$
                          'qmie2', qmie2.ze, 'qmie3', qmie3.ze, 'qtm0', qtm0, 'qtm1', qtm1, 'qtm2', qtm2,$
                          'qtm3', qtm3)
-   ENDIF   
+   ENDIF
 
    ;Loop through each time step, computing bulk parameters
    FOR i=0,n-1 DO BEGIN
@@ -180,7 +180,7 @@ PRO merge_main, fn1, fn2=fn2, pthfile=pthfile, crossover=crossover, outdir=outdi
       ivt=vt[i,*,*]                      ;Vt for this index
       IF water eq 1 THEN ivt=vtwater[i,*,*]
       IF binstart gt 0 THEN iconc[0:binstart-1,*]=0  ;Zero out any data below binstart
-      
+
       ;Compute a few size-by-AR arrays
       iwc2d =iconc * mass
       lwc2d =iconc * massLWC
@@ -198,7 +198,7 @@ PRO merge_main, fn1, fn2=fn2, pthfile=pthfile, crossover=crossover, outdir=outdi
       tm1   =iconc * qtm1
       tm2   =iconc * qtm2
       tm3   =iconc * qtm3
-      
+
       ;Fill structure
       data.iwc[i]=total(iwc2d)
       data.iwcspec[i,*]=total(iwc2d,2)
@@ -233,6 +233,7 @@ PRO merge_main, fn1, fn2=fn2, pthfile=pthfile, crossover=crossover, outdir=outdi
       data.vztm2[i]=total(tm2*ivt)/total(tm2)
       data.vztm3[i]=total(tm3*ivt)/total(tm3)
       data.dmass[i]=total(iwc2d*diamgrid)/data.iwc[i]
+      data.dmedianmass[i]=mmdiam(data.iwcspec[i,*], m.endbins)
       data.darea[i]=total(area2d*diamgrid)/data.area[i]
       data.dmean[i]=total(iconc*diamgrid)/data.nt[i]
       data.dvol[i]=total(lwc2d*diamgrid)/data.lwc[i]
@@ -259,6 +260,4 @@ PRO merge_main, fn1, fn2=fn2, pthfile=pthfile, crossover=crossover, outdir=outdi
 
    fnout=outdir+one.op.date+'_'+strtrim(string(long(sfm2hms(one.time[0])),form='(i06)'),2)+'_BULK'+suffix+'.dat'
    IF nosave eq 0 THEN save, data, file=fnout, /compress
-END   
-   
-   
+END
