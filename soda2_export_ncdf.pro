@@ -1,6 +1,6 @@
 PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
    ;PRO to export a netCDF file with the variables contained in a data structure.
-   ;Similar to soda2_export_ncdf_raf, but follows a simpler format, 
+   ;Similar to soda2_export_ncdf_raf, but follows a simpler format,
    ;   without the 'SPS' dimension, PSD padding, reversed dimensions, etc.
    ;Aaron Bansemer, NCAR, 8/2014
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
@@ -8,15 +8,15 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
 
    IF n_elements(lite) eq 0 THEN lite=0  ;Option to avoid writing 2D matrices
    !quiet=1  ;Suppress annoying messages from ncdf routines
-   
+
    ;-----------Create new file instead-----------------
-   
+
    suffix=''   ;Suffix for netcdf tags, not used here
    ;Create the file
    id=ncdf_create(outfile[0],/clobber)
-   
-   tags=tag_names(data)     
-   
+
+   tags=tag_names(data)
+
    ;Define the x-dimension, should be used in all variables
    xdimid=ncdf_dimdef(id,'Time',n_elements(data.time))
    ;This is for numbins
@@ -42,15 +42,15 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
    month=strmid(data.op.date,0,2)
    day=strmid(data.op.date,2,2)
    year=strmid(data.op.date,4,4)
-   days1970=julday(month,day,year)-julday(1,1,1970) 
-   flightdate=month+'/'+day+'/'+year 
-   
+   days1970=julday(month,day,year)-julday(1,1,1970)
+   flightdate=month+'/'+day+'/'+year
+
    tb='0000'+strtrim(string(sfm2hms(min(data.time))),2)
    te='0000'+strtrim(string(sfm2hms(max(data.time))),2)
    starttime=strmid(tb,5,2,/r)+':'+strmid(tb,3,2,/r)+':'+strmid(tb,1,2,/r)
    stoptime=strmid(te,5,2,/r)+':'+strmid(te,3,2,/r)+':'+strmid(te,1,2,/r)
    str=starttime+'-'+stoptime
-   
+
    ;Create global attributes
    ncdf_attput,id,'Source','SODA-2 OAP Processing Software',/global
    ;ncdf_attput,id,'Conventions', 'NCAR-RAF/nimbus', /global
@@ -58,38 +58,38 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
    ncdf_attput,id,'FlightDate',flightdate[0],/global
    ncdf_attput,id,'DateProcessed',data.date_processed,/global
    ncdf_attput,id,'TimeInterval',str,/global
-   opnames=tag_names(data.op)                  
+   opnames=tag_names(data.op)
    FOR i=0,n_elements(opnames)-1 DO BEGIN
          IF string(data.op.(i)[0]) eq '' THEN data.op.(i)[0]='none' ;To avoid an ncdf error (empty string)
-         ncdf_attput,id,opnames[i],data.op.(i)[0],/global      
+         ncdf_attput,id,opnames[i],data.op.(i)[0],/global
    ENDFOR
-   
-   
-   
+
+
+
    attname=['long_name','units']
    attvalue=['Elapsed time','seconds since '+year+'-'+month+'-'+day+' '+starttime+' +0000']
-   timeid=ncdf_vardef(id,'elapsed_time',xdimid,/double) 
+   timeid=ncdf_vardef(id,'elapsed_time',xdimid,/double)
    FOR k=0,n_elements(attname)-1 DO ncdf_attput,id,timeid,attname[k],attvalue[k]
-   
+
    attvalue=['Base time','seconds since 01/01/1970']
    baseid=ncdf_vardef(id,'base_time',/double)
    FOR k=0,n_elements(attname)-1 DO ncdf_attput,id,baseid,attname[k],attvalue[k]
-   
+
    attvalue=['UTC time','seconds from midnight of start date']
    utcid=ncdf_vardef(id,'utc_time',xdimid,/double)
    FOR k=0,n_elements(attname)-1 DO ncdf_attput,id,utcid,attname[k],attvalue[k]
-   
-            
+
+
    ncdf_control,id,/endef                ;put in data mode
-   ncdf_varput,id,utcid,data.time 
+   ncdf_varput,id,utcid,data.time
    ncdf_varput,id,baseid,data.time[0]+days1970*86400l
-   ncdf_varput,id,timeid,data.time-data.time[0]  
+   ncdf_varput,id,timeid,data.time-data.time[0]
    ncdf_control,id,/redef                ;return to define mode
- 
-   
-   
-   ;-------Write data to file, start with main structure tags------------------------    
-   
+
+
+
+   ;-------Write data to file, start with main structure tags------------------------
+
    FOR j=0,n_elements(tags)-1 DO BEGIN
       ;Write each variable
       skiptag=0
@@ -99,7 +99,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
       unitadjust=1.0
       currentdata=data.(j)
       tagname=tags[j]+suffix
-         
+
       CASE tags[j] OF
          'SA':BEGIN
             attvalue={a1:'Sample Area',a2:'m2'}
@@ -117,7 +117,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
          'CONC1D': BEGIN
             attname=['long_name','units','Bin_endpoints','Bin_units']
             attvalue={a0:'Particle Concentration Per Bin, Normalized by Bin Width',a1:'#/m4',$
-			a2:data.op.endbins,a3:'micrometers'}
+			         a2:data.op.endbins,a3:'micrometers'}
             dims=[xdimid, ydimid_size]
             ;Pad first bin with zeros transpose, and reform to 3-dimensions
             ;conc=fltarr(n_elements(data.time),n_elements(data.op.endbins))
@@ -154,13 +154,13 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
                attvalue={a1:'Interarrival Bin Mid-points',a2:'s'}
                dims=ydimid_int
          END
-         ELSE:skiptag=1  
+         ELSE:skiptag=1
       ENDCASE
 
       IF (lite eq 1) and (n_elements(dims) gt 1) THEN skiptag=1
-      IF not(skiptag) THEN BEGIN                                              
+      IF not(skiptag) THEN BEGIN
          varid=ncdf_varid(id,tagname)  ;Check if this variable already exists
-         IF varid eq -1 THEN varid=ncdf_vardef(id,tagname,dims,/float)         
+         IF varid eq -1 THEN varid=ncdf_vardef(id,tagname,dims,/float)
          FOR k=0,n_elements(attname)-1 DO BEGIN
             IF size(attvalue.(k), /TYPE) eq 2 THEN BEGIN
               ncdf_attput,id,varid,attname[k],attvalue.(k),/LONG
@@ -168,33 +168,40 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
               ncdf_attput,id,varid,attname[k],attvalue.(k)
             ENDELSE
          ENDFOR
-          
+
          ncdf_control,id,/endef                ;put in data mode
-         ncdf_varput,id,varid,currentdata*unitadjust   
+         ncdf_varput,id,varid,currentdata*unitadjust
          ncdf_control,id,/redef                ;return to define mode
       ENDIF
    ENDFOR
-   
-   ;--------------Sub-structure tags------------------------------
-   bulkall=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=0)
-   i100=min(where(data.op.endbins ge 100))
-   bulk100=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=i100)
-   IF total(tags eq 'ARENDBINS') THEN BEGIN
-      armidbins=(data.op.arendbins+data.op.arendbins[1:*])/2.0
-      meanar=compute_meanar(data.spec2d,armidbins)
-      meanaspr=compute_meanar(data.spec2d_aspr,armidbins)
-      area=compute_area(data)
-      area100=compute_area(data, binstart=i100)
 
-      bulk=create_struct(bulkall, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
-           'iwc100', bulk100.iwc, 'area', area, 'area100', area100, 'lwc100', bulk100.lwc, 'meanar', $
-           meanar, 'meanaspr', meanaspr)
-   ENDIF ELSE BEGIN
-       bulk=create_struct(bulkall, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
-            'iwc100', bulk100.iwc, 'lwc100', bulk100.lwc)
-   ENDELSE
-               
-   tags=tag_names(bulk)     
+   ;--------------Sub-structure tags------------------------------
+   IF max(data.op.endbins) gt 100 THEN BEGIN  ;Make sure we have an OAP (not CDP, FSSP, etc.)
+      bulkall=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=0)
+      i100=min(where(data.op.endbins ge 100))
+      bulk100=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=i100)
+      i200=min(where(data.op.endbins ge 200))
+      bulk200=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=i200)
+      IF total(tags eq 'ARENDBINS') THEN BEGIN
+         armidbins=(data.op.arendbins+data.op.arendbins[1:*])/2.0
+         meanar=compute_meanar(data.spec2d,armidbins)
+         meanaspr=compute_meanar(data.spec2d_aspr,armidbins)
+         area=compute_area(data)
+         area100=compute_area(data, binstart=i100)
+         area200=compute_area(data, binstart=i200)
+
+         bulk=create_struct(bulkall, 'area', area, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
+              'iwc100', bulk100.iwc, 'area100', area100, 'lwc100', bulk100.lwc, 'nt200', bulk200.nt, 'mnd200', bulk200.mnd, $
+              'mvd200', bulk200.mvd, 'iwc200', bulk200.iwc, 'lwc200', bulk200.lwc, 'area200', area200, 'meanar', $
+              meanar, 'meanaspr', meanaspr)
+      ENDIF ELSE BEGIN
+          bulk=create_struct(bulkall, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
+               'iwc100', bulk100.iwc, 'lwc100', bulk100.lwc, 'nt200', bulk200.nt, 'mnd200', bulk200.mnd, $
+               'mvd200', bulk200.mvd, 'iwc200', bulk200.iwc, 'lwc200', bulk200.lwc)
+      ENDELSE
+   ENDIF ELSE bulk=data  ;For CDP, FSSP, etc. where the bulk variables are already in the main structure
+
+   tags=tag_names(bulk)
    FOR j=0,n_elements(tags)-1 DO BEGIN
       ;Write each variable
       skiptag=0
@@ -204,13 +211,16 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
       unitadjust=1.0
       currentdata=bulk.(j)
       tagname=tags[j]+suffix
-         
+
       CASE tags[j] OF
          'LWC':BEGIN
              attvalue={a1:'Liquid Water Content',a2:'gram/m3'}
          END
          'LWC100':BEGIN
              attvalue={a1:'Liquid Water Content, Particles Larger than 100um in Diameter',a2:'gram/m3'}
+         END
+         'LWC200':BEGIN
+             attvalue={a1:'Liquid Water Content, Particles Larger than 200um in Diameter',a2:'gram/m3'}
          END
          'IWC':BEGIN
              attname=['long_name','units','parameterization']
@@ -220,11 +230,18 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
              attname=['long_name','units','parameterization']
              attvalue={a1:'Ice Water Content, Particles Larger than 100um in Diameter',a2:'gram/m3',a3:'Brown and Francis 1995'}
          END
+         'IWC200':BEGIN
+             attname=['long_name','units','parameterization']
+             attvalue={a1:'Ice Water Content, Particles Larger than 200um in Diameter',a2:'gram/m3',a3:'Brown and Francis 1995'}
+         END
          'AREA':BEGIN
              attvalue={a1:'Projected Particle Area, All Particles',a2:'1/m'}
          END
          'AREA100':BEGIN
              attvalue={a1:'Projected Particle Area, Particles Larger than 100um in Diameter',a2:'1/m'}
+         END
+         'AREA200':BEGIN
+             attvalue={a1:'Projected Particle Area, Particles Larger than 200um in Diameter',a2:'1/m'}
          END
          'MVD':BEGIN
             attvalue={a1:'Median Volume Diameter',a2:'um'}
@@ -244,6 +261,15 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
          'NT100': BEGIN
             attvalue={a1:'Total Number Concentration, Particles Larger than 100um in Diameter',a2:'#/m3'}
          END
+         'MVD200':BEGIN
+            attvalue={a1:'Median Volume Diameter, Particles Larger than 200um in Diameter',a2:'um'}
+         END
+         'MND200':BEGIN
+            attvalue={a1:'Mean Diameter, Particles Larger than 200um in Diameter',a2:'um'}
+         END
+         'NT200': BEGIN
+            attvalue={a1:'Total Number Concentration, Particles Larger than 200um in Diameter',a2:'#/m3'}
+         END
          'MEANAR':BEGIN
             attname=['long_name','units','Bin_endpoints','Bin_units']
             attvalue={a0:'Mean Area Ratio Per Size Bin',a1:'unitless',$
@@ -258,13 +284,13 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
             dims=[xdimid, ydimid_size]
             tagname='MEAN_ASPECTRATIO'
          END
-      ELSE:skiptag=1  
+      ELSE:skiptag=1
       ENDCASE
-        
+
       IF (lite eq 1) and (n_elements(dims) gt 1) THEN skiptag=1
-      IF not(skiptag) THEN BEGIN                                      
+      IF not(skiptag) THEN BEGIN
          varid=ncdf_varid(id,tagname)  ;Check if this variable already exists
-         IF varid eq -1 THEN varid=ncdf_vardef(id,tagname,dims,/float) 
+         IF varid eq -1 THEN varid=ncdf_vardef(id,tagname,dims,/float)
          FOR k=0,n_elements(attname)-1 DO BEGIN
             IF size(attvalue.(k), /TYPE) eq 2 THEN BEGIN
               ncdf_attput,id,varid,attname[k],attvalue.(k),/LONG
@@ -272,9 +298,9 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
               ncdf_attput,id,varid,attname[k],attvalue.(k)
             ENDELSE
          ENDFOR
-          
+
          ncdf_control,id,/endef                ;put in data mode
-         ncdf_varput,id,varid,currentdata*unitadjust   
+         ncdf_varput,id,varid,currentdata*unitadjust
          ncdf_control,id,/redef                ;return to define mode
       ENDIF
    ENDFOR
@@ -284,7 +310,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
       restore,pthfile
       pth=data
       IF total(time) eq total(data.time) THEN BEGIN
-         tags=tag_names(pth)     
+         tags=tag_names(pth)
          FOR j=0,n_elements(tags)-1 DO BEGIN
             ;Write each variable
             skiptag=0
@@ -294,7 +320,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
             unitadjust=1.0
             currentdata=pth.(j)
             tagname=tags[j]+suffix
-               
+
             CASE tags[j] OF
                'TAS':attvalue={a1:'True air speed',a2:'m/s'}
                'LAT':attvalue={a1:'Latitude',a2:'degrees'}
@@ -304,31 +330,31 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
                'GALT':attvalue={a1:'GPS/Geopotential Altitude',a2:'m'}
                'GPS_ALT':attvalue={a1:'GPS/Geopotential Altitude',a2:'m'}
                'W':attvalue={a1:'Vertical Wind',a2:'m/s'}
-               'T': BEGIN 
+               'T': BEGIN
                   attvalue={a1:'Temperature',a2:'C'}
                   tagname='TEMP'  ;Make consistent
                END
                'TEMP':attvalue={a1:'Temperature',a2:'C'}
-               'TD': BEGIN 
+               'TD': BEGIN
                   attvalue={a1:'Dewpoint Temperature',a2:'C'}
                   tagname='DEWPOINT'  ;Make consistent
                END
-               'DEW': BEGIN 
+               'DEW': BEGIN
                   attvalue={a1:'Dewpoint Temperature',a2:'C'}
                   tagname='DEWPOINT'  ;Make consistent
                END
-               'TDEW': BEGIN 
+               'TDEW': BEGIN
                   attvalue={a1:'Dewpoint Temperature',a2:'C'}
                   tagname='DEWPOINT'  ;Make consistent
                END
                'RH':attvalue={a1:'Relative Humidity',a2:'percent'}
                'PRES':attvalue={a1:'Pressure',a2:'mb'}
-               ELSE:skiptag=1  
+               ELSE:skiptag=1
             ENDCASE
-            
-            IF not(skiptag) THEN BEGIN                                      
+
+            IF not(skiptag) THEN BEGIN
                varid=ncdf_varid(id,tagname)  ;Check if this variable already exists
-               IF varid eq -1 THEN varid=ncdf_vardef(id,tagname,dims,/float) 
+               IF varid eq -1 THEN varid=ncdf_vardef(id,tagname,dims,/float)
                FOR k=0,n_elements(attname)-1 DO BEGIN
                   IF size(attvalue.(k), /TYPE) eq 2 THEN BEGIN
                   ncdf_attput,id,varid,attname[k],attvalue.(k),/LONG
@@ -336,17 +362,17 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
                   ncdf_attput,id,varid,attname[k],attvalue.(k)
                   ENDELSE
                ENDFOR
-               
+
                ncdf_control,id,/endef                ;put in data mode
-               ncdf_varput,id,varid,currentdata*unitadjust   
+               ncdf_varput,id,varid,currentdata*unitadjust
                ncdf_control,id,/redef                ;return to define mode
             ENDIF
          ENDFOR
 
       ENDIF ELSE print,'PTH time mismatch, skipping.'
    ENDIF
-   
+
    ;Close the file
    ncdf_close,id
-   
+
 END
