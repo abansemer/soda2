@@ -366,10 +366,12 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           IF buffer.image[-1] ne ulong64('AAAAAAAAAAAAAAAA'x) THEN print, 'Buffer may be misaligned'
 
           ;Particle headers use 3 slices, should come in triplicate
-          sync_ind = where((buffer.image and 'FF00000000000000'x) eq ulong64('5500000000000000'x), nsync)
-          IF nsync mod 3 ne 0 THEN stop, 'Uneven number of sync slices in processbuffer'
+          ;First conditional matches '55'x pattern.  Second conditional is to avoid error where '55'x exists with blank slice afterward.
+          sync_ind = where(((buffer.image and 'FF00000000000000'x) eq ulong64('5500000000000000'x)) and (buffer.image ne '55FFFFFFFFFFFFFF'x), nsync)
+          IF (nsync mod 3) ne 0 THEN return, nullbuffer    ;Uneven number of sync slices, can happen when a particle makes the '55'x pattern
+          IF nsync lt 15 THEN return, nullbuffer  ;Reject buffers that are filled with noise and have few timelines
           num_timelines = nsync/3
-
+          
           ;Decode time and particle information
           ;First index of each triplet, contains the time of the particle
           i = indgen(num_timelines) * 3
