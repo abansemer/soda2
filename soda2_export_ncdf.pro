@@ -182,7 +182,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
       bulk100=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=i100)
       i200=min(where(data.op.endbins ge 200))
       bulk200=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=i200)
-      IF total(tags eq 'ARENDBINS') THEN BEGIN
+      IF total(tags eq 'SPEC2D_ASPR') THEN BEGIN
          armidbins=(data.op.arendbins+data.op.arendbins[1:*])/2.0
          meanar=compute_meanar(data.spec2d,armidbins)
          meanaspr=compute_meanar(data.spec2d_aspr,armidbins)
