@@ -7,7 +7,7 @@ PRO soda2_event, ev
     CASE uname OF
         'loadfile': BEGIN ;===========================================================================
             a=dialog_pickfile(/read,filter=['*.dat'],path=(*pinfo).datpath,dialog_parent=widget_info(ev.top,find='process'))
-            IF file_test(a) THEN BEGIN
+            IF file_test(a) eq 0 THEN return
             (*pinfo).datpath=file_dirname(a)
             restore,a
             op=data.op
@@ -20,6 +20,7 @@ PRO soda2_event, ev
             widget_control,widget_info(ev.top,find='rate'),set_value=op.rate
             widget_control,widget_info(ev.top,find='xres'),set_value=op.res
             widget_control,widget_info(ev.top,find='yres'),set_value=op.yres
+            widget_control,widget_info(ev.top,find='seatag'),set_value=op.seatag[0]
             widget_control,widget_info(ev.top,find='date'),set_value=op.date
             widget_control,widget_info(ev.top,find='project'),set_value=op.project
 
@@ -63,8 +64,7 @@ PRO soda2_event, ev
 
             ;--------Size method
             id=widget_info(ev.top,find='sizemethod')
-            methods=['Circle fit','X-size (across array)','Y-size (with airflow)','Area equivalent','Lx (max slice width)',$
-                     '1D emulation', '2D emulation']
+            widget_control,id,get_value=methods  ;See main routine below for values to compare with CASE here
             CASE op.smethod OF
                'fastcircle':w=where(strmid(methods,0,1) eq 'C')
                'xsize':w=where(strmid(methods,0,1) eq 'X')
@@ -75,8 +75,7 @@ PRO soda2_event, ev
                'twod':w=where(strmid(methods,0,1) eq '2')
             ENDCASE
             w=w[0]  ;Can double up when old data loaded
-            widget_control,id,set_value=[methods[w], methods]
-            widget_control,id,set_uvalue=methods[w]
+            widget_control,id,set_combobox_select=w
 
             ;--------Probe type
             id=widget_info(ev.top,find='probetype')
@@ -84,12 +83,13 @@ PRO soda2_event, ev
             w=where((p.format eq op.format) and (p.subformat eq op.subformat) and (p.probeid eq op.probeid) $
                and (p.res eq op.res) and (p.armwidth eq op.armwidth) and (p.numdiodes eq op.numdiodes) $
                and (p.probetype eq op.probetype), nw)
-            IF nw eq 0 THEN dummy=dialog_message('Unknown probe type in .sav file.' + string(10B) + string(10B)+ $
-                'Select new type or add probe to soda2_probespecs.pro') ELSE $
-            w=w[0]  ;Just in case of duplicates (i.e. Fast-2DC 66%)
-            widget_control,id,set_value=[p[w].probename, p.probename]
-            widget_control,id,set_uvalue=p[w].probename
-            ENDIF
+            IF nw eq 0 THEN BEGIN
+               dummy=dialog_message('Unknown probe type in .sav file.' + string(10B) + string(10B)+ $
+                  'Select new type or add probe to soda2_probespecs.pro')
+            ENDIF ELSE BEGIN
+               widget_control,id,set_value=['None', p.probename]
+               widget_control,id,set_combobox_select=w[0]+1 ;w[0] for duplicates, +1 for "None"
+            ENDELSE
         END
 
 
@@ -147,7 +147,8 @@ PRO soda2_event, ev
             id=widget_info(ev.top,find='probetype')
             widget_control,id,get_uvalue=probename
             probe=soda2_probespecs(name=probename)
-            endbins=findgen(probe.numdiodes+1)*probe.res + probe.res/2.0
+            widget_control,widget_info(ev.top,find='xres'),get_value=xres  ;Get current x-res from GUI
+            endbins=findgen(probe.numdiodes+1)*xres + xres/2.0
             widget_control,widget_info(ev.top,find='endbins'),set_value=string(endbins,form='(200(f0.1," "))')
         END
 
@@ -155,7 +156,8 @@ PRO soda2_event, ev
             id=widget_info(ev.top,find='probetype')
             widget_control,id,get_uvalue=probename
             probe=soda2_probespecs(name=probename)
-            endbins=findgen(probe.numdiodes*2 + 1)*probe.res + probe.res/2.0
+            widget_control,widget_info(ev.top,find='xres'),get_value=xres  ;Get current x-res from GUI
+            endbins=findgen(probe.numdiodes*2 + 1)*xres + xres/2.0
             widget_control,widget_info(ev.top,find='endbins'),set_value=string(endbins,form='(500(f0.1," "))')
         END
 
@@ -192,24 +194,19 @@ PRO soda2_event, ev
                ;Pare down the probe list
                specs=soda2_probespecs()
                w=where(specs.format eq ss.format, nw)
-               IF nw gt 0 THEN probenames=specs[w].probename ELSE probenames=specs.probename
+               IF nw gt 0 THEN probenames=['None', specs[w].probename] ELSE probenames=['None', specs.probename]
 
-               id=widget_info(ev.top,find='probetype')  ;Get the current probe to avoid changing it
+               ;Update list
+               id=widget_info(ev.top,find='probetype')
                widget_control,id,get_uvalue=currentprobename
-
-               w=where(probenames eq currentprobename)
-               IF w ne -1 THEN BEGIN  ;Keep the current probe
-                  widget_control,id,set_value=[currentprobename, probenames]
-                  widget_control,id,set_uvalue=currentprobename
-               ENDIF ELSE BEGIN   ;Don't keep current probe
-                  widget_control,id,set_value=probenames
-                  widget_control,id,set_uvalue=probenames[0]
-               ENDELSE
+               widget_control,id,set_value=probenames    ;Use the new list
+               w=where(probenames eq currentprobename)   ;Check if current probe is already on the list
+               IF w ne -1 THEN widget_control,id,set_combobox_select=w   ;If so, set it to current
             ENDIF ELSE BEGIN
                ;Reset the full probe list
                specs=soda2_probespecs()
-               widget_control, widget_info(ev.top,find='probetype'),set_value=specs.probename
-               widget_control, widget_info(ev.top,find='probetype'),set_uvalue=specs.probename[0]
+               widget_control, widget_info(ev.top,find='probetype'),set_value=['None',specs.probename]
+               widget_control, widget_info(ev.top,find='probetype'),set_combobox_select=0
             ENDELSE
         END
 
@@ -219,6 +216,7 @@ PRO soda2_event, ev
             widget_control,widget_info(ev.top,find='rate'),get_value=rate
             widget_control,widget_info(ev.top,find='xres'),get_value=xres
             widget_control,widget_info(ev.top,find='yres'),get_value=yres
+            widget_control,widget_info(ev.top,find='seatag'),get_value=seatag
             widget_control,widget_info(ev.top,find='tas'),get_value=fixedtas
             widget_control,widget_info(ev.top,find='project'),get_value=project
             widget_control,widget_info(ev.top,find='date'),get_value=date
@@ -247,7 +245,7 @@ PRO soda2_event, ev
 
             ;--------Size Method
             id=widget_info(ev.top,find='sizemethod')
-            widget_control,id,get_uvalue=sizemethodstr
+            sizemethodstr=widget_info(id, /combobox_gettext)
             CASE strmid(sizemethodstr,0,1) OF
                'C':smethod='fastcircle'
                'X':smethod='xsize'
@@ -270,9 +268,12 @@ PRO soda2_event, ev
 
             ;--------Probe Details
             id=widget_info(ev.top,find='probetype')
-            widget_control,id,get_uvalue=probename
+            probename=widget_info(id, /combobox_gettext)
             probe=soda2_probespecs(name=probename)
-
+            IF probe.probename eq '' THEN BEGIN
+               dummy=dialog_message('Enter a valid probe',dialog_parent=widget_info(ev.top,find='process'))
+               return
+            ENDIF
             ;--------Filenames
             widget_control,widget_info(ev.top,find='filelist'),get_value=fn
             widget_control,widget_info(ev.top,find='outdir'),get_value=outdir
@@ -307,8 +308,13 @@ PRO soda2_event, ev
             IF probe.res ge 100 and mean(endbins) lt 2000 THEN warn=1
             IF probe.res lt 100 and mean(endbins) ge 2000 THEN warn=1
             IF probe.res lt 25  and endbins[0] gt 20 THEN warn=1
-            IF warn THEN go=dialog_message('The bin sizes seem strange for this probe... Continue?',/question,dialog_parent=widget_info(ev.top,find='process'))
+            IF warn eq 1 THEN go=dialog_message('The bin sizes seem strange for this probe... Continue?',/question,dialog_parent=widget_info(ev.top,find='process'))
             IF go eq 'No' THEN return
+
+            IF (xres lt 5) or (xres gt 1000) or (yres lt 5) or (yres gt 1000) THEN $
+               go=dialog_message('X-res or Y-res invalid... Continue?',/question,dialog_parent=widget_info(ev.top,find='process'))
+            IF go eq 'No' THEN return
+
             dendbins=endbins[1:*]-endbins
             IF min(dendbins) le 0 THEN BEGIN
                dummy=dialog_message('Bin end-points must be increasing',dialog_parent=widget_info(ev.top,find='process'))
@@ -327,7 +333,7 @@ PRO soda2_event, ev
                savfile:savfile, inttime_reject:inttime_reject, eawmethod:eawmethod, stuckbits:stuckbits, juelichfilter:juelichfilter, water:water,$
                fixedtas:fixedtas, outdir:outdir[0], project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
                numdiodes:probe.numdiodes, probeid:probe.probeid, shortname:probe.shortname, greythresh:probe.greythresh, $
-               wavelength:probe.wavelength, seatag:probe.seatag, ncdfparticlefile:ncdfparticlefile, stretchcorrect:stretchcorrect[0],$
+               wavelength:probe.wavelength, seatag:seatag, ncdfparticlefile:ncdfparticlefile, stretchcorrect:stretchcorrect[0],$
                keeplargest:keeplargest, apply_psc:apply_psc, dofreject:dofreject}
 
             ;Process housekeeping if flagged
@@ -352,6 +358,7 @@ PRO soda2_event, ev
             probe=soda2_probespecs(name=probename)
             widget_control,widget_info(ev.top,find='xres'),set_value=probe.res
             widget_control,widget_info(ev.top,find='yres'),set_value=probe.yres
+            widget_control,widget_info(ev.top,find='seatag'),set_value=probe.seatag[0]
          END
 
         'sizemethod': widget_control,ev.id,set_uvalue=ev.str   ;A workaround to be able to access current index with widget_control later on
@@ -436,7 +443,7 @@ PRO soda2
     subbase2b=widget_base(subbase2,row=1)
     specs=soda2_probespecs()
     dummy=widget_label(subbase2b,value='Probe:',/align_left)
-    probetype=widget_combobox(subbase2b,value=specs.probename,uname='probetype',uvalue=specs[0].probename)
+    probetype=widget_combobox(subbase2b,value=['None',specs.probename],uname='probetype',uvalue='None');specs[0].probename)
     dummy=widget_label(subbase2b,value='  Sizing Method:',/align_left)
     methodnames=['Circle fit','X-size (across array)','Y-size (with airflow)','Area equivalent','Lx (max slice width)', $
                  '1D emulation', '2D emulation']
@@ -451,8 +458,9 @@ PRO soda2
 
     subbase2a=widget_base(subbase2,row=1)
     rate=cw_field(subbase2a,/float, title='Averaging Time (s):',uname='rate' , xsize=6, value=5.0)
-    xres=cw_field(subbase2a,/float, title='X-res (um):',uname='xres' , xsize=4, value=0)
-    yres=cw_field(subbase2a,/float, title='Y-res (um):',uname='yres' , xsize=4, value=0)
+    xres=cw_field(subbase2a,/float, title='X-res (um):',uname='xres' , xsize=5, value=0)
+    yres=cw_field(subbase2a,/float, title='Y-res (um):',uname='yres' , xsize=5, value=0)
+    seatag=cw_field(subbase2a,/float, title='SEA Tag:',uname='seatag' , xsize=5, value=0, /long)
 
     subbase2c=widget_base(subbase2,row=1)
     vals=['Shatter Correct','All-In','Water Processing','Stuck Bit Correct','Pixel Noise Filter','Largest Particle','Force PSC','DoF Reject']

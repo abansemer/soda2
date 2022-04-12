@@ -371,7 +371,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           IF (nsync mod 3) ne 0 THEN return, nullbuffer    ;Uneven number of sync slices, can happen when a particle makes the '55'x pattern
           IF nsync lt 15 THEN return, nullbuffer  ;Reject buffers that are filled with noise and have few timelines
           num_timelines = nsync/3
-          
+
           ;Decode time and particle information
           ;First index of each triplet, contains the time of the particle
           i = indgen(num_timelines) * 3

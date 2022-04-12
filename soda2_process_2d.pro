@@ -316,7 +316,14 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
             bufffile=[bufffile,bytarr(y.count)+i]
          ENDELSE
          firstfile=0
-      ENDIF ELSE IF y.error eq 1 THEN stop,'Error on build index, check probe ID set correctly.'
+      ENDIF
+      IF y.error eq 1 THEN BEGIN
+         infoline = 'Error building index, verify probe ID and/or SEA tags are correct.'
+         IF textwidgetid ne 0 THEN BEGIN
+            dummy=dialog_message(infoline,dialog_parent=textwidgetid,/info)
+            return
+         ENDIF ELSE stop,infoline
+      ENDIF
    ENDFOR
 
    ;Get housekeeping data, if available

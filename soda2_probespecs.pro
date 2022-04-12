@@ -7,7 +7,7 @@ FUNCTION soda2_probespecs, name=name, id=id
 
    base={probename:'', shortname:'', format:'', subformat:0s, probetype:'', probeid:'', $
          greythresh:0, res:0.0, yres:0.0, armwidth:0.0, numdiodes:0.0, tau:0.0, firstsliceskip:0, $
-         dofthreshold:0.0, dofconst:3.0, wavelength:0.0, seatag:[33000,0,0]}
+         dofthreshold:0.0, dofconst:3.0, wavelength:0.0, seatag:[0,0,0]}
    ;Tau is the response time in seconds as in Baumgardner 1997 JTECH
    ;Legacy probes use mean value from Strapp et al JTECH 2001, newer probes various communications.
    ;Yres is the nominal resolution in airflow direction, as controlled by slicing rate.  May be
