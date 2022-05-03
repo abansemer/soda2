@@ -7,7 +7,7 @@ FUNCTION soda2_probespecs, name=name, id=id
 
    base={probename:'', shortname:'', format:'', subformat:0s, probetype:'', probeid:'', $
          greythresh:0, res:0.0, yres:0.0, armwidth:0.0, numdiodes:0.0, tau:0.0, firstsliceskip:0, $
-         dofthreshold:0.0, dofconst:3.0, wavelength:0.0, seatag:[0,0,0]}
+         dofthreshold:0.0, dofconst:3.0, wavelength:0.0, seatag:lonarr(3)}
    ;Tau is the response time in seconds as in Baumgardner 1997 JTECH
    ;Legacy probes use mean value from Strapp et al JTECH 2001, newer probes various communications.
    ;Yres is the nominal resolution in airflow direction, as controlled by slicing rate.  May be
@@ -32,7 +32,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=x
 
    ;Add more probes to the list starting here:
@@ -53,7 +53,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -73,7 +73,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -93,7 +93,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -113,7 +113,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -133,7 +133,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -153,7 +153,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -173,7 +173,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -193,7 +193,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -213,7 +213,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -233,7 +233,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -253,7 +253,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -273,7 +273,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -293,7 +293,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -313,7 +313,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -373,7 +373,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -393,7 +393,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -413,7 +413,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -433,7 +433,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=33000
+   x.seatag=[33000]
    all=[all,x]
 
    x=base
@@ -453,7 +453,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=33000
+   x.seatag=[33000]
    all=[all,x]
 
    x=base
@@ -473,7 +473,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=31000
+   x.seatag=[31000]
    all=[all,x]
 
    x=base
@@ -573,7 +573,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=36000
+   x.seatag=[36000]
    all=[all,x]
 
    x=base
@@ -593,7 +593,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -613,7 +613,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -633,7 +633,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -653,7 +653,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -673,7 +673,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=66.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -693,7 +693,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -713,7 +713,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -733,7 +733,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -753,7 +753,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.6328e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -773,7 +773,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.6328e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -793,7 +793,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.658e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -813,7 +813,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.6328e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -833,7 +833,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=8.12
    x.wavelength=0.785e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -853,7 +853,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=8.12
    x.wavelength=0.785e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -873,7 +873,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=8.12
    x.wavelength=0.785e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -893,7 +893,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=8.12
    x.wavelength=0.785e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -913,7 +913,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=8.12
    x.wavelength=0.785e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -933,7 +933,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=8.12
    x.wavelength=0.785e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -953,7 +953,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=8.12
    x.wavelength=0.785e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -973,7 +973,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=8.12
    x.wavelength=0.785e-6
-   x.seatag=0
+   x.seatag=[0]
    all=[all,x]
 
    x=base
@@ -1053,11 +1053,11 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.dofthreshold=0.0
    x.dofconst=3.0
    x.wavelength=0.6328e-6
-   x.seatag=33000
+   x.seatag=[33000]
    all=[all,x]
 
    x=base
-   x.probename='SEA 1D2D'
+   x.probename='SEA 1D2D (15um)'
    x.shortname='1D2D'
    x.format='SEA'
    x.subformat=0
@@ -1068,7 +1068,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.yres=15
    x.armwidth=5.4
    x.numdiodes=64
-   x.tau=0.58e-6
+   x.tau=0.020e-6
    x.firstsliceskip=0
    x.dofthreshold=0.0
    x.dofconst=3.0
@@ -1076,14 +1076,35 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.seatag=[10000, 10001]  ;[ImageTag, TASfactorTag]
    all=[all,x]
 
+   x=base
+   x.probename='SEA 1D2D (50um)'
+   x.shortname='1D2D'
+   x.format='SEA'
+   x.subformat=0
+   x.probetype='1D2D'
+   x.probeid=''
+   x.greythresh=0
+   x.res=50
+   x.yres=50
+   x.armwidth=5.4
+   x.numdiodes=64
+   x.tau=0.020e-6
+   x.firstsliceskip=0
+   x.dofthreshold=0.0
+   x.dofconst=3.0
+   x.wavelength=0.660e-6
+   x.seatag=[11000, 11001]  ;[ImageTag, TASfactorTag]
+   all=[all,x]
+
+
    IF n_elements(name) ne 0 THEN BEGIN
       w=where(name eq all.probename,nw)
-      IF nw gt 0 THEN return, all[w] ELSE return,base
+      IF nw gt 0 THEN return, all[w] ELSE return, base
    ENDIF
    IF n_elements(id) ne 0 THEN BEGIN
-      IF max(id) lt n_elements(all) THEN return, all[id] ELSE return,base
+      IF max(id) lt n_elements(all) THEN return, all[id] ELSE return, base
    ENDIF
 
    ;Return everything if no probe specified
-   return,all
+   return, all
 END

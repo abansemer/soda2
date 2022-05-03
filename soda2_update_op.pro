@@ -29,6 +29,7 @@ PRO soda2_update_op, op
    IF total(where(tag_names(op) eq 'DOFCONST')) eq -1 THEN op=create_struct(op,'dofconst',0)  ;Depth of field constant, setting to 0 will trigger decision in soda2_samplearea
    IF total(where(tag_names(op) eq 'DOFREJECT')) eq -1 THEN op=create_struct(op,'dofreject',0)  ;Reject based on DoF flag (DMT or NCAR), or Level 3 grey pixel (CIP-G)
    IF total(where(tag_names(op) eq 'STRETCHCORRECT')) eq -1 THEN op=create_struct(op,'stretchcorrect',0)  ;Adjust yres when aircraft TAS and probe TAS mismatch
+   IF total(where(tag_names(op) eq 'STRICTCOUNTER')) eq -1 THEN op=create_struct(op,'strictcounter',0)  ;Apply particle-counter rejection for DMT probes (which are often noisy)
 
    ;Check for incompatible options
    IF (op.format eq 'SPEC') and (op.stuckbits eq 1) THEN BEGIN

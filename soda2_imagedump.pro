@@ -60,8 +60,11 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
 
    probename=op.shortname
    IF (op.probetype eq '2DS') THEN probename=op.shortname+'_'+op.probeid  ;Add 'H' or 'V' specifier
-   IF (op.probetype eq '2DS') and (naming_convention eq 'GHRC') THEN probename=op.shortname+op.probeid
-   IF (naming_convention eq 'GHRC') THEN probename+='-P3'  ;Add aircraft ID for both 2DS/HVPS
+   IF (naming_convention eq 'GHRC') THEN BEGIN
+      IF (op.probetype eq '2DS') THEN probename=op.shortname+op.probeid
+      IF (op.probetype eq '3VCPI') THEN probename='Hawkeye2DS'+op.probeid
+      probename+='-P3'  ;Add aircraft ID for both 2DS/HVPS
+   ENDIF
    rate=fix(op.rate)
 
    ;Output images using a different rakefix than what is in the op structure (for HIWC PIP, mainly)

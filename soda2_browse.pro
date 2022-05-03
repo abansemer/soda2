@@ -49,7 +49,7 @@ PRO soda2_browse_event, ev
             binary=morph_open(binary,kernel)
             meanar=meanar*binary
             data.conc1d=data.conc1d*binary
-      
+
             ;Make all bulk computations starting at 100um
             binstart=min(where(op.endbins ge 100))
             a=0.00294 & b=1.9  ;Default to Brown and Francis

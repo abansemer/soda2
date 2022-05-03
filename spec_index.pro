@@ -1,45 +1,45 @@
 FUNCTION spec_index, lun, lite=lite, minimagesize=minimagesize, pointerstart=pointerstart, $
-         pointerstop=pointerstop, absolutepointer=absolutepointer 
+         pointerstop=pointerstop, absolutepointer=absolutepointer
    ;FUNCTION to return the file pointers to image, housekeeping,
    ;and mask buffers in 2DS/HVPS3 data.
    ;Full indexing is working but is very slow and requires lot of
    ;         memory, approx 20% of raw file size...
-   ;"Lite" option only returns indexes to the time headers. 
+   ;"Lite" option only returns indexes to the time headers.
    ;Set pointerstart/pointerstop to begin/end at position other than start of file
    ;AB 10/2011
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
-   
+
    IF n_elements(lite) eq 0 THEN lite=0
    IF n_elements(minimagesize) eq 0 THEN minimagesize=2  ;Minumum number of words required in a compressed image
    IF n_elements(pointerstart) eq 0 THEN pointerstart=0ULL
    IF n_elements(buffsize) eq 0 THEN buffsize=4114ULL
    IF n_elements(absolutepointer) eq 0 THEN absolutepointer=0
-   
+
    f=fstat(lun)
    IF n_elements(pointerstop) eq 0 THEN pointerstop=f.size
    bytes2read=pointerstop-pointerstart
-   
+
    ;Find the buffer size from the position of 'year' data
    point_lun,lun,0
    x=intarr(10000<(f.size/2))
    readu,lun,x
-   w=where(x eq x[0])   ;Year equals first year
+   w=where((x eq x[0]) and (x[1:*] eq x[1]) and (x[2:*] eq x[2]))   ;Year/month/day equals first year/month/day
    buffsize=w[1]*2ULL
-   
+
    ;buffsize=91;4114ULL   ;As of 4/2011 there is a buffer time header every 4114 bytes
    header={year:0s, month:0s, dummy:0s, day:0s, hour:0s, minute:0s, second:0s, millisecond:0s}
    headersize=n_tags(header,/data_length)   ;This should be the first buffer
    ndataints=(buffsize-headersize-2)/2 ;length of data in short ints, note:there appears to be a dummy int at the end, ignore
-   
+
    thisbuffer=uintarr(ndataints)
    nextbuffer=uintarr(ndataints)
-   
+
    point_lun,lun,pointerstart
    readu,lun,header
    firstday=header.day    ;To check for midnight crossings
    readu,lun,thisbuffer   ;Get the first buffer
    point_lun,lun,pointerstart
-   
+
    numbuffs=bytes2read/buffsize
    bufftime=dblarr(numbuffs)
    buffpoint=lindgen(numbuffs)*buffsize
@@ -59,7 +59,7 @@ FUNCTION spec_index, lun, lite=lite, minimagesize=minimagesize, pointerstart=poi
    hkp=lon64arr(100000)         ;Housekeeping pointers
    hkc=0L                       ;Housekeeping counter
    j=0
-   
+
    ;Get all the time buffers
     FOR i=0L,numbuffs-2 DO BEGIN
         IF (header.year lt 2005) or (header.year gt 2050) THEN stop, 'File misaligned'
@@ -67,7 +67,7 @@ FUNCTION spec_index, lun, lite=lite, minimagesize=minimagesize, pointerstart=poi
         ;Will take care of midnight crossings elsewhere
         bufftime[i]=header.hour*3600D + header.minute*60D + header.second + header.millisecond/1000D
         date[i]=julday(header.month,header.day,header.year)
-        
+
         point_lun,lun,((i+1)*buffsize)
         readu,lun,header
         readu,lun,nextbuffer
@@ -87,12 +87,12 @@ FUNCTION spec_index, lun, lite=lite, minimagesize=minimagesize, pointerstart=poi
                   numimages[i]=numimages[i]+1
                   imagec=imagec+1  ;Total count
                ENDIF
-               j=j+5+nh+nv               
+               j=j+5+nh+nv
             END
             19787:BEGIN
                maskp[maskc]=i*buffsize+headersize+j*2
                maskc=maskc+1
-               j=j+23             
+               j=j+23
             END
             18507:BEGIN
                hkp[hkc]=i*buffsize+headersize+j*2
@@ -108,19 +108,19 @@ FUNCTION spec_index, lun, lite=lite, minimagesize=minimagesize, pointerstart=poi
                ;print,'unknown tag',b[j],' ',string(byte((b[j] and 'ff'x))),string(byte((ishft(b[j],-8) and 'ff'x)))
                j=j+1
             END
-           ENDCASE        
+           ENDCASE
         ENDREP UNTIL j ge ndataints
         j=j-ndataints
         IF j ge ndataints THEN j=0  ;Take care of rare error in noisy data where j gets way too big, resets at start of next buffer
         thisbuffer=nextbuffer
-        
+
    ENDFOR
    ;for the last header
    bufftime[numbuffs-1]=header.hour*3600D + header.minute*60D + header.second + header.millisecond/1000D
    date[numbuffs-1]=julday(header.month,header.day,header.year)
-  
+
    ;firstp=[1,lastimage+1]  ;Shift the index to the first particle in each buffer
-   IF lite eq 1 THEN return,{bufftime:bufftime, buffpoint:buffpoint, firstp:firstp}   
+   IF lite eq 1 THEN return,{bufftime:bufftime, buffpoint:buffpoint, firstp:firstp}
    imagep=temporary(imagep[0:(imagec-1)>0])
    ibuffer=temporary(ibuffer[0:(imagec-1)>0])
    ihk=temporary(ihk[0:(imagec-1)>0])
@@ -130,6 +130,5 @@ FUNCTION spec_index, lun, lite=lite, minimagesize=minimagesize, pointerstart=poi
    return,{date:date, bufftime:bufftime, pointer:buffpoint, firstp:firstp, imagep:imagep, $
            hkp:hkp, maskp:maskp, count:numbuffs, numimages:numimages, buffsize:buffsize, $
            ibuffer:ibuffer, ihk:ihk, error:0}
-   
+
 END
- 

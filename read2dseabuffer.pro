@@ -17,8 +17,8 @@ function read2dseabuffer,lun,res=res,tags=tags,probetype=probetype
    ;Some older instruments don't have tas and/or elapsed tags, figure that out here.
    tas_tagexists=0
    elapsed_tagexists=0
-   IF n_elements(tags) ge 2 THEN tas_tagexists=1
-   IF n_elements(tags) eq 3 THEN elapsed_tagexists=1
+   IF (n_elements(tags) ge 2) && (tags[1] gt 0) THEN tas_tagexists=1
+   IF (n_elements(tags) eq 3) && (tags[2] gt 0) THEN elapsed_tagexists=1
 
    q=fstat(lun)
    lastpointer=q.cur_ptr ; get current pointer in to file

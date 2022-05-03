@@ -20,9 +20,12 @@ PRO soda2_event, ev
             widget_control,widget_info(ev.top,find='rate'),set_value=op.rate
             widget_control,widget_info(ev.top,find='xres'),set_value=op.res
             widget_control,widget_info(ev.top,find='yres'),set_value=op.yres
-            widget_control,widget_info(ev.top,find='seatag'),set_value=op.seatag[0]
             widget_control,widget_info(ev.top,find='date'),set_value=op.date
             widget_control,widget_info(ev.top,find='project'),set_value=op.project
+            widget_control,widget_info(ev.top,find='seatag'),set_value=string(op.seatag,form='(3(i0," "))')
+            tagid=widget_info(ev.top,find='tagbase')  ;Toggle SEA tag sensitivity
+            IF op.format eq 'SEA' THEN widget_control,tagid,sensitive=1 ELSE widget_control,tagid,sensitive=0
+
 
             ;--------TAS stuff
             widget_control,widget_info(ev.top,find='tas'),set_value=op.fixedtas
@@ -134,12 +137,10 @@ PRO soda2_event, ev
         END
 
         'defaultbins': BEGIN ;===========================================================================
-            id=widget_info(ev.top,find='probetype')
-            widget_control,id,get_uvalue=probename
-            probe=soda2_probespecs(name=probename)
-            IF probe.res le 50 THEN endbins=[25, 50, 100, 150, 200, 250, 300, 350, 400, 500, 600,700,800,900,1000,1200,1400,1600,1800,2000]
-            IF probe.res lt 15 THEN endbins=[5,15,25,35,45,55,65,75,85,95,105,125,145,175,225,275,325,400,475,550,625,700,800,900,1000,1200,1400,1600,1800,2000]
-            IF probe.res gt 50 THEN endbins=[200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2200, 2600, 3000, 3400, 3800, 4200, 4600, 5000,6000,7000,8000,9000,10000,15000,20000,25000,30000]
+            widget_control,widget_info(ev.top,find='xres'),get_value=xres  ;Get current x-res from GUI
+            IF xres le 50 THEN endbins=[25, 50, 100, 150, 200, 250, 300, 350, 400, 500, 600,700,800,900,1000,1200,1400,1600,1800,2000]
+            IF xres lt 15 THEN endbins=[5,15,25,35,45,55,65,75,85,95,105,125,145,175,225,275,325,400,475,550,625,700,800,900,1000,1200,1400,1600,1800,2000]
+            IF xres gt 50 THEN endbins=[200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2200, 2600, 3000, 3400, 3800, 4200, 4600, 5000,6000,7000,8000,9000,10000,15000,20000,25000,30000]
             widget_control,widget_info(ev.top,find='endbins'),set_value=string(endbins,form='(100(i0," "))')
         END
 
@@ -216,13 +217,15 @@ PRO soda2_event, ev
             widget_control,widget_info(ev.top,find='rate'),get_value=rate
             widget_control,widget_info(ev.top,find='xres'),get_value=xres
             widget_control,widget_info(ev.top,find='yres'),get_value=yres
-            widget_control,widget_info(ev.top,find='seatag'),get_value=seatag
             widget_control,widget_info(ev.top,find='tas'),get_value=fixedtas
             widget_control,widget_info(ev.top,find='project'),get_value=project
             widget_control,widget_info(ev.top,find='date'),get_value=date
             widget_control,widget_info(ev.top,find='starttime'),get_value=starttime
             widget_control,widget_info(ev.top,find='stoptime'),get_value=stoptime
             widget_control,widget_info(ev.top,find='timeoffset'),get_value=timeoffset
+            widget_control,widget_info(ev.top,find='seatag'),get_value=tagstring
+            seatag=long(strsplit(tagstring, '[ ,]+', /regex, /extract))
+
             IF stoptime lt starttime THEN BEGIN
                dummy=dialog_message('Stop time must be later than start time',dialog_parent=widget_info(ev.top,find='process'))
                return
@@ -294,10 +297,6 @@ PRO soda2_event, ev
 
             ;--------Bin Sizes
             arendbins=[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-            ;IF probe.res le 50 THEN endbins=[25,75,125,175,225,275,325,400,475,550,625,700,800,900,1000,1200,1400,1600,1800,2000]
-            ;IF probe.res gt 50 THEN endbins=[200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2200, 2600, 3000, 3400, 3800, 4200, 4600, 5000,6000,7000,8000,9000,10000,15000,20000,25000,30000]
-            ;2D-S bins as special case
-            ;IF probe.res eq 10 THEN endbins=[5,15,25,35,45,55,65,75,85,95,105,125,145,175,225,275,325,400,475,550,625,700,800,900,1000,1200,1400,1600,1800,2000]
 
             ;--------Bins
             widget_control,widget_info(ev.top,find='endbins'),get_value=binstring
@@ -305,9 +304,9 @@ PRO soda2_event, ev
 
             ;-------Bin size and option checks
             warn=0 & go='Yes'
-            IF probe.res ge 100 and mean(endbins) lt 2000 THEN warn=1
-            IF probe.res lt 100 and mean(endbins) ge 2000 THEN warn=1
-            IF probe.res lt 25  and endbins[0] gt 20 THEN warn=1
+            IF xres ge 100 and mean(endbins) lt 2000 THEN warn=1
+            IF xres lt 100 and mean(endbins) ge 2000 THEN warn=1
+            IF xres lt 25  and endbins[0] gt 20 THEN warn=1
             IF warn eq 1 THEN go=dialog_message('The bin sizes seem strange for this probe... Continue?',/question,dialog_parent=widget_info(ev.top,find='process'))
             IF go eq 'No' THEN return
 
@@ -358,7 +357,9 @@ PRO soda2_event, ev
             probe=soda2_probespecs(name=probename)
             widget_control,widget_info(ev.top,find='xres'),set_value=probe.res
             widget_control,widget_info(ev.top,find='yres'),set_value=probe.yres
-            widget_control,widget_info(ev.top,find='seatag'),set_value=probe.seatag[0]
+            widget_control,widget_info(ev.top,find='seatag'),set_value=string(probe.seatag,form='(3(i0," "))')
+            tagid=widget_info(ev.top,find='tagbase')  ;Toggle SEA tag sensitivity
+            IF probe.format eq 'SEA' THEN widget_control,tagid,sensitive=1 ELSE widget_control,tagid,sensitive=0
          END
 
         'sizemethod': widget_control,ev.id,set_uvalue=ev.str   ;A workaround to be able to access current index with widget_control later on
@@ -396,7 +397,7 @@ PRO soda2
    IF screen_size[1] lt 900 THEN compact=1 ELSE compact=0  ;For smaller screens
 
     ;----------Main widget setup-------------------------------------------
-    base = WIDGET_BASE(COLUMN=1,title='SODA-2 Processing Software Version 1.0',MBar=menubarID)
+    base = WIDGET_BASE(COLUMN=1,title='SODA-2 Optical Array Probe Processor',MBar=menubarID)
     info={datpath:'', rawpath:''}
     pinfo=ptr_new(info)
     fileID=widget_button(menubarID, value='Menu', /menu, uname='base', uvalue=pinfo)
@@ -434,33 +435,36 @@ PRO soda2
     IF compact ne 1 THEN dummy=widget_label(subbase2,value='---Processing Options---',/align_left)
 
     subbase2d=widget_base(subbase2,row=1)
-    projectname=cw_field(subbase2d,/string,title='Project Name',uname='project',xsize=15,value='NONE',/column)
-    date=cw_field(subbase2d,/string,       title='Date (mmddyyyy)',uname='date',xsize=15,value='01012000',/column)
-    starttime=cw_field(subbase2d,/string,  title='Start Time (hhmmss)',uname='starttime',value='000000',xsize=15,/column)
-    stoptime=cw_field(subbase2d,/string,   title='Stop Time (hhmmss)',uname='stoptime',value='240000',xsize=15,/column)
+    projectname=cw_field(subbase2d,/string,title='Project Name',uname='project',xsize=10,value='NONE',/column)
+    date=cw_field(subbase2d,/string,       title='Date (mmddyyyy)',uname='date',xsize=10,value='01012000',/column)
+    starttime=cw_field(subbase2d,/string,  title='Start Time (hhmmss)',uname='starttime',value='000000',xsize=10,/column)
+    stoptime=cw_field(subbase2d,/string,   title='Stop Time (hhmmss)',uname='stoptime',value='240000',xsize=10,/column)
+    rate=cw_field(subbase2d,/float, title='Rate (s):', uname='rate', xsize=5, value=5.0, /column)
+
     autofill=widget_button(subbase2d,   value='Auto-Fill',uname='autofill')
 
     subbase2b=widget_base(subbase2,row=1)
     specs=soda2_probespecs()
     dummy=widget_label(subbase2b,value='Probe:',/align_left)
-    probetype=widget_combobox(subbase2b,value=['None',specs.probename],uname='probetype',uvalue='None');specs[0].probename)
-    dummy=widget_label(subbase2b,value='  Sizing Method:',/align_left)
+    probetype=widget_combobox(subbase2b,value=['None',specs.probename],uname='probetype',uvalue='None')
+    dummy=widget_label(subbase2b,value='  Size Method:',/align_left)
     methodnames=['Circle fit','X-size (across array)','Y-size (with airflow)','Area equivalent','Lx (max slice width)', $
                  '1D emulation', '2D emulation']
     sizemethod=widget_combobox(subbase2b,value=methodnames,uname='sizemethod',uvalue=methodnames[0])
 
     subbase2e=widget_base(subbase2,row=1)
     binstring=string([25, 50, 100, 150, 200, 250, 300, 350, 400, 500, 600,700,800,900,1000,1200,1400,1600,1800,2000],form='(100(i0," "))')
-    endbins=cw_field(subbase2e, title='Bin end-points (um):  ', uname='endbins', xsize=45, value=binstring)
+    endbins=cw_field(subbase2e, title='Bin edges (um):  ', uname='endbins', xsize=45, value=binstring)
     defaultbins=widget_button(subbase2e, value=' Default ',uname='defaultbins')
     fullbins=widget_button(subbase2e, value=' Full ',uname='fullbins')
     fullbinsx2=widget_button(subbase2e, value=' x2 ',uname='fullbinsx2')
 
     subbase2a=widget_base(subbase2,row=1)
-    rate=cw_field(subbase2a,/float, title='Averaging Time (s):',uname='rate' , xsize=6, value=5.0)
-    xres=cw_field(subbase2a,/float, title='X-res (um):',uname='xres' , xsize=5, value=0)
-    yres=cw_field(subbase2a,/float, title='Y-res (um):',uname='yres' , xsize=5, value=0)
-    seatag=cw_field(subbase2a,/float, title='SEA Tag:',uname='seatag' , xsize=5, value=0, /long)
+    xres=cw_field(subbase2a,/float, title='X-resolution (um):',uname='xres' , xsize=5, value=0)
+    yres=cw_field(subbase2a,/float, title='Y-resolution (um):',uname='yres' , xsize=5, value=0)
+
+    subbase2f=widget_base(subbase2a,row=1,sensitive=0,uname='tagbase')
+    seatag=cw_field(subbase2f, title='SEA Tags:', uname='seatag' , xsize=10, value='0 0 0')
 
     subbase2c=widget_base(subbase2,row=1)
     vals=['Shatter Correct','All-In','Water Processing','Stuck Bit Correct','Pixel Noise Filter','Largest Particle','Force PSC','DoF Reject']
