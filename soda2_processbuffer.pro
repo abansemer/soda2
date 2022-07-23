@@ -190,6 +190,9 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           overload=byte(missed<1)         ;Flag these particles for computing dead time
           stretch=fltarr(num_images)+1.0  ;Not implemented yet for this probe, assume no stretch
           clocktas=fltarr(num_images)+buffer.tas
+          ;Update the SEA buffer stoptime, since the start/stop times in the particle headers are more accurate
+          ;Added for HIWC PIP 2022 with heavy overloads between buffers
+          IF (*pop).format eq 'SEA' THEN buffer.stoptime = buffer.time + (time_sfm[-1] - time_sfm[0])
        END
 
        ((*pop).probetype eq 'CIPG'): BEGIN
@@ -272,6 +275,9 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
             ;First read the associated housekeeping buffer to get TAS
             IF lasthkpointer ne (*pmisc).hkpointers[i] THEN hk=spec_read_hk(1,(*pmisc).hkpointers[i])
             lasthkpointer=(*pmisc).hkpointers[i]  ;Keep track of last one
+            ;HK buffers for 3VCPI/Hawkeye does not contain TAS, need external house data which has been placed into *pmisc
+            IF (*pop).probetype eq '3VCPI' THEN hk.tas=(*pmisc).probetas
+
             ;Read images
             IF ((*pop).probetype eq '3VCPI') THEN x=tvcpi_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid) ELSE $
                x=spec_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid)
@@ -288,6 +294,9 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
                IF ((*pmisc).aircrafttas gt 0) and (hk.tas gt 0) and ((*pop).stretchcorrect eq 1) THEN $
                   stretch[c]=((*pmisc).aircrafttas/hk.tas) > 0.1 < 10.0
                freq=double((*pop).res/(1.0e6*clocktas[c]))  ; the time interval of each tick in a timeline
+               ;Special case for Hawkeye, horizontal 50um array uses the 10um clock on the V-array, not a 50um clock
+               IF ((*pop).probetype eq '3VCPI') and ((*pop).res eq 50) THEN freq=double(10.0/(1.0e6*clocktas[c]))
+               ;Special case for HVPS
                IF ((*pop).probetype eq 'HVPS3') THEN BEGIN
                   x.time=x.timetrunc  ;HVPS has some timing errors, use truncated version.
                   rollovervalue=65536
