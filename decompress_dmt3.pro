@@ -9,15 +9,15 @@ FUNCTION decompress_dmt3, cimage
    ;can be decoded using decode_header_slice.
    ;Aaron Bansemer, October 2001
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
-   
-   image=bytarr(8,5000)+255 ; this stores the decompressed image in byte form, default is blank (255)
+
+   image=bytarr(8,20000)+255 ; this stores the decompressed image in byte form, default is blank (255)
    rlehb=0B  ; run-length encoding header byte
-   ipos=0 ; where we are in the decompressed image
+   ipos=0L ; where we are in the decompressed image
    lastgoodipos=0
    cipos=0 ; where we are in the compressed image
    nullbuffer = {image:image, bitimage:0, sync_ind:0, time_elap:0, time_sfm:0, $
                  particle_count:0, slice_count:0, dof:0, remainder:0b, header_slice_count:999}
-    
+
    nbytes=n_elements(cimage)
    IF nbytes le 1 THEN return, nullbuffer
 
@@ -32,17 +32,17 @@ FUNCTION decompress_dmt3, cimage
          c++
       ENDIF
    ENDFOR
-   
+
    IF c lt 2 THEN return, nullbuffer
-   
+
    cipos=0
    FOR i=0,c-1 DO BEGIN  ;-1 since c was incremented once extra above, -1 again so final incomplete particle not counted
       IF (ipos mod 8) ne 0 THEN BEGIN
          ipos=ipos + 8-(ipos mod 8)
       ENDIF
-      IF cipos gt syncpos[i] THEN BEGIN 
+      IF cipos gt syncpos[i] THEN BEGIN
          ;This indicates a decompression error.  Revert back to previous position and erase data from last particle.
-         ipos=lastgoodipos    
+         ipos=lastgoodipos
          image[ipos:*] = 255    ;reset written data from previous particle.
       ENDIF
       ;print,'*'
@@ -55,34 +55,34 @@ FUNCTION decompress_dmt3, cimage
          if (rlehb and 32b) eq 32 then dummy=1     ;This is a dummy byte, skip it
          count=rlehb and 31b  ;Number of zeroes, ones, or existing bytes to follow.  Actual number to add is count+1 per manual.
          ;print,rlehb,dec2bin8(rlehb), 'z=',zeroes, 'o=',ones, 'd=',dummy , 'c=',count+1,format='(i5, 8i4, a6,i3,a6,i3,a6,i3,a6,i3)'
-         
+
          IF (zeroes eq 1) and (ones eq 0) and (dummy eq 0) THEN BEGIN           ;Add in zeroes
             image[ipos:ipos+count]=0B
             ipos=ipos+count+1
          ENDIF
-         
+
          IF (ones eq 1) and (zeroes eq 0) and (dummy eq 0) THEN BEGIN           ;Add in ones
             image[ipos:ipos+count]=255B
             ipos=ipos+count+1
          ENDIF
-         
+
          IF (zeroes eq 0) and (ones eq 0) and (dummy eq 0) THEN BEGIN    ;Just keeps the following bytes
             ;There is an infrequent error where cipos+count is too big, runs to next buffer
             IF cipos+count+1 lt nbytes THEN BEGIN
-               ;Realign each new particle at the edge 
+               ;Realign each new particle at the edge
                ;IF count gt 2 && total(cimage[cipos:cipos+2] eq byte([170,170,170])) eq 3 then ipos=ipos + 8-(ipos mod 8)
                ;Stuff image with cimage bytes
                image[ipos:ipos+count]=cimage[cipos+1:cipos+count+1]
                ipos=ipos+count+1
                cipos=cipos+count+1
             ENDIF ;ELSE stop
-         ENDIF    
+         ENDIF
       ENDFOR
    ENDFOR
 ;bitimage=reform(reverse(dec2bin8(not(image)),1),64,5000)
-;stop   
+;stop
    image=image[0:ipos-1] ; truncate image to size
-   
+
    ;-------Find the rest of the sync slices, some are not always detected above-------------
    s=size(image)
    slices=s[1]/8
@@ -103,18 +103,18 @@ FUNCTION decompress_dmt3, cimage
          particle_count[sync_count]=params.particle_count
          dof[sync_count]=params.dof
          header_slice_count[sync_count]=params.slice_count
-         
-         ;Get the time for each particle, starting each buffer at 0 seconds         
+
+         ;Get the time for each particle, starting each buffer at 0 seconds
          IF sync_count eq 0 THEN starttime=params.time_sfm
          time[sync_count]=(params.time_sfm-starttime)
          time_total[sync_count]=params.time_sfm
-         sync_count=sync_count+1               
+         sync_count=sync_count+1
       ENDIF
    ENDFOR
-   
+
    ;Bad buffer check
    IF sync_count le 2 THEN return, nullbuffer
- 
+
    sync_ind=sync_ind[0:((sync_count>1)-1)] ; truncate the array to size (>1 since sync_count is sometimes 0 in bad buffers)
    particle_count=particle_count[0:sync_count>1-1]
    dof=dof[0:sync_count>1-1]
@@ -122,19 +122,19 @@ FUNCTION decompress_dmt3, cimage
    time_total=time_total[0:sync_count>1-1]
    header_slice_count=header_slice_count[0:sync_count>1-1]
    ;Sometimes the recorded slice_count is off, which screws up processbuffer.  Compute here.
-   slice_stop = [sync_ind[1:*], fix(slices-1)] 
+   slice_stop = [sync_ind[1:*], fix(slices-1)]
    slice_count = slice_stop - sync_ind - 1   ;Not counting sync/time slices
    ;-----------------------------------------------------
 
-   bitimage=reform(reverse(dec2bin8(not(image)),1),64,slices)  ; change to 64 x #Slices binary image 
+   bitimage=reform(reverse(dec2bin8(not(image)),1),64,slices)  ; change to 64 x #Slices binary image
 
    ;This is for running on Windows PCs to avoid a crash
-   IF !version.os_family eq 'Windows' THEN wait,0.01  
-   
+   IF !version.os_family eq 'Windows' THEN wait,0.01
+
    remainder=cimage[syncpos[c-1]:nbytes-1]   ;Save this to add to next buffer, if desired for bridging.
-   
+
    return, {image:image, bitimage:bitimage, sync_ind:sync_ind, time_elap:time, time_sfm:time_total, $
             particle_count:particle_count, slice_count:slice_count, dof:dof, remainder:remainder, $
             header_slice_count:header_slice_count}
-   
+
 END
