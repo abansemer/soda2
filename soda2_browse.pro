@@ -30,7 +30,7 @@ PRO soda2_browse_event, ev
             wid=[w1,w2,w3,w5]
 
             outdir=file_dirname(fn)+path_sep()
-            info={i:0L,i1:0L,i2:0L,b1i:-1L,fn:fn,gotfile:0,timeformat:1,wid:wid,wt:wt,$
+            info={i:0L,i1:0L,i2:0L,b1i:-1L,fn:fn,gotfile:0,timeformat:1,declutter:1,wid:wid,wt:wt,$
                bmp:bytarr(float(screen_x),50),outdir:outdir,rawdir:'',show_correction:1,panelstart:0} ; Reset pinfo
 
             ;Restore files, set pointers to the restored data
@@ -149,6 +149,7 @@ PRO soda2_browse_event, ev
             widget_control,widget_info(ev.top,find='wt'),sensitive=1
             widget_control,widget_info(ev.top,find='properties'),sensitive=1
             widget_control,widget_info(ev.top,find='color_invert'),sensitive=1
+            widget_control,widget_info(ev.top,find='toggle_clutter_filter'),sensitive=1
             widget_control,widget_info(ev.top,find='massparammenu'),sensitive=1
             widget_control,widget_info(ev.top,find='newbrowser'),sensitive=1
             widget_control,widget_info(ev.top,find='filedisplay'),set_value=file_basename(fn)
@@ -439,6 +440,49 @@ PRO soda2_browse_event, ev
         END
         ;====================================================================================================
 
+        (uname eq 'toggle_clutter_filter'): BEGIN
+           ;Reload file and restore conc1d, meanar
+           restore,(*pinfo).fn
+
+           ;Recompute mask
+           binary=data.conc1d and (data.conc1d*0 + 1)  ;Declutter mask
+           kernel=[[0,1,0],[1,1,1],[0,1,0]]
+           binary=morph_open(binary,kernel)
+
+           ;Toggle the filter
+           IF (*pinfo).declutter eq 1 THEN BEGIN
+               (*pinfo).declutter = 0
+               binary[*] = 1
+           ENDIF ELSE (*pinfo).declutter = 1
+
+           ;Replace data
+           armidbins=((*pop).arendbins[1:*]+(*pop).arendbins[1:*])/2.0
+           meanar=compute_meanar(data.spec2d,armidbins)
+           (*p1).meanar = meanar * binary
+           (*p1).conc1d = data.conc1d * binary
+
+           ;Recompute bulk using BF
+           a=0.00294 & b=1.9
+           binstart=min(where((*pop).endbins ge 100))
+           bulk=compute_bulk_simple((*p1).conc1d,(*pop).endbins,binstart=binstart,ac=a,bc=b)
+           (*p1).iwc=bulk.iwc
+           (*p1).lwc=bulk.lwc
+           (*p1).dmedianmass=bulk.dmedianmass
+           (*p1).mnd=bulk.mnd
+           (*p1).mvd=bulk.mvd
+           (*p1).dbz=bulk.dbz
+           (*p1).nt=bulk.nt
+           (*p1).msdnorm=bulk.msdnorm
+
+           ;Update the time bar window
+           wset,(*pinfo).wt
+           plot,smooth(alog10(bulk.nt),5,/nan),xsty=5,ysty=5,pos=[0,0,1,1],yr=[2,8],/yl
+           (*pinfo).bmp=tvrd()     ;The raw plot
+
+           soda2_windowplot,ev.top,p1,pinfo,pop,pmisc
+       END
+       ;====================================================================================================
+
        ELSE: dummy=0
     ENDCASE
 END
@@ -472,14 +516,15 @@ PRO soda2_browse, fn
     base = WIDGET_BASE(COLUMN=1,title='Browse Processed Data',MBar=menubarID)
     fileID=widget_button(menubarID, value='File', /menu,uname='base') ;uvalue=pinfo,
     loadID=widget_button(fileID, value='Load...',uname='load')
+    newbrowserID=widget_button(fileID, value='Open new browser',uname='newbrowser',sensitive=0)
     propID=widget_button(fileID, value='Properties',uname='properties',sensitive=0)
     colorID=widget_button(fileID, value='Invert colors',uname='color_invert',sensitive=0)
+    clutterID=widget_button(fileID, value='Toggle clutter filter',uname='toggle_clutter_filter',sensitive=0)
     massparamID=widget_button(fileID, value='Change mass/size parameterization',uname='massparammenu',sensitive=0,/menu)
     mp1ID=widget_button(massparamID, value='Brown/Francis',uname='massparam_bf')
     mp2ID=widget_button(massparamID, value='CRYSTAL',uname='massparam_crystal')
     mp3ID=widget_button(massparamID, value='Heymsfield 2010',uname='massparam_2010')
     mp4ID=widget_button(massparamID, value='Water',uname='massparam_water')
-    newbrowserID=widget_button(fileID, value='Open new browser',uname='newbrowser',sensitive=0)
     quitID=widget_button(fileID, value='Quit',uname='quit')
 
 
