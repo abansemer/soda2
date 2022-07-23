@@ -21,16 +21,13 @@ FUNCTION poisson_spot_correct, img_orig, img_fill, zd=zd
   4.45,4.5,4.55,4.6,4.65,4.7,4.75,4.8,4.85,4.9,4.95,5.0,5.05,5.1,5.15,5.2,5.25,5.3,5.35,5.4,5.45,5.5,5.55,5.6,5.65,5.7,5.75,5.8,5.85,5.9,5.95,6.0,6.05,6.1,6.15,6.2,6.25,6.3,6.35,6.4,6.45,6.5,6.55,6.6, $
   6.65,6.7,6.75,6.8,6.85,6.9,6.95,7.0,7.05,7.1,7.15,7.2,7.25,7.3,7.35,7.4,7.45,7.5,7.55,7.6,7.65,7.7,7.75,7.8,7.85,7.9,7.95,8.0,8.05,8.1,8.15]
 
-   correction = -1
-   Zd = -1
+   correction = 1.0
+   Zd = 0.0
    IF ((img_orig ge 0) AND (img_fill ge 0)) THEN BEGIN
       ratio = sqrt((float(img_fill)-img_orig)/img_fill)
-      ip=1
-      WHILE (ratio GT Dspot_Dedge[ip]) DO BEGIN
-	      ip=ip+1
-	   ENDWHILE
-	   Zd = Zeed[ip-1]
-      correction = Dedge_D0[ip-1]
+      ip = max(where(Dspot_Dedge le ratio)) > 0 < (n_elements(Dspot_Dedge)-1)
+	   Zd = Zeed[ip]
+      correction = Dedge_D0[ip]
    ENDIF
    return, correction
-End
+END
