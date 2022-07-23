@@ -34,7 +34,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    soda2_update_op,op
    pop=ptr_new(op)      ;make a pointer to this for all other programs, these are constants
    ;Keep miscellaneous stuff here, things that change during processing
-   misc={f2d_remainder:ulon64arr(512), f2d_remainder_slices:0, yres:op.yres, lastbufftime:0D, aircrafttas:0.0,$
+   misc={f2d_remainder:ulon64arr(512), f2d_remainder_slices:0, yres:op.yres, lastbufftime:0D, aircrafttas:0.0, probetas:0.0,$
          nimages:0, imagepointers:lon64arr(500), hkpointers:lon64arr(500), lastclock:0d, lastparticlecount:0L, maxsfm:0D}
    pmisc=ptr_new(misc)  ;a different pointer, for stuff that changes
 
@@ -327,8 +327,10 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    ENDFOR
 
    ;Get housekeeping data, if available
-   IF op.format eq 'SPEC' THEN spec_process_hk, op, y=y, /nosav, data=house ELSE house={op:op}
-
+   house={op:op}
+   IF op.format eq 'SPEC' THEN spec_process_hk, op, y=y, /nosav, data=house
+   IF (op.format eq 'SEA') and (op.probetype eq 'CIP') and (n_elements(op.seatag) ge 2) THEN $
+      process_cip1d_sea, op, /nowrite, data=house
 
    ;====================================================================================================
    ;====================================================================================================
@@ -392,6 +394,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
             IF (*pmisc).nimages gt 0 THEN BEGIN
                (*pmisc).imagepointers=i*y.buffsize + y.imagep[(y.firstp[i]):(y.firstp[i]+y.numimages[i]-1)]
                (*pmisc).hkpointers=y.hkp[y.ihk[(y.firstp[i]):(y.firstp[i]+y.numimages[i]-1)]]
+               (*pmisc).probetas=interpol(house.tas, house.time, b.time)   ;Backup TAS when using separate HK file without pointers (3V/Hawkeye)
             ENDIF
          ENDIF
 
@@ -401,7 +404,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          ;Process the buffer
          p=soda2_processbuffer(b,pop,pmisc)
 
-         ;Active/dead time computation with SEA buffers, must be after soda2_processbuffer since time updates can happen there
+         ;Active/dead time computation with SEA buffers which contain both a start time and a stop time.
+         ;Must be after soda2_processbuffer since time updates can happen there.
          IF (*pop).format eq 'SEA' THEN BEGIN
             timeindex_stoptime=long((b.stoptime-op.starttime)/op.rate)>0<(numrecords-1)
 
@@ -414,6 +418,14 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
                activetime_sea[timeindex_stoptime] += (b.stoptime - d.time[timeindex_stoptime]) ; (buffer stop)-(last time period start)
                IF (timeindex_stoptime - timeindex) gt 1 THEN activetime_sea[(timeindex+1):(timeindex_stoptime-1)]=op.rate ;Fill intervening buffers
             ENDIF
+         ENDIF
+
+         ;Compute activetime from missed particle counts instead.  This is primarily for older DMT probes when they
+         ;have a reliable particle counter.  Newer greyscale and mono-grey probes probably won't work.  Should take
+         ;care of time gaps between SEA buffers and gaps within the buffers during probe overload.  Initially
+         ;used for HIWC 2022.
+         IF (*pop).activetimefrommissed eq 1 THEN BEGIN
+            stop  ;Under development
          ENDIF
 
          ;Update diode histogram
@@ -512,6 +524,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
          ;Replace buffertime with newtime for SPEC probes
          ;IF gotnt eq 1 THEN x.buffertime=newtime[i*num2process:i*num2process+n_elements(x.buffertime)-1]
          reprocessed_time = newtime[i*num2process:i*num2process+n_elements(x.buffertime)-1]
+         ncdf_offset = num2process*i
          soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id, reprocessed_time=reprocessed_time
 
          percentcomplete=fix(float(i+1)*num2process / n_elements(pbp.time) * 100) < 100
