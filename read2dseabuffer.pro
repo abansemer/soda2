@@ -9,7 +9,6 @@ function read2dseabuffer,lun,res=res,tags=tags,probetype=probetype
    ;fixed several timing errors 2-2002
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
-   forward_function readdatadir
    IF n_elements(res) eq 0 THEN begin & res=25 & print,'Using 25um for SEA tas.' & endif
    IF n_elements(tags) eq 0 THEN tags=[5000,5001,5002]  ; standard tags if not specified
    IF tags[0] eq 0 THEN tags=[5000,5001,5002]

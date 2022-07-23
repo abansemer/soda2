@@ -5,9 +5,15 @@ FUNCTION spec_readint,lun,length,buffsize=buffsize,signed=signed
    ;AB 5/2011
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
-   
+
    IF n_elements(buffsize) eq 0 THEN buffsize=4114
    IF n_elements(signed) eq 0 THEN signed=0
+   IF buffsize eq 0 THEN BEGIN
+      ;Set buffsize to 0 to bypass the boundary skips.  This is for 2DSCPIHK files which don't have boundaries.
+      IF signed eq 1 THEN x=intarr(length) ELSE x=uintarr(length)
+      readu,lun,x
+      return,x
+   ENDIF
    headersize=9ULL  ;integer length
    point_lun,-lun,pointer
    m1=pointer/buffsize
@@ -22,7 +28,7 @@ FUNCTION spec_readint,lun,length,buffsize=buffsize,signed=signed
       END
       1:BEGIN
          x2=uintarr(length+headersize)
-         IF signed eq 1 THEN x=intarr(length+headersize)
+         IF signed eq 1 THEN x2=intarr(length+headersize)
          readu,lun,x2
          div=(buffsize-(pointer mod buffsize))/2 - 1 ;-1 for footer
          IF div gt 0 THEN x=[x2[0:div-1],x2[div+headersize:length+headersize-1]] ELSE $
@@ -30,15 +36,14 @@ FUNCTION spec_readint,lun,length,buffsize=buffsize,signed=signed
       END
       ELSE:BEGIN
          print,'Frame spans 2+ buffers, unsupported so far'
-         x=uintarr(length+crossings*headersize) 
+         x=uintarr(length+crossings*headersize)
          readu,lun,x
          x[*]=0  ;Just return a bunch of zeros
       END
    ENDCASE
-   
+
    ;Take care of case where current pointer is at the end of a buffer, set it to start of next one
    point_lun,-lun,pointer
    IF (pointer mod buffsize) eq (buffsize-2) THEN point_lun,lun,pointer+headersize*2
    return,x
 END
-   

@@ -12,7 +12,7 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
    color1=80  ;blue
    color2=150 ;green
    color3=250 ;red
-   color4=190 ;yellow
+   color4=200 ;dark yellow
    color5=215 ;orange
    color6=110 ;light blue
    color7=45  ;purple
@@ -42,7 +42,7 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
          xyouts,0.07,0.27,'IWC(g/m!u3!n):',/norm & xyouts,0.2,0.27,strtrim(string((*p1).iwc[i],form='(f7.4)'),2),/normal
          xyouts,0.07,0.24,'MeanD(um):',/norm & xyouts,0.2,0.24,strtrim(string((*p1).mnd[i],form='(f7.1)'),2),/normal
          xyouts,0.07,0.21,'MMD(um):',/norm & xyouts,0.2,0.21,strtrim(string((*p1).dmedianmass[i],form='(f7.1)'),2),/normal
-         xyouts,0.07,0.18,'MVD(um):',/norm & xyouts,0.2,0.18,strtrim(string((*p1).mvd[i],form='(f7.1)'),2),/normal         
+         xyouts,0.07,0.18,'MVD(um):',/norm & xyouts,0.2,0.18,strtrim(string((*p1).mvd[i],form='(f7.1)'),2),/normal
          xyouts,0.07,0.12,'Accepted:',/norm & xyouts,0.2,0.12,strtrim(string((*p1).count_accepted[i]),2),/normal
          xyouts,0.07,0.09,'Rejected:',/norm & xyouts,0.2,0.09,strtrim(string((*p1).count_rejected_total[i]),2),/normal
          xyouts,0.07,0.06,'Missed:',/norm & xyouts,0.2,0.06,strtrim(string((*p1).count_missed[i]),2),/normal
@@ -229,8 +229,9 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                END
               'Diode Voltages':BEGIN
                   maxy=5
-                  colorarray=[color3, color5, color4, 0, color2, color1, color7]  ;Put these in a rainbow order array
                   ss=size((*p1).house.volts, /dim)
+                  colorarray=[color3, color5, color4, 0, color2, color1, color7]  ;Put these in a rainbow order array
+                  IF ss[1] eq 3 THEN colorarray=[color1, color2, color3]  ;Make clearer when only 3
                   plot,x,(*p1).house.volts[a:b,0],ytitle='Diode Volts',yr=[0,maxy],/ys,/nodata
                   FOR i=0, ss[1]-1 DO oplot, x, (*p1).house.volts[a:b,i], color=colorarray[i]
                   legend_old,string((*p1).house.diodes, format='(i3)'),line=0,color=colorarray[0:ss[1]-1],box=1,/bottom,/right,/clear,charsize=1.0,thick=2
@@ -239,6 +240,8 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                   ;Set for SPEC probes for now, may need to eventually adjust
                   colorarray=[color3, color5, color4, 0, color2, color1, color7]  ;Put these in a rainbow order array
                   temps2plot=[0,2,6,7,9,10,12]  ;More available for SPEC
+                  IF (*pop).probetype eq 'CIP' THEN temps2plot=[0,1,2,3,4]
+                  IF (*pop).probetype eq '3VCPI' THEN temps2plot=[0,1,2,3,4,5]
                   miny=-20 & maxy=40
                   plot,x,(*p1).house.temp[a:b,0],ytitle='Temperature (C)',yr=[miny,maxy],/ys,/nodata
                   FOR i=0, n_elements(temps2plot)-1 DO oplot, x, (*p1).house.temp[a:b,temps2plot[i]], color=colorarray[i]

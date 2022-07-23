@@ -30,6 +30,7 @@ PRO soda2_update_op, op
    IF total(where(tag_names(op) eq 'DOFREJECT')) eq -1 THEN op=create_struct(op,'dofreject',0)  ;Reject based on DoF flag (DMT or NCAR), or Level 3 grey pixel (CIP-G)
    IF total(where(tag_names(op) eq 'STRETCHCORRECT')) eq -1 THEN op=create_struct(op,'stretchcorrect',0)  ;Adjust yres when aircraft TAS and probe TAS mismatch
    IF total(where(tag_names(op) eq 'STRICTCOUNTER')) eq -1 THEN op=create_struct(op,'strictcounter',0)  ;Apply particle-counter rejection for DMT probes (which are often noisy)
+   IF total(where(tag_names(op) eq 'ACTIVETIMEFROMMISSED')) eq -1 THEN op=create_struct(op,'activetimefrommissed',0)  ;Compute active/dead time based on missed particle counts (DMT)
 
    ;Check for incompatible options
    IF (op.format eq 'SPEC') and (op.stuckbits eq 1) THEN BEGIN
@@ -38,6 +39,7 @@ PRO soda2_update_op, op
       op.stuckbits = 0
    ENDIF
    IF (op.stretchcorrect eq 1) and (op.format ne 'SPEC') THEN print, 'Stretch correction not available for this format, will not be applied.'
+   IF (op.probetype eq '2DS') and (op.yres ne 10.0) THEN print, 'Y-resolution on 2DS is not 10um, timing may be inaccurate if y-res not applied during data acquisition.'
 
    ;For model TXT data, read in parameters from header and override
    IF strmid(op.fn[0],3,4,/reverse) eq '.txt' THEN BEGIN
