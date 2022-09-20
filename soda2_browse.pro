@@ -121,7 +121,7 @@ PRO soda2_browse_event, ev
 
             ;Keep miscellaneous stuff here, things that change during processing
             misc2={f2d_remainder:ulon64arr(512), f2d_remainder_slices:0, yres:op.res, lastbufftime:0.0, $
-                nimages:0, imagepointers:lon64arr(500), lastclock:0d, lastparticlecount:0L}
+                nimages:0, imagepointers:lon64arr(500), lastclock:0d, lastparticlecount:0L, lastdhist:lonarr(op.numdiodes)}
 
             misc=create_struct(temporary(misc), misc2)  ;Join the SPEC and misc structures
 
@@ -373,11 +373,13 @@ PRO soda2_browse_event, ev
               base=strlowcase(strcompress(plottype[id],/remove_all))
            ENDIF
 
-           file=base+'_'+(*pop).date+'_'+(*pop).probetype+'_'+strtrim(string(sfm2hms((*p1).time[(*pinfo).i])),2)
+           tempop = *pop   ;Create a temporary op since will change the time for correct filename
+           tempop.starttime = (*p1).time[(*pinfo).i]
+           file = soda2_filename(tempop, tempop.probetype, ext= '_'+base+'.png', outdir='')
            IF file_test((*pinfo).outdir,/write) eq 0 THEN $
                (*pinfo).outdir=dialog_pickfile(/read,/directory,title='Select output directory',dialog_parent=widget_info(ev.top,find='tab'))
-           write_png,(*pinfo).outdir+file+'.png',image
-           dummy=dialog_message('Wrote '+(*pinfo).outdir+file+'.png',dialog_parent=widget_info(ev.top,find='tab'),/info)
+           write_png, (*pinfo).outdir+file, image
+           dummy=dialog_message('Wrote '+(*pinfo).outdir+file, dialog_parent=widget_info(ev.top,find='tab'),/info)
         END
         ;====================================================================================================
         (uname eq 'ts_type1') or (uname eq 'ts_type2') or (uname eq 'ts_units'): BEGIN
