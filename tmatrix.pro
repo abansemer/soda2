@@ -9,7 +9,7 @@ FUNCTION tmatrix, dspec, freqband=freqband, a=a, b=b, filepath=filepath, particl
    IF n_elements(b) eq 0 THEN b=2.1
    IF n_elements(a) eq 0 THEN a=0.01
    IF n_elements(particle_aspect) eq 0 THEN particle_aspect=0.6
-   IF n_elements(filepath) eq 0 THEN filepath='~/programs/tmatrix/'
+   IF n_elements(filepath) eq 0 THEN filepath='/shared/dpm/bansemer/programs/tmatrix/'
    IF n_elements(oldway) eq 0 THEN oldway=0
    IF n_elements(quiet) eq 0 THEN quiet=0
    
