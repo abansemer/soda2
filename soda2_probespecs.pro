@@ -77,6 +77,26 @@ FUNCTION soda2_probespecs, name=name, id=id
    all=[all,x]
 
    x=base
+   x.probename='NOAA HRD CIP Grey (PADS)'
+   x.shortname='CIPG'
+   x.format='DMT'
+   x.subformat=1
+   x.probetype='CIPG'
+   x.probeid=''
+   x.greythresh=2
+   x.res=25
+   x.yres=25
+   x.armwidth=10.0
+   x.numdiodes=64
+   x.tau=0.051e-6
+   x.firstsliceskip=0
+   x.dofthreshold=0.0
+   x.dofconst=3.0
+   x.wavelength=0.658e-6
+   x.seatag=[0]
+   all=[all,x]
+
+   x=base
    x.probename='DLR CAPS-Grey (PADS)'
    x.shortname='CIP_DLR'
    x.format='DMT'
