@@ -1,5 +1,5 @@
 FUNCTION spec_index, lun, lite=lite, minimagesize=minimagesize, pointerstart=pointerstart, $
-         pointerstop=pointerstop, absolutepointer=absolutepointer
+         pointerstop=pointerstop, absolutepointer=absolutepointer, version=version
    ;FUNCTION to return the file pointers to image, housekeeping,
    ;and mask buffers in 2DS/HVPS3 data.
    ;Full indexing is working but is very slow and requires lot of
@@ -14,6 +14,9 @@ FUNCTION spec_index, lun, lite=lite, minimagesize=minimagesize, pointerstart=poi
    IF n_elements(pointerstart) eq 0 THEN pointerstart=0ULL
    IF n_elements(buffsize) eq 0 THEN buffsize=4114ULL
    IF n_elements(absolutepointer) eq 0 THEN absolutepointer=0
+   IF n_elements(version) eq 0 THEN version=1
+   IF version eq 1 THEN hklength=53   ;2DS/HVPS3
+   IF version eq 2 THEN hklength=83   ;3VCPI/Hawkeye/HVPS4, usually with separate base*HK file
 
    f=fstat(lun)
    IF n_elements(pointerstop) eq 0 THEN pointerstop=f.size
@@ -75,7 +78,7 @@ FUNCTION spec_index, lun, lite=lite, minimagesize=minimagesize, pointerstart=poi
 
         REPEAT BEGIN
            CASE b[j] OF
-            12883:BEGIN
+            12883:BEGIN  ;'2S'
                nh=b[j+1] and 'fff'x
                nv=b[j+2] and 'fff'x
                IF (nh ge minimagesize) or (nv ge minimagesize) THEN BEGIN  ;Ignore small particles
@@ -89,17 +92,17 @@ FUNCTION spec_index, lun, lite=lite, minimagesize=minimagesize, pointerstart=poi
                ENDIF
                j=j+5+nh+nv
             END
-            19787:BEGIN
+            19787:BEGIN  ;'MK'
                maskp[maskc]=i*buffsize+headersize+j*2
                maskc=maskc+1
                j=j+23
             END
-            18507:BEGIN
+            18507:BEGIN  ;'HK'
                hkp[hkc]=i*buffsize+headersize+j*2
                hkc=hkc+1
-               j=j+53
+               j=j+hklength
            END
-            20044:BEGIN
+            20044:BEGIN  ;'NL'
                j=ndataints
             END
             0:j=j+1

@@ -253,7 +253,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           clocktas=fltarr(num_images)+buffer.tas
        END
 
-       (((*pop).probetype eq 'HVPS3') or ((*pop).probetype eq '2DS') or ((*pop).probetype eq '3VCPI')): BEGIN
+       (((*pop).probetype eq 'HVPS3') or ((*pop).probetype eq '2DS') or ((*pop).probetype eq '3VCPI') or ((*pop).probetype eq 'HVPS4')): BEGIN
           ;Decompress the images in this buffer
           num_images=(*pmisc).nimages
           IF num_images eq 0 THEN return, nullbuffer
@@ -275,12 +275,15 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
             ;First read the associated housekeeping buffer to get TAS
             IF lasthkpointer ne (*pmisc).hkpointers[i] THEN hk=spec_read_hk(1,(*pmisc).hkpointers[i])
             lasthkpointer=(*pmisc).hkpointers[i]  ;Keep track of last one
-            ;HK buffers for 3VCPI/Hawkeye does not contain TAS, need external house data which has been placed into *pmisc
-            IF (*pop).probetype eq '3VCPI' THEN hk.tas=(*pmisc).probetas
+            ;HK buffers for 3VCPI/Hawkeye/HVPS4 does not contain TAS, need external house data which has been placed into *pmisc
+            IF ((*pop).probetype eq '3VCPI') or ((*pop).probetype eq 'HVPS4') THEN hk.tas=(*pmisc).probetas
 
             ;Read images
-            IF ((*pop).probetype eq '3VCPI') THEN x=tvcpi_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid) ELSE $
-               x=spec_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid)
+            CASE (*pop).probetype OF
+               '3VCPI': x=tvcpi_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid)
+               'HVPS4': x=hvps4_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid)
+               ELSE: x=spec_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid)
+            ENDCASE 
             IF x.error eq 0 THEN BEGIN
                bitimage=[[bitimage],[x.image]]
                startline[c]=slicecount
@@ -296,7 +299,9 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
                freq=double((*pop).res/(1.0e6*clocktas[c]))  ; the time interval of each tick in a timeline
                ;Special case for Hawkeye, horizontal 50um array uses the 10um clock on the V-array, not a 50um clock
                IF ((*pop).probetype eq '3VCPI') and ((*pop).res eq 50) THEN freq=double(10.0/(1.0e6*clocktas[c]))
-               ;Special case for HVPS
+               ;Special case for HVPS-4, horizontal 150um array uses the 50um clock, not a 150um clock
+               IF ((*pop).probetype eq 'HVPS4') and ((*pop).res eq 150) THEN freq=double(50.0/(1.0e6*clocktas[c]))
+               ;Special case for HVPS-3
                IF ((*pop).probetype eq 'HVPS3') THEN BEGIN
                   x.time=x.timetrunc  ;HVPS has some timing errors, use truncated version.
                   rollovervalue=65536
@@ -441,7 +446,9 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    ENDCASE
 
    ;Code common to all probes
-   IF (*pop).stuckbits THEN bitimage=fixstuckbits(bitimage)
+   sbhist=(*pmisc).lastdhist  ;Use the last time period's dhist for stuck bit checking
+   bitimage_orig=bitimage
+   IF (*pop).stuckbits THEN bitimage=fixstuckbits(bitimage, h=sbhist)  ;sbhist should be undefined except for SPEC probes, defaulting to current buffer
    IF (*pop).rakefix gt 0 THEN bitimage=fixraking(bitimage, (*pop).rakefix)
    diodetotal=total(bitimage,2)  ;Make sure bitimage is free of time/sync lines
    IF max(diodetotal)/mean(diodetotal) gt 3 THEN streak=1 ELSE streak=0
@@ -477,6 +484,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    nslices=0  ;Number of image slices (no timelines, sync, etc)
    FOR i=0,num_images-1 DO BEGIN
       roi=bitimage[*,startline[i]:stopline[i]]  ;extract a single particle from the buffer image
+      roi_orig=bitimage_orig[*,startline[i]:stopline[i]]  ;the original bitimage preserving stuck bits
 
       ;Adjust the particle for grey probes to the right threshold
       IF (*pop).greythresh gt 0 THEN BEGIN
@@ -488,6 +496,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
          ;Get final roi for sizing
          thresh=(*pop).greythresh-1     ;makes next line easier
          roi=((roi > thresh)-thresh)<1  ;turn all pixels above threshold to 1
+         roi_orig=((roi_orig > thresh)-thresh)<1  ;same for version preserving stuck bits
       ENDIF
 
       IF restore_slice THEN roi=soda2_backfill(roi)
@@ -510,7 +519,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
          ENDIF
       ENDIF
 
-      IF roilen eq 1 THEN roihist=roi ELSE roihist=total(roi,2)   ;Keep this for housekeeping
+      IF roilen eq 1 THEN roihist=roi_orig ELSE roihist=total(roi_orig,2)   ;For housekeeping, keeping stuck bits using roi_orig 
       dhist=dhist+roihist
 
       ;Find the number of unshaded diodes within the boundary of each particle.  For detecting double particles.

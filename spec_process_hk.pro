@@ -11,7 +11,7 @@ PRO spec_process_hk, op, textwidgetid=textwidgetid, fn_out=fn_out, y=y, nosav=no
 
    ;---Initialize variables---------------------------------------
    version = 1
-   IF op.probetype eq '3VCPI' THEN BEGIN
+   IF (op.probetype eq '3VCPI') or (op.probetype eq 'HVPS4') THEN BEGIN
       version = 2
       fn = op.fn+'HK'   ;These use separate file for HK data
       IF file_test(fn) eq 0 THEN stop,'File: '+fn+' not found.'
@@ -30,6 +30,7 @@ PRO spec_process_hk, op, textwidgetid=textwidgetid, fn_out=fn_out, y=y, nosav=no
    numfields=49
    IF version eq 2 THEN numfields=83
    hk=fltarr(numrecords, numfields)
+   hkraw=fltarr(numrecords, numfields)  ;Not adjusted with coefficients
    tas=fltarr(numrecords)
    nb=fltarr(numrecords)
 
@@ -59,6 +60,7 @@ PRO spec_process_hk, op, textwidgetid=textwidgetid, fn_out=fn_out, y=y, nosav=no
       IF (itime ge 0) and (itime lt numrecords) THEN BEGIN
          h=spec_read_hk(lun,hkindex.hkp[i],hkindex.buffsize,version=version)
          hk[itime,*]=hk[itime,*]+h.x
+         hkraw[itime,*]=hkraw[itime,*]+h.raw
          tas[itime]=tas[itime]+h.tas
          nb[itime]=nb[itime]+1
       ENDIF
@@ -95,7 +97,7 @@ PRO spec_process_hk, op, textwidgetid=textwidgetid, fn_out=fn_out, y=y, nosav=no
               'rear optical bridge', 'DSP board', 'forward vessel', 'horiz laser', 'vert laser', 'front plate', 'power supply']
    ENDIF
 
-   ;-------3VCPI/Hawkeye------------
+   ;-------3VCPI/Hawkeye/HVPS4------------
    IF version eq 2 THEN BEGIN
       FOR i=0,numrecords-1 DO BEGIN
          n=nb[i]>1  ;Avoid divide by zero
@@ -104,23 +106,60 @@ PRO spec_process_hk, op, textwidgetid=textwidgetid, fn_out=fn_out, y=y, nosav=no
       ENDFOR
 
       ;---Only save the data that applies to this array---
-      IF op.probeid eq 'V' THEN BEGIN
-         volts=hk[*,[36:42]]  ;PSD45 = Vertical
-         overloads=hk[*,67]
-         laservolts=hk[*,30]  ;Current actually
-         counts=hk[*,58]
-      ENDIF ELSE BEGIN
-         volts=hk[*,[44:50]]  ;PDS90 = Horizontal
-         overloads=hk[*,66]
-         laservolts=hk[*,31]  ;Current actually
-         counts=hk[*,57]
-      ENDELSE
+      f1=0.00244140625  ;Conversion factor for raw units
 
+      CASE op.probeid OF
+         'V':BEGIN
+            volts=hkraw[*,[36:42]]*f1  ;PSD45 = Vertical
+            overloads=hkraw[*,67]
+            laservolts=hkraw[*,30]  ;Current actually
+            counts=hkraw[*,58]
+         END
+         'H':BEGIN
+            volts=hkraw[*,[44:50]]*f1  ;PDS90 = Horizontal
+            overloads=hkraw[*,66]
+            laservolts=hkraw[*,31]  ;Current actually
+            counts=hkraw[*,57]
+         END
+         'V50':BEGIN
+            volts=hkraw[*,[2:8]]*f1
+            overloads=hkraw[*,67]
+            laservolts=hkraw[*,30]  ;Current actually
+            counts=hkraw[*,60]
+         END
+         'V150':BEGIN
+            volts=hkraw[*,[36:42]]*f1
+            overloads=hkraw[*,67]  ;None available, using V50
+            laservolts=hkraw[*,30]  ;Current actually
+            counts=hkraw[*,58]
+         END
+         'H50':BEGIN
+            volts=hkraw[*,[24,25,26,27,30,31,32]]*f1
+            overloads=hkraw[*,66]
+            laservolts=hkraw[*,30]  ;Current actually
+            counts=hkraw[*,59]
+         END
+         'H150':BEGIN
+            volts=hkraw[*,[44:50]]*f1
+            overloads=hkraw[*,66]  ;None available, using H50
+            laservolts=hkraw[*,30]  ;Current actually
+            counts=hkraw[*,57]
+         END
+      ENDCASE
+
+      tempraw = hkraw[*,[2,5,7,13,14,17,19,20,21]]
       tempid = ['fwd sample tube','central sample tube','nose cone','vertical laser','horizontal laser',$
                 'vertical optics', 'horizontal optics','vertical mirror','horizontal mirror']
-      temperature = hk[*,[2,5,7,13,14,17,19,20,21]]
-      power = hk[*,34:35]
-      canpressure = hk[*,29]*68.9476
+      IF (op.probetype eq 'HVPS4') THEN BEGIN
+         tempraw = hkraw[*,9:21]
+         tempid=['horiz arm tx', 'horiz arm rx', 'vert arm tx', 'vert arm rx', 'horiz tip tx', 'horiz tip rx', $
+                 'rear optical bridge', 'DSP board', 'forward vessel', 'horiz laser', 'vert laser', 'front plate', 'power supply']
+      ENDIF
+      rt = 6.5536e9 * (1.-double(tempraw)/65536.) / (5. * double(tempraw))   ;Copied from 3VCPIView
+      temperature = -273.15 + (1.1117024e-3 + 237.02702e-6 * alog(rt) + 75.78814e-9 * (alog(rt))^3.)^(-1.)
+
+      power = hkraw[*,34:35]
+      canpressure = (hkraw[*,29] * 0.00572205 - 3.75) * 68.9476    ;in mb, copied from 3VCPIView, seems high
    ENDIF
 
    ;---Interpolate TAS over missing values---

@@ -17,42 +17,50 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
       ;Build a 'buffer' of up to 2000 slices
       maxslices=2000
       bitimage=bytarr(128,maxslices)
-      c=0  
-      imsize=0    
-      WHILE (c lt framep.n) and (imsize lt maxslices) DO BEGIN   
-         IF (*pop).probetype eq '3VCPI' THEN im=tvcpi_read_frame(lun,framep.ap[c],(*pop).probeid) ELSE $
-            im=spec_read_frame(lun,framep.ap[c],(*pop).probeid)
+      c=0
+      imsize=0
+      WHILE (c lt framep.n) and (imsize lt maxslices) DO BEGIN
+         CASE (*pop).probetype OF
+            '3VCPI': im=tvcpi_read_frame(lun,framep.ap[c],(*pop).probeid)
+            'HVPS4': im=hvps4_read_frame(lun,framep.ap[c],(*pop).probeid)
+            ELSE: im=spec_read_frame(lun,framep.ap[c],(*pop).probeid)
+         ENDCASE
          slices=n_elements(im.image)/128
          IF imsize+slices lt maxslices THEN bitimage[0:127,imsize:imsize+slices-1]=im.image
-         
+
          ;Add a divider
          IF (divider eq 1) and (imsize+slices lt (maxslices-1)) and (total(im.image) gt 0) THEN BEGIN
             bitimage[0:127,imsize+slices]=(indgen(128) mod 4 / 3)*2
             imsize=imsize+1
          ENDIF
-         
+
          imsize=imsize+slices
          c=c+1
       ENDWHILE
       bitimage=bitimage[0:127, 0:((imsize < maxslices)-1 > 0)]
       rejectbuffer=0
-           
+      IF (*pop).stuckbits eq 1 THEN bitimage=fixstuckbits(bitimage, h=(*pmisc).lastdhist)
+
    ;All other probes
    ENDIF ELSE BEGIN
-   
+
       IF n_elements(b.image) gt 1 THEN BEGIN
          p=soda2_processbuffer(b, pop, pmisc)
          rejectbuffer=p.rejectbuffer
          bitimage=p.bitimage
+
+         ;Add a divider
+         IF (divider eq 1) THEN bitimage[*, (p.startline-1)>0] = 1
+
       ENDIF ELSE return, {time:b.time, bitimage:0b, rejectbuffer:1, error:1}
    ENDELSE
-   
+
    free_lun,lun
    ;Adjust to color table for mono probes
    IF rejectbuffer eq 0 THEN BEGIN
-      IF (*pop).probetype ne 'CIPG' THEN bitimage=bitimage*2  
+      IF (*pop).probetype ne 'CIPG' THEN bitimage=bitimage*2
    ENDIF
-   
+
    return,{time:b.time, bitimage:bitimage, rejectbuffer:rejectbuffer, error:0}
 
 END
