@@ -33,11 +33,11 @@ PRO soda2_update_op, op
    IF total(where(tag_names(op) eq 'ACTIVETIMEFROMMISSED')) eq -1 THEN op=create_struct(op,'activetimefrommissed',0)  ;Compute active/dead time based on missed particle counts (DMT)
 
    ;Check for incompatible options
-   IF (op.format eq 'SPEC') and (op.stuckbits eq 1) THEN BEGIN
-      print, 'op.stuckbits will not work for SPEC probe data.'
-      print, 'Setting op.stuckbits to 0.'
-      op.stuckbits = 0
-   ENDIF
+   ;IF (op.format eq 'SPEC') and (op.stuckbits eq 1) THEN BEGIN
+   ;   print, 'op.stuckbits will not work for SPEC probe data.'
+   ;   print, 'Setting op.stuckbits to 0.'
+   ;   op.stuckbits = 0
+   ;ENDIF
    IF (op.stretchcorrect eq 1) and (op.format ne 'SPEC') THEN print, 'Stretch correction not available for this format, will not be applied.'
    IF (op.probetype eq '2DS') and (op.yres ne 10.0) THEN print, 'Y-resolution on 2DS is not 10um, timing may be inaccurate if y-res not applied during data acquisition.'
 

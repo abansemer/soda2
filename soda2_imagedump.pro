@@ -53,7 +53,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    ENDIF ELSE misc={dummy:0}
    ;Keep miscellaneous stuff here, things that change during processing
    misc2={f2d_remainder:ulon64arr(512), f2d_remainder_slices:0, yres:op.res, lastbufftime:0.0, $
-         nimages:0, imagepointers:lon64arr(500), lastclock:0d, lastparticlecount:0L}
+         nimages:0, imagepointers:lon64arr(500), lastclock:0d, lastparticlecount:0L, lastdhist:lonarr(op.numdiodes)}
 
    misc=create_struct(temporary(misc), misc2)  ;Join the SPEC and misc structures
    pmisc=ptr_new(misc)
@@ -154,6 +154,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
             IF hourly ne 0 THEN ind=where(indminute eq minute*60l+sec, buffcount)  ;Minutes are really hours, seconds are really minutes
 
             IF buffcount gt 0 THEN BEGIN
+               (*pmisc).lastdhist=data.dhist[(i-1)>0,*]
                buff=soda2_bitimage(op.fn[data.currentfile[ind[0]]], data.pointer[ind[0]], pop, pmisc, divider=showdividers)
                finalimage=buff.bitimage
                ;Make sure there are at least 2 slices, if not just use empty image
@@ -222,6 +223,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
       remainder=0  ;flag for long buffers
 
       FOR i=framestart,framestop,skip DO BEGIN
+         ;(*pmisc).lastdhist=data.dhist[(???)>0,*]  ;For stuck bits, not yet implemented, need to figure out the index for data.dhist
          buff=soda2_bitimage(op.fn[data.currentfile[i]], data.pointer[i], pop, pmisc, divider=showdividers)
          finalimage=buff.bitimage
 

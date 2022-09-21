@@ -70,6 +70,9 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
          ;Buffer indexes for current time period
          ind=where((*p1).ind eq (*pinfo).i,buffcount)
 
+         ;Update stuck bit reference
+         (*pmisc).lastdhist=(*p1).dhist[((*pinfo).i-1)>0,*]
+         
          buffermargin=10
          panelwidth=(*pop).numdiodes+buffermargin
          num2plot=!d.x_size/fix(panelwidth)
@@ -86,7 +89,7 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
          ENDIF
          imagestop=((panelstart+1)*num2plot-1) < (buffcount-1)
          FOR i=imagestart, imagestop DO BEGIN
-            b=soda2_bitimage(fn[(*p1).currentfile[ind[i]]], (*p1).pointer[ind[i]], pop, pmisc)
+         b=soda2_bitimage(fn[(*p1).currentfile[ind[i]]], (*p1).pointer[ind[i]], pop, pmisc)
             IF b.rejectbuffer eq 0 THEN BEGIN
                tv,b.bitimage+1,panelwidth*ibuffer+buffermargin,20
                xyouts,panelwidth*ibuffer+buffermargin,10,string(b.time,format='(f8.2)'),/device,charsize=charsize

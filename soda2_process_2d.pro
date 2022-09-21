@@ -35,7 +35,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    pop=ptr_new(op)      ;make a pointer to this for all other programs, these are constants
    ;Keep miscellaneous stuff here, things that change during processing
    misc={f2d_remainder:ulon64arr(512), f2d_remainder_slices:0, yres:op.yres, lastbufftime:0D, aircrafttas:0.0, probetas:0.0,$
-         nimages:0, imagepointers:lon64arr(500), hkpointers:lon64arr(500), lastclock:0d, lastparticlecount:0L, maxsfm:0D}
+         nimages:0, imagepointers:lon64arr(500), hkpointers:lon64arr(500), lastclock:0d, lastparticlecount:0L, maxsfm:0D, $
+         lastdhist:lonarr(op.numdiodes)}
    pmisc=ptr_new(misc)  ;a different pointer, for stuff that changes
 
    ;====================================================================================================
@@ -430,6 +431,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
 
          ;Update diode histogram
          dhist[timeindex,*]=dhist[timeindex,*]+p.dhist
+         (*pmisc).lastdhist=dhist[(timeindex-1)>0,*]  ;Use previous time period for detecting streaks and fixing soda2_processbuffer
 
          ;Get particle metrics
          IF p.rejectbuffer eq 0 THEN BEGIN
