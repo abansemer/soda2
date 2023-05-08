@@ -1,4 +1,4 @@
-PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
+PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=profile
    ;PRO to make 'spectra' files for a 2D probe, and save them
    ;in IDL's native binary format.  This version places particles
    ;individually in the appropriate time period, rather than the
@@ -7,16 +7,16 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    ;Aaron Bansemer, NCAR, 2009.
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
+
    ;Needed when running from GUI
    IF n_elements(textwidgetid) eq 0 THEN textwidgetid=0
-
-   ;Option to reprocess data using an already-generated pbp file to save time
-   IF n_elements(fn_pbp) eq 0 THEN reprocess=0 ELSE BEGIN
-      reprocess=1
-      IF file_test(fn_pbp) eq 0 THEN stop, 'PBP file not found.'
-      ;op.ncdfparticlefile=0    ;Don't rewrite particle files
-      ;op.particlefile=0
-   ENDELSE
+   IF n_elements(profile) eq 0 THEN profile=0
+   IF profile THEN BEGIN
+      resolve_all
+      profiler, /reset
+      profiler
+      profiler, /system
+   ENDIF
 
    ;The current expected structure of op is:
    ;op={fn:fn, date:date, starttime:hms2sfm(starttime), stoptime:hms2sfm(stoptime), format:format, $
@@ -24,14 +24,16 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    ;smethod:smethod, pth:pth, particlefile:0, inttime_reject:inttime_reject, reconstruct:1, stuckbits:0, water:water,$
    ;fixedtas:fixedtas, outdir:outdir, project:project, timeoffset:timeoffset, armwidth:armwidth, $
    ;numdiodes:numdiodes, greythresh:greythresh}
-
-;resolve_all
-;profiler,/reset
-;profiler
-;profiler,/system
-
-
    soda2_update_op,op
+
+   ;Option to reprocess data using an already-generated pbp file to save time
+   IF n_elements(fn_pbp) eq 0 THEN reprocess=0 ELSE BEGIN
+      reprocess=1
+      IF file_test(fn_pbp) eq 0 THEN stop, 'PBP file not found.'
+      op.ncdfparticlefile=0    ;Don't rewrite particle files since they may overwrite while in process
+      op.particlefile=0
+   ENDELSE
+
    pop=ptr_new(op)      ;make a pointer to this for all other programs, these are constants
    ;Keep miscellaneous stuff here, things that change during processing
    misc={f2d_remainder:ulon64arr(512), f2d_remainder_slices:0, yres:op.yres, lastbufftime:0D, aircrafttas:0.0, probetas:0.0,$
@@ -64,6 +66,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    numarbins:numarbins ,$
    count_accepted:lonarr(numrecords) ,$
    count_rejected:lonarr(numrecords,7) ,$
+   total_count_rejected:lonarr(numrecords),$
    count_missed:lonarr(numrecords) ,$
    missed_hist:fltarr(numrecords,50),$
    spec2d:fltarr(numrecords, numbins, numarbins) ,$
@@ -525,7 +528,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
 
          ;Replace buffertime with newtime for SPEC probes
          ;IF gotnt eq 1 THEN x.buffertime=newtime[i*num2process:i*num2process+n_elements(x.buffertime)-1]
-         reprocessed_time = newtime[i*num2process:i*num2process+n_elements(x.buffertime)-1]
+         IF (*pop).format eq 'SPEC' THEN reprocessed_time = newtime[i*num2process:i*num2process+n_elements(x.buffertime)-1]
          ncdf_offset = num2process*i
          soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id, reprocessed_time=reprocessed_time
 
@@ -549,19 +552,28 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
    midbins=(float(op.endbins[0:numbins-1])+op.endbins[1:numbins])/2.0
    binwidth=op.endbins[1:numbins]-op.endbins[0:numbins-1]
    sa=fltarr(numbins)
-   FOR i=0,numbins-1 DO sa[i]=soda2_samplearea(midbins[i], op.res, op.armwidth, op.numdiodes, op.eawmethod, op.smethod, op.wavelength, op.dofconst)
+
+   ;Compute the number of active diodes for HVPS-1 or probes with partially active arrays
+   numactivediodes = op.numdiodes  ;Default to full range
+   IF (op.dioderange[0] ne 0) or (op.dioderange[1] ne 0) THEN numactivediodes = op.dioderange[1] - op.dioderange[0] + 1
+
+   ;Sample area
+   FOR i=0,numbins-1 DO sa[i]=soda2_samplearea(midbins[i], op.res, op.armwidth, numactivediodes, op.eawmethod, $
+      op.smethod, op.wavelength, op.dofconst)
 
    ;Assume probe is always active, minus deadtime
    IF op.ignoredeadtime eq 1 THEN BEGIN
       activetime=fltarr(numrecords)+op.rate
    ENDIF ELSE BEGIN
-      activetime=(fltarr(numrecords)+op.rate-d.deadtime)>0
-      IF (*pop).format eq 'SEA' THEN activetime=activetime_sea
+      activetime=(fltarr(numrecords)+op.rate-d.deadtime) > 0 < (*pop).rate
+      ;Using overload flag now for CIP/PIP deadtime in processbuffer and particlesort, not activetime_sea.
+      IF ((*pop).format eq 'SEA') and ((*pop).probetype ne 'CIP') THEN activetime = activetime_sea < (*pop).rate
    ENDELSE
 
    ;Figure out which TAS to use for concentration and compute sample volume
    probetas=d.tas
    IF (got_pth eq 1) THEN aircrafttas=pth_tas ELSE aircrafttas=probetas
+   IF max(aircrafttas) lt 10 THEN print, 'Check TAS, too low, likely not valid'
    sv=sa*aircrafttas*activetime
 
    ;Orientation
@@ -584,13 +596,16 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
       ENDIF
    ENDFOR
 
-   data={op:op, time:d.time, tas:aircrafttas, probetas:probetas, midbins:midbins, activetime:activetime, Date_Processed:systime(), sa:sa, $
-         intspec_all:d.intspec_all, intspec_accepted:d.intspec_accepted, intendbins:intendbins, intmidbins:intmidbins,$
-         count_rejected:d.count_rejected,count_accepted:d.count_accepted, count_missed:d.count_missed, $
-         missed_hist:d.missed_hist, conc1d:conc1d, spec1d:spec1d, spec2d:d.spec2d, spec2d_aspr:d.spec2d_aspr,$
-         corr_fac:d.corr_fac, poisson_fac:d.poisson_fac, intcutoff:d.intcutoff, zdspec:d.zdspec, zdendbins:d.zdendbins, zdmidbins:d.zdmidbins,$
-         pointer:buffpoint, ind:buffindex, currentfile:bufffile, numbuffsaccepted:numbuffsaccepted, numbuffsrejected:numbuffsrejected, dhist:dhist,$
-         hist3d:d.hist3d, spec2d_orientation:d.spec2d_orientation, orientation_index:orientation_index, house:house, pbpstartindex:pbpstartindex}
+   data={op:op, time:d.time, tas:aircrafttas, probetas:probetas, midbins:midbins, activetime:activetime, $
+         Date_Processed:systime(), sa:sa, intspec_all:d.intspec_all, intspec_accepted:d.intspec_accepted, $
+         intendbins:intendbins, intmidbins:intmidbins, count_rejected:d.count_rejected, $
+         total_count_rejected:d.total_count_rejected, count_accepted:d.count_accepted, count_missed:d.count_missed, $
+         missed_hist:d.missed_hist, conc1d:conc1d, spec1d:spec1d, spec2d:d.spec2d, spec2d_aspr:d.spec2d_aspr, $
+         corr_fac:d.corr_fac, poisson_fac:d.poisson_fac, intcutoff:d.intcutoff, zdspec:d.zdspec, $
+         zdendbins:d.zdendbins, zdmidbins:d.zdmidbins, pointer:buffpoint, ind:buffindex, currentfile:bufffile, $
+         numbuffsaccepted:numbuffsaccepted, numbuffsrejected:numbuffsrejected, dhist:dhist, hist3d:d.hist3d, $
+         spec2d_orientation:d.spec2d_orientation, orientation_index:orientation_index, house:house, $
+         pbpstartindex:pbpstartindex}
 
    ;Close pointers and luns
    ptr_free, pop, pmisc
@@ -622,6 +637,5 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp
       IF textwidgetid ne 0 THEN dummy=dialog_message(infoline,dialog_parent=textwidgetid,/info) ELSE print,infoline
    ENDELSE
 
-
-;profiler,/report
+IF profile THEN profiler,/report
 END
