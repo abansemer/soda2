@@ -18,7 +18,7 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
    ;rawtime rollovers, floating frequency, etc.  Inttime computed in soda2_processbuffer is better, so use that
    ;instead.
    IF op.format eq 'SPEC' THEN BEGIN
-      interarrival=x.inttime
+      interarrival=x.inttime > 0
       ;Buffertime is not exact, but close enough with accuracy usually <0.1seconds.
       ;Considering rawtime gets far too complicated, with repeating buffer times, floating clock speed, delta-time mismatches, etc.
       ;May also consider interpolation between buffertimes, but must be sure they are monotonic first.
@@ -28,14 +28,14 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
    ENDIF
    IF op.format eq 'SEA' THEN BEGIN
       ;Better computed at buffer level
-      interarrival=x.inttime
+      interarrival=x.inttime > 0
       ;Need to do this because probetime can be reset during flight (power cycle).
       ;There are still some mismatches between buffer elapsed time and probe elapsed time, so
       ;errors in truetime still appear.  Might just use buffertime in future.
       truetime=x.probetime - x.reftime + x.buffertime
    ENDIF
    IF op.format eq 'TXT' THEN BEGIN
-      interarrival=x.inttime
+      interarrival=x.inttime > 0
       truetime=x.probetime ;Should be perfect
    ENDIF
 
@@ -49,31 +49,30 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       ENDIF
    ENDFOR
 
+   ;Time
    deadtime=interarrival*x.overloadflag               ;Deadtime=interarrival when the flag is set
    timeindex=long((truetime-op.starttime)/op.rate)    ;Index each particle into right time period
-   s=sort(timeindex)                                  ;Sort them (should be mostly sorted already)
-   u=[-1, uniq(timeindex[s])]                         ;Give last index of every unique timeindex
+   dtimeindex = timeindex[1:*]-timeindex              ;For error detection
+   IF min(dtimeindex) lt 0 THEN print, 'Time indexing error, non-monotonic times present'
 
-   IF ((op.probetype eq '2DC') or (op.probetype eq '2DP')) THEN BEGIN
-      deadtimes=(truetime[inewbuffer[1:*]]-truetime[inewbuffer[1:*]-1])>0 ;Gap between last particle of one buffer and first of next
+   ;Compute deadtime based on gaps between buffers for 2DC
+   IF (op.probetype eq '2DC') THEN BEGIN
+      ;Compute gap between last particle of one buffer and first of next
+      deadtimes=(truetime[inewbuffer[1:*]]-truetime[inewbuffer[1:*]-1])>0
       ideadtime=timeindex[inewbuffer[1:*]]
       IF (*pop).format eq 'RAF' THEN deadtimes=0  ;Timelines are often off by a factor of 2 in this format, should be no deadtime, ignore it.
 
-      ;Loop through all the unique indices found
-      FOR i=1L,n_elements(u)-1 DO BEGIN
-         w=where(ideadtime eq i,ni)
-         IF ni gt 0 THEN d.deadtime[i]=total(deadtimes[w]) < op.rate
+      ;Apply deadtime to each time index
+      FOR itime=min(timeindex), max(timeindex) DO BEGIN
+         w=where(ideadtime eq itime, ni)
+         IF ni gt 0 THEN d.deadtime[itime]=total(deadtimes[w]) < op.rate
       ENDFOR
    ENDIF
 
-   ;Loop through all the unique indices found
-   FOR i=1L,n_elements(u)-1 DO BEGIN
-      indstart=(u[i-1]+1)
-      indstop=(u[i])
-      iparticles=s[indstart:indstop]               ;Index to each particle in this step
-      itime=timeindex[iparticles[0]]               ;Time index of this step
-
-      IF (itime ge 0) and (itime lt d.numrecords) THEN BEGIN                     ;Make sure in time range
+   ;Loop through all time indices and sort/analyze particles
+   FOR itime=min(timeindex), max(timeindex) DO BEGIN
+      iparticles=where(timeindex eq itime, nparticles)
+      IF (itime ge 0) and (itime lt d.numrecords) and (nparticles gt 0) THEN BEGIN      ;Make sure in time range
          ;Find TAS
          d.tas[itime]=mean(x[iparticles].probetas)
 
@@ -94,7 +93,7 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
          ENDIF
 
          ;Accumulate deadtime and missed particles
-         IF (op.format) eq 'SPEC' THEN BEGIN
+         IF (op.format eq 'SPEC') or ((op.probetype eq 'CIP') and (op.format eq 'SEA')) THEN BEGIN
             ;Use this method for SPEC probes, applying deadtime backward rather than forward
             FOR j=0L,n_elements(iparticles)-1 DO BEGIN
                IF x[iparticles[j]].overloadflag THEN BEGIN
@@ -140,7 +139,7 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
             ENDIF
             IF ((*pop).water eq 1) THEN binningar=x[iparticles[j]].arearatiofilled ELSE binningar=x[iparticles[j]].arearatio
             reject=soda2_reject(x[iparticles[j]], interarrival[iparticles[j]], interarrival[nextparticleindex], d.intcutoff[itime], cluster[iparticles[j]], binningsize, pop)
-            rejectionflag[iparticles[j]] =  reject
+            rejectionflag[iparticles[j]] = reject
             IF reject eq 0 THEN BEGIN
                sizebin=max(where(op.endbins le binningsize),nws)
                IF binningsize eq op.endbins[0] THEN sizebin=0  ;Special case where size=first endbin
@@ -159,8 +158,9 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
                zdbin=max(where(d.zdendbins le x[iparticles[j]].zd,nzd))
                d.zdspec[sizebin,zdbin]=d.zdspec[sizebin,zdbin]+1
             ENDIF ELSE BEGIN
-               ireject=where(reject and [1,2,4,8,16,32,64])  ;Gives a list of reasons.  Only increment count_rejected based on the first one.
-               d.count_rejected[itime,ireject[0]]=d.count_rejected[itime,ireject[0]]+1
+               ireject=where(reject and [1,2,4,8,16,32,64])  ;Gives a list of rejection reasons
+               d.count_rejected[itime,ireject[0]]++  ;Increment for each reason
+               d.total_count_rejected[itime]++       ;Increment for any reasons
             ENDELSE
          ENDFOR
       END
@@ -240,8 +240,9 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       ncdf_varput,ncdf_id,varid,rejectionflag,count=numparticles,offset=ncdf_offset
    ENDIF
    IF op.particlefile eq 1 THEN BEGIN   ;ASCII version
-      FOR i=0L,numparticles-1 DO printf, lun_pbp, truetime[i], x[i].probetime, x[i].buffertime, interarrival[i], x[i].diam, x[i].xsize, x[i].ysize, x[i].arearatio, $
-          x[i].aspectratio, x[i].orientation, x[i].allin, x[i].overloadflag, x[i].missed, x[i].particlecounter, form='(3f13.5,e13.5,3f12.3,2f6.2,f8.1,2i3,i7,i7)'
+      FOR i=0L,numparticles-1 DO printf, lun_pbp, truetime[i], x[i].probetime, x[i].buffertime, interarrival[i], $
+         x[i].diam, x[i].xsize, x[i].ysize, x[i].arearatio, x[i].aspectratio, x[i].orientation, x[i].allin, $
+         x[i].overloadflag, x[i].missed, x[i].particlecounter, form='(3f13.5,e13.5,3f12.3,2f6.2,f8.1,2i3,i7,i7)'
    ENDIF
 
 
