@@ -72,7 +72,11 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
 
          ;Update stuck bit reference
          (*pmisc).lastdhist=(*p1).dhist[((*pinfo).i-1)>0,*]
-         
+
+         ;Reset scroll bars to bottom-left
+         drawid=widget_info(topid,find='w2')
+         widget_control, drawid, set_draw_view=[0, 0]
+
          buffermargin=10
          panelwidth=(*pop).numdiodes+buffermargin
          num2plot=!d.x_size/fix(panelwidth)
@@ -89,14 +93,14 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
          ENDIF
          imagestop=((panelstart+1)*num2plot-1) < (buffcount-1)
          FOR i=imagestart, imagestop DO BEGIN
-         b=soda2_bitimage(fn[(*p1).currentfile[ind[i]]], (*p1).pointer[ind[i]], pop, pmisc)
+            b=soda2_bitimage(fn[(*p1).currentfile[ind[i]]], (*p1).pointer[ind[i]], pop, pmisc)
+            ;Display buffers
             IF b.rejectbuffer eq 0 THEN BEGIN
-               tv,b.bitimage+1,panelwidth*ibuffer+buffermargin,20
-               xyouts,panelwidth*ibuffer+buffermargin,10,string(b.time,format='(f8.2)'),/device,charsize=charsize
+               tv, b.bitimage+1, panelwidth*ibuffer+buffermargin, 20
+               xyouts, panelwidth*ibuffer+buffermargin, 10, string(b.time,format='(f8.2)'), /device, charsize=charsize
             ENDIF
             ibuffer=ibuffer+1
          ENDFOR
-
          ;Update panel counter
          numpanels=buffcount/num2plot
          IF buffcount mod num2plot ne 0 THEN numpanels=numpanels+1
@@ -253,6 +257,11 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
                'Color Concentration':BEGIN
                    conc=alog10((*p1).conc1d[a:b,*] > 1)
                    zrange=fix([3,max(alog10((*p1).conc1d),/nan)]) ;was [4,12]
+                   IF (*pinfo).adjustrange eq 1 THEN BEGIN
+                      h = histogram(conc, min=1, max=12)    ;min=1 to avoid zeros, added back in zrange assignment
+                      wh = where(h/total(h) gt 0.01, nwh)   ;Get range that contains at least 1% of particles
+                      IF nwh gt 1 THEN zrange = [min(wh)+1, max(wh)+2]  ;max+2 gives best-looking results
+                   ENDIF
                    contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/yl,/ys,yr=sizerange,zr=zrange,c_colors=c_colors ;min_val=max(conc)-10,
 
                    barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]

@@ -20,6 +20,7 @@ PRO soda2_event, ev
             widget_control,widget_info(ev.top,find='rate'),set_value=op.rate
             widget_control,widget_info(ev.top,find='xres'),set_value=op.res
             widget_control,widget_info(ev.top,find='yres'),set_value=op.yres
+            widget_control,widget_info(ev.top,find='dofconst'),set_value=op.dofconst
             widget_control,widget_info(ev.top,find='date'),set_value=op.date
             widget_control,widget_info(ev.top,find='project'),set_value=op.project
             widget_control,widget_info(ev.top,find='seatag'),set_value=string(op.seatag,form='(3(i0," "))')
@@ -86,6 +87,7 @@ PRO soda2_event, ev
             w=where((p.format eq op.format) and (p.subformat eq op.subformat) and (p.probeid eq op.probeid) $
                and (p.res eq op.res) and (p.armwidth eq op.armwidth) and (p.numdiodes eq op.numdiodes) $
                and (p.probetype eq op.probetype), nw)
+            IF op.format eq 'TXT' THEN w=where(p.format eq 'TXT', nw)
             IF nw eq 0 THEN BEGIN
                dummy=dialog_message('Unknown probe type in .sav file.' + string(10B) + string(10B)+ $
                   'Select new type or add probe to soda2_probespecs.pro')
@@ -138,7 +140,8 @@ PRO soda2_event, ev
 
         'defaultbins': BEGIN ;===========================================================================
             widget_control,widget_info(ev.top,find='xres'),get_value=xres  ;Get current x-res from GUI
-            IF xres le 50 THEN endbins=[25, 50, 100, 150, 200, 250, 300, 350, 400, 500, 600,700,800,900,1000,1200,1400,1600,1800,2000]
+            IF xres lt 50 THEN endbins=[25, 50, 100, 150, 200, 250, 300, 350, 400, 500, 600,700,800,900,1000,1200,1400,1600,1800,2000]
+            IF xres eq 50 THEN endbins=[25, 75, 125, 175, 250, 350, 450, 550, 650, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2600, 3000, 3400, 3800, 4200, 4600, 5000, 6000, 7000, 8000, 9000, 10000]
             IF xres lt 15 THEN endbins=[5,15,25,35,45,55,65,75,85,95,105,125,145,175,225,275,325,400,475,550,625,700,800,900,1000,1200,1400,1600,1800,2000]
             IF xres gt 50 THEN endbins=[200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2200, 2600, 3000, 3400, 3800, 4200, 4600, 5000,6000,7000,8000,9000,10000,15000,20000,25000,30000]
             widget_control,widget_info(ev.top,find='endbins'),set_value=string(endbins,form='(100(i0," "))')
@@ -147,7 +150,8 @@ PRO soda2_event, ev
         'fullbins': BEGIN ;===========================================================================
             id=widget_info(ev.top,find='probetype')
             widget_control,id,get_uvalue=probename
-            probe=soda2_probespecs(name=probename)
+            widget_control,widget_info(ev.top,find='filelist'),get_value=fn
+            probe=soda2_probespecs(name=probename, fn=fn)
             widget_control,widget_info(ev.top,find='xres'),get_value=xres  ;Get current x-res from GUI
             endbins=findgen(probe.numdiodes+1)*xres + xres/2.0
             widget_control,widget_info(ev.top,find='endbins'),set_value=string(endbins,form='(200(f0.1," "))')
@@ -156,7 +160,8 @@ PRO soda2_event, ev
         'fullbinsx2': BEGIN ;===========================================================================
             id=widget_info(ev.top,find='probetype')
             widget_control,id,get_uvalue=probename
-            probe=soda2_probespecs(name=probename)
+            widget_control,widget_info(ev.top,find='filelist'),get_value=fn
+            probe=soda2_probespecs(name=probename, fn=fn)
             widget_control,widget_info(ev.top,find='xres'),get_value=xres  ;Get current x-res from GUI
             endbins=findgen(probe.numdiodes*2 + 1)*xres + xres/2.0
             widget_control,widget_info(ev.top,find='endbins'),set_value=string(endbins,form='(500(f0.1," "))')
@@ -217,6 +222,7 @@ PRO soda2_event, ev
             widget_control,widget_info(ev.top,find='rate'),get_value=rate
             widget_control,widget_info(ev.top,find='xres'),get_value=xres
             widget_control,widget_info(ev.top,find='yres'),get_value=yres
+            widget_control,widget_info(ev.top,find='dofconst'),get_value=dofconst
             widget_control,widget_info(ev.top,find='tas'),get_value=fixedtas
             widget_control,widget_info(ev.top,find='project'),get_value=project
             widget_control,widget_info(ev.top,find='date'),get_value=date
@@ -272,7 +278,8 @@ PRO soda2_event, ev
             ;--------Probe Details
             id=widget_info(ev.top,find='probetype')
             probename=widget_info(id, /combobox_gettext)
-            probe=soda2_probespecs(name=probename)
+            widget_control,widget_info(ev.top,find='filelist'),get_value=fn
+            probe=soda2_probespecs(name=probename, fn=fn)
             IF probe.probename eq '' THEN BEGIN
                dummy=dialog_message('Enter a valid probe',dialog_parent=widget_info(ev.top,find='process'))
                return
@@ -327,13 +334,13 @@ PRO soda2_event, ev
 
             ;Can add bindistribution to this structure if desired
             op={fn:fn, date:date[0], starttime:hms2sfm(starttime[0]), stoptime:hms2sfm(stoptime[0]), format:probe.format, $
-               subformat:probe.subformat, probetype:probe.probetype, res:xres, yres:yres, dofconst:probe.dofconst, $
+               subformat:probe.subformat, probetype:probe.probetype, res:xres, yres:yres, dofconst:dofconst, $
                endbins:endbins, arendbins:arendbins, rate:rate, smethod:smethod, pth:pthfile[0], asciipsdfile:asciipsdfile, $
                savfile:savfile, inttime_reject:inttime_reject, eawmethod:eawmethod, stuckbits:stuckbits, juelichfilter:juelichfilter, water:water,$
                fixedtas:fixedtas, outdir:outdir[0], project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
                numdiodes:probe.numdiodes, probeid:probe.probeid, shortname:probe.shortname, greythresh:probe.greythresh, $
                wavelength:probe.wavelength, seatag:seatag, ncdfparticlefile:ncdfparticlefile, stretchcorrect:stretchcorrect[0],$
-               keeplargest:keeplargest, apply_psc:apply_psc, dofreject:dofreject}
+               keeplargest:keeplargest, apply_psc:apply_psc, dofreject:dofreject, dioderange:probe.dioderange}
 
             ;Process housekeeping if flagged
             IF (housefile eq 1) and (probe.format eq 'SPEC') THEN BEGIN
@@ -354,9 +361,11 @@ PRO soda2_event, ev
             widget_control,ev.id,set_uvalue=ev.str    ;A workaround to be able to access current index with widget_control later on
             id=widget_info(ev.top,find='probetype')
             widget_control,id,get_uvalue=probename
-            probe=soda2_probespecs(name=probename)
+            widget_control,widget_info(ev.top,find='filelist'),get_value=fn
+            probe=soda2_probespecs(name=probename, fn=fn)
             widget_control,widget_info(ev.top,find='xres'),set_value=probe.res
             widget_control,widget_info(ev.top,find='yres'),set_value=probe.yres
+            widget_control,widget_info(ev.top,find='dofconst'),set_value=probe.dofconst
             widget_control,widget_info(ev.top,find='seatag'),set_value=string(probe.seatag,form='(3(i0," "))')
             tagid=widget_info(ev.top,find='tagbase')  ;Toggle SEA tag sensitivity
             IF probe.format eq 'SEA' THEN widget_control,tagid,sensitive=1 ELSE widget_control,tagid,sensitive=0
@@ -462,6 +471,7 @@ PRO soda2
     subbase2a=widget_base(subbase2,row=1)
     xres=cw_field(subbase2a,/float, title='X-resolution (um):',uname='xres' , xsize=5, value=0)
     yres=cw_field(subbase2a,/float, title='Y-resolution (um):',uname='yres' , xsize=5, value=0)
+    dofconst=cw_field(subbase2a,/float, title='DoF Const:',uname='dofconst' , xsize=5, value=0)
 
     subbase2f=widget_base(subbase2a,row=1,sensitive=0,uname='tagbase')
     seatag=cw_field(subbase2f, title='SEA Tags:', uname='seatag' , xsize=10, value='0 0 0')

@@ -30,8 +30,9 @@ PRO soda2_browse_event, ev
             wid=[w1,w2,w3,w5]
 
             outdir=file_dirname(fn)+path_sep()
+            ;Reset pinfo
             info={i:0L,i1:0L,i2:0L,b1i:-1L,fn:fn,gotfile:0,timeformat:1,declutter:1,wid:wid,wt:wt,$
-               bmp:bytarr(float(screen_x),50),outdir:outdir,rawdir:'',show_correction:1,panelstart:0} ; Reset pinfo
+               bmp:bytarr(float(screen_x),50),outdir:outdir,rawdir:'',show_correction:1,panelstart:0,adjustrange:0}
 
             ;Restore files, set pointers to the restored data
             restore,fn
@@ -72,7 +73,10 @@ PRO soda2_browse_event, ev
             ENDIF ELSE BEGIN
                ;SODA-2
                sodaversion=2
-               count_rejected_total=long(total(data.count_rejected,2))
+               IF total(tag_names(data) eq 'TOTAL_COUNT_REJECTED') eq 0 THEN BEGIN
+                  ;Older files don't keep total_count_rejected in a separate variable
+                  count_rejected_total=long(total(data.count_rejected,2))
+               ENDIF ELSE count_rejected_total = data.total_count_rejected  ;Newer files have separate variable
                data=create_struct(data,bulk,'count_rejected_total',count_rejected_total,'meanar',meanar,'sodaversion',sodaversion)
                ;Add in aspect ratio if it is in the dat file
                IF total(tag_names(data) eq 'SPEC2D_ASPR') ne 0 THEN BEGIN
@@ -130,7 +134,7 @@ PRO soda2_browse_event, ev
 
             ;Plot Nt in the time bar window
             wset,wt
-            plot,smooth(alog10(data.nt),5,/nan),xsty=5,ysty=5,pos=[0,0,1,1],yr=[2,8],/yl
+            plot,smooth(alog10(data.nt),5,/nan),xsty=5,ysty=5,pos=[0,0,1,1],yr=[0.2,8],/yl
             ;plot,smooth(data.conc1d[*,1],5,/nan),xsty=5,ysty=5,pos=[0,0,1,1],yr=[1e2,1e12],/yl
             info.bmp=tvrd()     ;The raw plot
             tsbmp=info.bmp
@@ -150,6 +154,7 @@ PRO soda2_browse_event, ev
             widget_control,widget_info(ev.top,find='properties'),sensitive=1
             widget_control,widget_info(ev.top,find='color_invert'),sensitive=1
             widget_control,widget_info(ev.top,find='toggle_clutter_filter'),sensitive=1
+            widget_control,widget_info(ev.top,find='toggle_adjustrange'),sensitive=1
             widget_control,widget_info(ev.top,find='massparammenu'),sensitive=1
             widget_control,widget_info(ev.top,find='newbrowser'),sensitive=1
             widget_control,widget_info(ev.top,find='filedisplay'),set_value=file_basename(fn)
@@ -221,7 +226,7 @@ PRO soda2_browse_event, ev
                   PlotS, [sx, sx, dx, dx, sx], [sy, dy, dy, sy, sy], /Device, Color=250
                ENDIF
                ;Button Release
-               IF ev.type eq 1 THEN BEGIN
+               IF (ev.type eq 1) and ((*pmouse).down eq 1) THEN BEGIN
                   (*pmouse).down=0
                   dx=ev.x > 0 <(*pmouse).xsize
                   dy=ev.y > 0 <(*pmouse).ysize
@@ -230,7 +235,7 @@ PRO soda2_browse_event, ev
 
                   ; Erase the final box.
                   wset,(*pmouse).wid
-                  Device, Copy=[ 0, 0, (*pmouse).xsize, (*pmouse).ysize, 0, 0, (*pmouse).pixID]
+                  Device, Copy=[0, 0, (*pmouse).xsize, (*pmouse).ysize, 0, 0, (*pmouse).pixID]
                   ; Delete the pixmap.
                   WDelete, (*pmouse).pixID
                   ; Order the box coordinates and return.
@@ -357,12 +362,8 @@ PRO soda2_browse_event, ev
            wset,(*pinfo).wid[tabnum]
            image=tvrd(/true)
 
-           ;set_plot,'z'
-           ;device,set_resolution=[1000,1000]
-           ;sid_windowplot,ev.top,p1,pinfo,/noset
-           ;image=tvrd()
-           ;set_plot,'x'
-
+           tempop = *pop   ;Create a temporary op since will change the time for correct filename
+           tempop.starttime = (*p1).time[(*pinfo).i]  ;Time at blue bar for file naming
 
            IF tabnum eq 0 THEN base='psd'
            IF tabnum eq 1 THEN base='particles'
@@ -371,10 +372,9 @@ PRO soda2_browse_event, ev
               widget_control,widget_info(ev.top,find='ts_type1'),get_value=plottype
               id=widget_info(widget_info(ev.top,find='ts_type1'),/droplist_select)
               base=strlowcase(strcompress(plottype[id],/remove_all))
+              tempop.starttime = (*p1).time[(*pinfo).i1]  ;Time at green bar for file naming
            ENDIF
 
-           tempop = *pop   ;Create a temporary op since will change the time for correct filename
-           tempop.starttime = (*p1).time[(*pinfo).i]
            file = soda2_filename(tempop, tempop.probetype, ext= '_'+base+'.png', outdir='')
            IF file_test((*pinfo).outdir,/write) eq 0 THEN $
                (*pinfo).outdir=dialog_pickfile(/read,/directory,title='Select output directory',dialog_parent=widget_info(ev.top,find='tab'))
@@ -478,12 +478,18 @@ PRO soda2_browse_event, ev
 
            ;Update the time bar window
            wset,(*pinfo).wt
-           plot,smooth(alog10(bulk.nt),5,/nan),xsty=5,ysty=5,pos=[0,0,1,1],yr=[2,8],/yl
+           plot,smooth(alog10(bulk.nt),5,/nan),xsty=5,ysty=5,pos=[0,0,1,1],yr=[0.2,8],/yl
            (*pinfo).bmp=tvrd()     ;The raw plot
 
            soda2_windowplot,ev.top,p1,pinfo,pop,pmisc
        END
        ;====================================================================================================
+
+       (uname eq 'toggle_adjustrange'): BEGIN
+          ;Toggle the color range option, so z-colors auto-adjust to the current time selection
+          IF (*pinfo).adjustrange eq 1 THEN (*pinfo).adjustrange = 0 ELSE (*pinfo).adjustrange = 1
+          soda2_windowplot,ev.top,p1,pinfo,pop,pmisc
+       END
 
        ELSE: dummy=0
     ENDCASE
@@ -522,6 +528,7 @@ PRO soda2_browse, fn
     propID=widget_button(fileID, value='Properties',uname='properties',sensitive=0)
     colorID=widget_button(fileID, value='Invert colors',uname='color_invert',sensitive=0)
     clutterID=widget_button(fileID, value='Toggle clutter filter',uname='toggle_clutter_filter',sensitive=0)
+    rangeadjustID=widget_button(fileID, value='Toggle color range auto-adjust',uname='toggle_adjustrange',sensitive=0)
     massparamID=widget_button(fileID, value='Change mass/size parameterization',uname='massparammenu',sensitive=0,/menu)
     mp1ID=widget_button(massparamID, value='Brown/Francis',uname='massparam_bf')
     mp2ID=widget_button(massparamID, value='CRYSTAL',uname='massparam_crystal')
@@ -538,7 +545,9 @@ PRO soda2_browse, fn
 
     ;Tab 2
     drawbase2=widget_base(tab,column=1,title='Particles',uname='tab2')
-    plot2=widget_draw(drawbase2,xsize=screen_x,ysize=screen_y,uname='w2',/button_events,/wheel_events)
+    plot2=widget_draw(drawbase2, x_scroll_size=screen_x+10, y_scroll_size=screen_y, xsize=screen_x, ysize=2000, $
+       uname='w2',/button_events,/wheel_events)
+    widget_control, plot2, set_draw_view=[0, 0]
     drawbase2b=widget_base(drawbase2,row=1,/base_align_center)
     previouspanel=widget_button(drawbase2b,uname='previouspanel',value='<--',/frame)
     panelcount=widget_label(drawbase2b,uname='panelcount',value=' Panel  1 of  1  ')
