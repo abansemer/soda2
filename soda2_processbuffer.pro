@@ -25,7 +25,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
       ;-----------------------------------------------------------------------------------------------
 
 
-      (((*pop).probetype eq 'F2DC') or ((*pop).probetype eq 'F2DC_v2') or ((*pop).probetype eq 'F2DP')): BEGIN
+      (((*pop).probetype eq 'F2DC') or ((*pop).probetype eq 'F2DC_v2')): BEGIN
 
           ;Fast 2D probes split images across buffers.  Concatenate leftover slices from previous buffer.
           IF (*pmisc).f2d_remainder_slices gt 0 THEN BEGIN
@@ -82,15 +82,17 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           clocktas=fltarr(num_images)+buffer.tas
        END
 
-       (((*pop).probetype eq '2DC') or ((*pop).probetype eq '2DP')): BEGIN
-
+       ((*pop).probetype eq '2DC'): BEGIN
           image=buffer.image
+          buffer.stoptime = buffer.time   ;Not reliable in old datasets, set to same as starttime
           IF n_elements(image) lt 1024 THEN return, nullbuffer   ;This happens with partial buffers at eof's
           sync_ind=where(((image[1:1023] and 'FF000000'X) eq '55000000'X) and ((image[0:1022] and 'FF000000'X) eq '55000000'X),num_images)+1
 
           IF num_images lt 3 THEN BEGIN  ;Try to fix bad timelines and try again
               image=fix2dimage(image)
-              sync_ind=where(((image[1:1023] and 'FF000000'X) eq '55000000'X) and ((image[0:1022] and 'FF000000'X) eq '55000000'X),num_images)+1
+              sync_ind=where(((image[1:1023] and 'FF000000'X) eq '55000000'X) and $
+                 ((image[0:1022] and 'FF000000'X) eq '55000000'X) and $
+                 (image[0:1022] ne '55000000'x), num_images) + 1
           ENDIF
 
           IF num_images lt 3 THEN return, nullbuffer  ; Unfixable, this is a bad buffer
@@ -119,11 +121,17 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           particle_count=intarr(num_images)  ;No counter
           dof=bytarr(num_images)+1  ;No dof flag, assume all are good
           stretch=fltarr(num_images)+1.0  ;Not implemented yet for this probe, assume no stretch
-          inttime=dblarr(num_images)   ;Not yet implemented for this probe
+          previoustime=[(*pmisc).lastclock, time_sfm]
+          inttime=time_sfm-previoustime
+          (*pmisc).lastclock=time_sfm[num_images-1]       ;Save for next buffer
           clocktas=fltarr(num_images)+buffer.tas
+          IF (*pop).format eq 'SEA' THEN BEGIN
+             buffer.stoptime = buffer.time + (time_sfm[-1] - time_sfm[0])
+             reftime=time_sfm[0]   ;SEA buffer time is the actual start time (tested)
+          ENDIF
        END
 
-       (((*pop).probetype eq 'CIP') or ((*pop).probetype eq 'PIP')): BEGIN
+       ((*pop).probetype eq 'CIP'): BEGIN
           x=decompress_dmt3(buffer.image)
 
           ;Detect good particles.  Best way I've found is to compare slice count from
@@ -190,9 +198,13 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           overload=byte(missed<1)         ;Flag these particles for computing dead time
           stretch=fltarr(num_images)+1.0  ;Not implemented yet for this probe, assume no stretch
           clocktas=fltarr(num_images)+buffer.tas
-          ;Update the SEA buffer stoptime, since the start/stop times in the particle headers are more accurate
+
+          ;Improve the SEA buffer stoptime, since the start/stop times in the particle headers are more accurate
           ;Added for HIWC PIP 2022 with heavy overloads between buffers
-          IF (*pop).format eq 'SEA' THEN buffer.stoptime = buffer.time + (time_sfm[-1] - time_sfm[0])
+          IF (*pop).format eq 'SEA' THEN BEGIN
+             buffer.stoptime = buffer.time + (time_sfm[-1] - time_sfm[0])
+             reftime=time_sfm[0]   ;SEA buffer time is the actual start time (tested)
+          ENDIF
        END
 
        ((*pop).probetype eq 'CIPG'): BEGIN
@@ -276,14 +288,14 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
             IF lasthkpointer ne (*pmisc).hkpointers[i] THEN hk=spec_read_hk(1,(*pmisc).hkpointers[i])
             lasthkpointer=(*pmisc).hkpointers[i]  ;Keep track of last one
             ;HK buffers for 3VCPI/Hawkeye/HVPS4 does not contain TAS, need external house data which has been placed into *pmisc
-            IF ((*pop).probetype eq '3VCPI') or ((*pop).probetype eq 'HVPS4') THEN hk.tas=(*pmisc).probetas
+            IF ((*pop).subformat ne 0) THEN hk.tas=(*pmisc).probetas
 
             ;Read images
-            CASE (*pop).probetype OF
-               '3VCPI': x=tvcpi_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid)
-               'HVPS4': x=hvps4_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid)
-               ELSE: x=spec_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid)
-            ENDCASE 
+            CASE (*pop).subformat OF
+               0: x=spec_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid)
+               1: x=tvcpi_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid)  ;Also Fast2DS
+               2: x=hvps4_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid)
+            ENDCASE
             IF x.error eq 0 THEN BEGIN
                bitimage=[[bitimage],[x.image]]
                startline[c]=slicecount
@@ -363,6 +375,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
        END
 
        ((*pop).probetype eq 'TXT'): BEGIN
+          ;For processing simulations without a native format
           num_images=n_elements(buffer.particletime)
           time_sfm=buffer.particletime
           rawtime=time_sfm
@@ -371,7 +384,19 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           startline=buffer.startslice
           stopline=buffer.startslice+buffer.nslices-1
           particle_count=intarr(num_images)  ;No counter
-          dof=bytarr(num_images)+1  ;No dof flag, assume all are good
+          dof=bytarr(num_images)+1  ;Assume all are good to start
+          ;Figure out dofreject for greyscale or 1D2D criteria
+          IF (*pop).dofreject ne 0 THEN BEGIN
+             FOR i=0,num_images-1 DO BEGIN
+                dummy=where(bitimage[*, startline[i]:stopline[i]] ge 2, n50)
+                dummy=where(bitimage[*, startline[i]:stopline[i]] eq 3, n75)
+                IF (*pop).dofreject eq 1 THEN IF n75 eq 0 THEN dof[i]=0  ;No level-3 pixels
+                IF (*pop).dofreject eq 2 THEN IF float(n75)/n50 lt 0.5 THEN dof[i]=0  ;"Mode3" for SEA-1D2D
+
+                ;Set greythresh if it is not already, can be missed easily in the TXT data
+                IF (n50 gt 0) and ((*pop).greythresh eq 0) THEN (*pop).greythresh=1
+             ENDFOR
+          ENDIF
           stretch=fltarr(num_images)+1.0  ;Not implemented yet for this probe, assume no stretch
           inttime=dblarr(num_images)   ;Not yet implemented for this probe
           clocktas=fltarr(num_images)+buffer.tas
@@ -380,7 +405,6 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
        END
 
        ((*pop).probetype eq '1D2D'): BEGIN
-
           ;Make sure last slice is full alternating on/off pixels
           IF buffer.image[-1] ne ulong64('AAAAAAAAAAAAAAAA'x) THEN print, 'Buffer may be misaligned'
 
@@ -442,7 +466,108 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           clocktas = fltarr(num_images)+buffer.tas
        END
 
-       ELSE: PRINT, 'Probe type not available'
+       ((*pop).probetype eq 'HVPS1'): BEGIN
+          ;Trying out some SDSMT code, never worked....
+          IF 1 eq 2 THEN BEGIN
+             y=decompress_hvps1(buffer.image)
+             charge_sw = 0 ;Try 1 and 0
+             get_img_only,buffer.image,1,1000,256,10.0,charge_sw,z
+          ENDIF
+
+          ;Adapted from SODA-1 code
+          ;numdiodes=lp-fp+1  ;this is returned to calling program for computing sample area later on
+          x=decompress_hvps(buffer.image)
+          IF (x.mask eq 1) or (x.error eq 1) THEN return, nullbuffer
+
+          num_images = n_elements(x.time)
+          num_slices = fix((size(x.image))[2])
+          startline = [0, x.particle_index[0:num_images-2]+1]
+          stopline = x.particle_index < (num_slices-1) > startline
+          bitimage = x.image
+          inttime = x.time
+
+          ;Highlight non-imaged parts of the array if dioderange is active
+          oddslices = indgen(num_slices/2) * 2  ;Dotted line
+          fp = (*pop).dioderange[0]   ;First/last pixels for ROI
+          lp = (*pop).dioderange[1]
+          IF fp gt 0 THEN bitimage[fp-1, oddslices] = 2
+          IF lp lt (*pop).numdiodes-1 THEN bitimage[lp+1, oddslices] = 2
+
+          ;Misc
+          restore_slice = 0
+          missed = 0
+          particle_count = intarr(num_images) ;No counter
+          yresfromtas = buffer.tas/250000.0 * 1.0e6  ; clock speed is 250kHz
+          stretch = fltarr(num_images) + yresfromtas/(*pop).yres  ;Should work no matter what is given in *pop.yres
+          clocktas = fltarr(num_images) + buffer.tas
+          time_sfm = buffer.time + total(inttime, /cumulative)
+          reftime = buffer.time
+          rawtime = x.rawtime
+          dof=bytarr(num_images)+1  ;No dof flag, assume all are good
+          IF (*pop).format eq 'SEA' THEN BEGIN
+             buffer.stoptime = buffer.time + x.totaltime
+             reftime=time_sfm[0]   ;SEA buffer time is the actual start time (tested)
+          ENDIF
+
+
+          ;Diagnostic stuff
+          IF 1 eq 2 THEN BEGIN
+             colorimage = bitimage
+             FOR i = 0, num_images-1 do begin
+                roi=bitimage[*,startline[i]:stopline[i]]  ;extract a single particle from the buffer image
+                color = ((i mod 4) + 1)*50
+                colorimage[*,startline[i]:stopline[i]] *= color
+             ENDFOR
+             tv, colorimage
+             tv, x.image*80 + 20, 300, 0
+          ENDIF
+       END
+
+       ((*pop).probetype eq 'HAIL'): BEGIN
+          x = decompress_hail(buffer.image)
+
+          ;The images tend to have lots of breaks in them, try a few strategies to pull particles together
+          ;xgfb appears to work best on Flt729.  Try others.
+          ;xb = label_blobs(x, /int)                            ;No correction
+          ;xbd = label_blobs(x, dilate=2, /int)                 ;Blob with dilation, works well
+          xgf = (convol(fix(x), [[0,1,0], [0,2,0], [0,1,0]], /edge_truncate) - 1) > 0 < 1  ;Horizontal gap fill, then label
+          xgfb = label_blobs(xgf, dilate=1, /int)
+
+          ;Diagnostics
+          ;erase
+          ;tv, x*100+10
+          ;tv, xb*20+10, 100, 0
+          ;tv, xbd*20+10, 200, 0
+          ;tv, xgfb*20+10, 300, 0
+          ;wait, 0.2
+
+          ;Find dividers between particles.  This is tricky
+          blobimage = xgfb
+          bitimage = xgfb < 1
+          num_images = max(blobimage)
+          startline = intarr(num_images)  ;All zero, separation done below by blobs
+          stopline = intarr(num_images)   ;All zero, separation done below by blobs
+          elapsedtime = buffer.time - (*pmisc).lastbufftime
+
+          ;Spread time out evenly between last buffer time and current buffer time
+          time_sfm = findgen(num_images)/num_images*elapsedtime + (*pmisc).lastbufftime
+          rawtime = fltarr(num_images)   ;All zero, no data
+          inttime = fltarr(num_images) + elapsedtime/num_images  ;Assume all evenly distributed in time
+          reftime = buffer.time    ;UNTESTED for Hail.  The time that should match the starttime on the SEA buffer
+          (*pmisc).lastbufftime=buffer.time
+
+          ;Misc
+          restore_slice = 0
+          missed = 0
+          dof=bytarr(num_images)+1  ;No dof flag, assume all are good
+          particle_count = intarr(num_images) ;No counter
+          stretch = fltarr(num_images)+1.0    ;Not implemented yet for this probe, assume no stretch
+          clocktas = fltarr(num_images) + buffer.tas
+          probetas = fltarr(num_images) + buffer.tas
+
+       END
+
+       ELSE: stop, 'Probe type not available'
    ENDCASE
 
    ;Code common to all probes
@@ -482,9 +607,19 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    ;Boolean flag for SPEC probes indicates empty particle with overload time, set to 0 if not already defined.
    IF n_elements(overload) gt 0 THEN overloadflag=overload ELSE overloadflag=bytarr(num_images)
    nslices=0  ;Number of image slices (no timelines, sync, etc)
+   fp = (*pop).dioderange[0]   ;First/last pixels for ROI
+   lp = (*pop).dioderange[1]
+   IF lp eq 0 THEN lp = (*pop).numdiodes-1
    FOR i=0,num_images-1 DO BEGIN
-      roi=bitimage[*,startline[i]:stopline[i]]  ;extract a single particle from the buffer image
-      roi_orig=bitimage_orig[*,startline[i]:stopline[i]]  ;the original bitimage preserving stuck bits
+      roi=bitimage[fp:lp, startline[i]:stopline[i]]  ;extract a single particle from the buffer image
+      roi_orig=bitimage_orig[fp:lp, startline[i]:stopline[i]]  ;the original bitimage preserving stuck bits
+      IF ((*pop).probetype eq 'HAIL') THEN BEGIN
+         ;Hail spectrometer has no timelines, only blobs.  Handle that here by separating indexed blobs.
+         roi = byte(blobimage*0)
+         w = where(blobimage eq i+1)
+         roi[w] = 1
+         roi_orig = roi
+      ENDIF
 
       ;Adjust the particle for grey probes to the right threshold
       IF (*pop).greythresh gt 0 THEN BEGIN
@@ -519,8 +654,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
          ENDIF
       ENDIF
 
-      IF roilen eq 1 THEN roihist=roi_orig ELSE roihist=total(roi_orig,2)   ;For housekeeping, keeping stuck bits using roi_orig 
-      dhist=dhist+roihist
+      IF roilen eq 1 THEN roihist=roi_orig ELSE roihist=total(roi_orig,2)   ;For housekeeping, keeping stuck bits using roi_orig
+      dhist[fp:lp] += roihist
 
       ;Find the number of unshaded diodes within the boundary of each particle.  For detecting double particles.
       w=where(roihist gt 0, nw)
