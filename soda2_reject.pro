@@ -1,6 +1,6 @@
 FUNCTION soda2_reject, a, inttime, nextinttime, cutoff, clustercount, binningsize, pop
    ;FUNCTION to decide whether a SODA2 particle is accepted or rejected.
-   ;a is the structure that comes soda2_readpbp.pro.  Interarrival time in 
+   ;a is the structure that comes soda2_readpbp.pro.  Interarrival time in
    ;seconds.  Cutoff is for interarrival time.
    ;Aaron Bansemer, NCAR, 2009
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
@@ -19,14 +19,14 @@ FUNCTION soda2_reject, a, inttime, nextinttime, cutoff, clustercount, binningsiz
    IF (*pop).water eq 1 THEN BEGIN
       IF (a.arearatiofilled lt 0.40) or ((a.arearatiofilled lt 0.50) and (a.diam gt (*pop).res*10.0)) or (binningsize gt 6000) THEN reject+=32
    ENDIF
-   
+
    ;Irregular-only (non-water) rejection
    IF (*pop).water eq -1 THEN BEGIN
       IF (a.arearatio ge 0.50) or (a.arearatio ge 0.40 and a.diam le (*pop).res*10.0) THEN reject+=64
    ENDIF
 
-   ;Depth of field flag rejection, 66% threshold flagged for CIP/PIP/F2DC, or level 3 pixel on CIP-G
-   IF (*pop).dofreject eq 1 THEN BEGIN
+   ;Depth of field flag rejection, 66% threshold flagged for CIP/PIP/F2DC, level 3 pixel on CIP-G, or 1D2D Mode3 (dofreject=2)
+   IF (*pop).dofreject ge 1 THEN BEGIN
       IF a.dofflag eq 0 THEN reject+=128
    ENDIF
 

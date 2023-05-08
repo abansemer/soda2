@@ -2,10 +2,11 @@ PRO soda2_update_op, op
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
    ;Updates the 'op' structure if any new tags are added
-   IF total(where(tag_names(op) eq 'GREYTHRESH')) eq -1 THEN op=create_struct(op,'greythresh',2)
+   IF total(where(tag_names(op) eq 'GREYTHRESH')) eq -1 THEN op=create_struct(op,'greythresh',0)
    IF total(where(tag_names(op) eq 'PROBEID')) eq -1 THEN op=create_struct(op,'probeid','A0')
    IF total(where(tag_names(op) eq 'TIMEOFFSET')) eq -1 THEN op=create_struct(op,'timeoffset',0.0)
    IF total(where(tag_names(op) eq 'PTH')) eq -1 THEN op=create_struct(op,'pth','')
+   IF total(where(tag_names(op) eq 'FIXEDTAS')) eq -1 THEN op=create_struct(op,'fixedtas',0.0)
    IF total(where(tag_names(op) eq 'WATER')) eq -1 THEN op=create_struct(op,'water',0)
    IF total(where(tag_names(op) eq 'SUBFORMAT')) eq -1 THEN op=create_struct(op,'subformat',0)
    IF total(where(tag_names(op) eq 'ARMWIDTH')) eq -1 THEN op=create_struct(op,'armwidth',0.0)
@@ -31,15 +32,16 @@ PRO soda2_update_op, op
    IF total(where(tag_names(op) eq 'STRETCHCORRECT')) eq -1 THEN op=create_struct(op,'stretchcorrect',0)  ;Adjust yres when aircraft TAS and probe TAS mismatch
    IF total(where(tag_names(op) eq 'STRICTCOUNTER')) eq -1 THEN op=create_struct(op,'strictcounter',0)  ;Apply particle-counter rejection for DMT probes (which are often noisy)
    IF total(where(tag_names(op) eq 'ACTIVETIMEFROMMISSED')) eq -1 THEN op=create_struct(op,'activetimefrommissed',0)  ;Compute active/dead time based on missed particle counts (DMT)
+   IF total(where(tag_names(op) eq 'DIODERANGE')) eq -1 THEN op=create_struct(op,'dioderange',[0, op.numdiodes-1])  ;Lower/upper limit of active diodes
 
    ;Check for incompatible options
-   ;IF (op.format eq 'SPEC') and (op.stuckbits eq 1) THEN BEGIN
-   ;   print, 'op.stuckbits will not work for SPEC probe data.'
-   ;   print, 'Setting op.stuckbits to 0.'
-   ;   op.stuckbits = 0
-   ;ENDIF
    IF (op.stretchcorrect eq 1) and (op.format ne 'SPEC') THEN print, 'Stretch correction not available for this format, will not be applied.'
    IF (op.probetype eq '2DS') and (op.yres ne 10.0) THEN print, 'Y-resolution on 2DS is not 10um, timing may be inaccurate if y-res not applied during data acquisition.'
+   IF (op.probetype eq 'PIP') THEN op.probetype='CIP'  ;Probetype PIP no longer valid, use op.shortname='PIP' to designate
+   IF op.dioderange[1] eq 0 THEN op.dioderange[1] = op.numdiodes-1  ;Upper diode range can't be zero
+
+   ;Account for rework of SPEC formats
+   IF (op.probetype eq '3VCPI') THEN op.subformat=1
 
    ;For model TXT data, read in parameters from header and override
    IF strmid(op.fn[0],3,4,/reverse) eq '.txt' THEN BEGIN
@@ -47,14 +49,28 @@ PRO soda2_update_op, op
       openr,lun,op.fn[0],/get_lun
       readf,lun,s  ;Read header
       v=str_sep(strcompress(s),' ')
-      op.res=float(v[1])
-      op.yres=op.res
-      op.numdiodes=float(v[3])
-      op.armwidth=float(v[5])
+
+      w=where(strpos(v,'Resolution') ne -1, nw)
+      IF (nw eq 1) and (op.res eq 0) THEN BEGIN  ;Will not override if res already non-zero from resolution tuning
+         op.res=float(v[w+1])
+         op.yres=op.res
+      ENDIF
+
+      w=where(strpos(v,'Num_Diodes') ne -1, nw)
+      IF nw eq 1 THEN op.numdiodes=float(v[w+1])
+      op.dioderange=[0, op.numdiodes-1]
+
+      w=where(strpos(v,'Arm_Wid') ne -1, nw)
+      IF nw eq 1 THEN op.armwidth=float(v[w+1])
+
+      w=where(strpos(v,'Wavelength') ne -1, nw)
+      IF nw eq 1 THEN op.wavelength=float(v[w+1])
+
+      w=where(strpos(v,'TAS') ne -1, nw)
+      IF nw eq 1 THEN op.fixedtas=float(v[w+1])
+
       op.format='TXT'
       op.probetype='TXT'
-      tas=float(v[7])
-      close,lun
-      print,'Overriding probe geometry with header info.'
+      free_lun, lun
    ENDIF
 END
