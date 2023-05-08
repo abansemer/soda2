@@ -43,6 +43,25 @@ FUNCTION soda2_startstop, fn
       ENDIF
    ENDIF
 
+   ;Next check for TXT format (simulations)
+   ;==================================================================
+   point_lun, lun, 0
+   x = bytarr(200)
+   readu, lun, x
+   IF strpos(string(x), 'Resolution') ne -1 THEN BEGIN
+      out.format = 'TXT'
+      out.starttime = julday(1, 1, 2000, 0, 0, 0)  ;Always Jan 1 2000
+
+      s=''
+      point_lun, lun, 0
+      readf, lun, s  ;Read header line
+      v = str_sep(strcompress(s),' ')
+      w = where(strpos(v,'Duration') ne -1, nw)
+      IF nw THEN out.stoptime = julday(1, 1, 2000, 0, 0, float(v[w+1])+1)
+      free_lun, lun
+      return, out
+   ENDIF
+
    ;Next check for DMT, SPEC, or NCAR
    ;==================================================================
    ;Find the buffer size from the position of 'year' data, should typically be 4114 bytes

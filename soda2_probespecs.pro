@@ -1,4 +1,4 @@
-FUNCTION soda2_probespecs, name=name, id=id
+FUNCTION soda2_probespecs, name=name, id=id, fn=fn
    ;PRO to return settings for all supported probes in a structure
    ;Units:  res[um], armwidth[cm], tau[s], wavelength[m]
    ;AB, NCAR, 2010
@@ -7,7 +7,7 @@ FUNCTION soda2_probespecs, name=name, id=id
 
    base={probename:'', shortname:'', format:'', subformat:0s, probetype:'', probeid:'', $
          greythresh:0, res:0.0, yres:0.0, armwidth:0.0, numdiodes:0.0, tau:0.0, firstsliceskip:0, $
-         dofthreshold:0.0, dofconst:3.0, wavelength:0.0, seatag:lonarr(3)}
+         dofthreshold:0.0, dofconst:3.0, wavelength:0.0, seatag:lonarr(3), dioderange:intarr(2)}
    ;Tau is the response time in seconds as in Baumgardner 1997 JTECH
    ;Legacy probes use mean value from Strapp et al JTECH 2001, newer probes various communications.
    ;Yres is the nominal resolution in airflow direction, as controlled by slicing rate.  May be
@@ -201,7 +201,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.shortname='PIP'
    x.format='DMT'
    x.subformat=1
-   x.probetype='PIP'
+   x.probetype='CIP'
    x.probeid=''
    x.greythresh=0
    x.res=100
@@ -241,7 +241,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.shortname='PIP'
    x.format='DMT'
    x.subformat=1
-   x.probetype='PIP'
+   x.probetype='CIP'
    x.probeid=''
    x.greythresh=0
    x.res=100
@@ -281,7 +281,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.shortname='PIP'
    x.format='DMT'
    x.subformat=1
-   x.probetype='PIP'
+   x.probetype='CIP'
    x.probeid=''
    x.greythresh=0
    x.res=100
@@ -781,7 +781,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.shortname='F2DP'
    x.format='RAF'
    x.subformat=3
-   x.probetype='F2DP'
+   x.probetype='F2DC'
    x.probeid='P4'
    x.greythresh=0
    x.res=150
@@ -821,7 +821,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.shortname='2DP'
    x.format='RAF'
    x.subformat=4        ;4 flags use of fix2dimage for bad timelines.
-   x.probetype='2DP'
+   x.probetype='2DC'
    x.probeid='P1'
    x.greythresh=0
    x.res=200
@@ -937,10 +937,50 @@ FUNCTION soda2_probespecs, name=name, id=id
    all=[all,x]
 
    x=base
+   x.probename='Fast 2D-S Horizontal Array'
+   x.shortname='2DS'
+   x.format='SPEC'
+   x.subformat=1
+   x.probetype='2DS'
+   x.probeid='H'
+   x.greythresh=0
+   x.res=10
+   x.yres=10
+   x.armwidth=6.3
+   x.numdiodes=128
+   x.tau=41.0e-9
+   x.firstsliceskip=0
+   x.dofthreshold=0.0
+   x.dofconst=8.12
+   x.wavelength=0.785e-6
+   x.seatag=[0]
+   all=[all,x]
+
+   x=base
+   x.probename='Fast 2D-S Vertical Array'
+   x.shortname='2DS'
+   x.format='SPEC'
+   x.subformat=1
+   x.probetype='2DS'
+   x.probeid='V'
+   x.greythresh=0
+   x.res=10
+   x.yres=10
+   x.armwidth=6.3
+   x.numdiodes=128
+   x.tau=41.0e-9
+   x.firstsliceskip=0
+   x.dofthreshold=0.0
+   x.dofconst=8.12
+   x.wavelength=0.785e-6
+   x.seatag=[0]
+   all=[all,x]
+
+   x=base
    x.probename='3VCPI/Hawkeye Horizontal Array'
    x.shortname='3VCPI'
    x.format='SPEC'
-   x.subformat=0
+   x.subformat=1
    x.probetype='3VCPI'
    x.probeid='H'
    x.greythresh=0
@@ -960,7 +1000,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probename='3VCPI/Hawkeye Horizontal Array (50um)'
    x.shortname='3VCPI'
    x.format='SPEC'
-   x.subformat=0
+   x.subformat=1
    x.probetype='3VCPI'
    x.probeid='H'
    x.greythresh=0
@@ -980,7 +1020,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probename='3VCPI/Hawkeye Vertical Array'
    x.shortname='3VCPI'
    x.format='SPEC'
-   x.subformat=0
+   x.subformat=1
    x.probetype='3VCPI'
    x.probeid='V'
    x.greythresh=0
@@ -1000,7 +1040,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probename='HVPS-4 Vertical Array (50um)'
    x.shortname='HVPS4'
    x.format='SPEC'
-   x.subformat=0
+   x.subformat=2
    x.probetype='HVPS4'
    x.probeid='V50'
    x.greythresh=0
@@ -1020,7 +1060,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probename='HVPS-4 Vertical Array (150um)'
    x.shortname='HVPS4'
    x.format='SPEC'
-   x.subformat=0
+   x.subformat=2
    x.probetype='HVPS4'
    x.probeid='V150'
    x.greythresh=0
@@ -1040,7 +1080,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probename='HVPS-4 Horizontal Array (50um)'
    x.shortname='HVPS4'
    x.format='SPEC'
-   x.subformat=0
+   x.subformat=2
    x.probetype='HVPS4'
    x.probeid='H50'
    x.greythresh=0
@@ -1060,7 +1100,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.probename='HVPS-4 Horizontal Array (150um)'
    x.shortname='HVPS4'
    x.format='SPEC'
-   x.subformat=0
+   x.subformat=2
    x.probetype='HVPS4'
    x.probeid='H150'
    x.greythresh=0
@@ -1166,7 +1206,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.greythresh=0
    x.res=15
    x.yres=15
-   x.armwidth=5.4
+   x.armwidth=5.83   ;Measured by Biagio
    x.numdiodes=64
    x.tau=0.020e-6
    x.firstsliceskip=0
@@ -1186,7 +1226,7 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.greythresh=0
    x.res=50
    x.yres=50
-   x.armwidth=5.4
+   x.armwidth=26.0
    x.numdiodes=64
    x.tau=0.020e-6
    x.firstsliceskip=0
@@ -1196,9 +1236,116 @@ FUNCTION soda2_probespecs, name=name, id=id
    x.seatag=[11000, 11001]  ;[ImageTag, TASfactorTag]
    all=[all,x]
 
+   x=base
+   x.probename='SDSMT Hail Spectrometer (SEA)'
+   x.shortname='HAIL'
+   x.format='SEA'
+   x.subformat=0
+   x.probetype='HAIL'
+   x.probeid=''
+   x.greythresh=0
+   x.res=1800
+   x.yres=1800
+   x.armwidth=99.0
+   x.numdiodes=64
+   x.tau=0.020e-6
+   x.firstsliceskip=0
+   x.dofthreshold=0.0
+   x.dofconst=3.0
+   x.wavelength=0.660e-6
+   x.seatag=[320]  ;[ImageTag, TASfactorTag]
+   all=[all,x]
+
+   x=base
+   x.probename='SDSMT HVPS-1 (SEA)'
+   x.shortname='HVPS1'
+   x.format='SEA'
+   x.subformat=0
+   x.probetype='HVPS1'
+   x.probeid=''
+   x.greythresh=0
+   x.res=200
+   x.yres=400
+   x.armwidth=20.0
+   x.numdiodes=256
+   x.tau=0.020e-6
+   x.firstsliceskip=0
+   x.dofthreshold=0.0
+   x.dofconst=3.0
+   x.wavelength=0.660e-6
+   x.seatag=[6000, 6001, 6002]  ;[ImageTag, TASfactorTag, Elapsed], not valid for 1995 data [66,65]?
+   x.dioderange=[40, 230]
+   all=[all,x]
+
+   x=base
+   x.probename='SDSMT 2DC (SEA)'
+   x.shortname='2DC'
+   x.format='SEA'
+   x.subformat=0
+   x.probetype='2DC'
+   x.probeid=''
+   x.greythresh=0
+   x.res=25
+   x.yres=25
+   x.armwidth=6.1
+   x.numdiodes=32
+   x.tau=0.051e-6
+   x.firstsliceskip=1
+   x.dofthreshold=0.0
+   x.dofconst=3.0
+   x.wavelength=0.632e-6
+   x.seatag=[300, 301, 302]
+   all=[all,x]
+
+   x=base
+   x.probename='SDSMT 2DP (SEA)'
+   x.shortname='2DP'
+   x.format='SEA'
+   x.subformat=0
+   x.probetype='2DC'
+   x.probeid=''
+   x.greythresh=0
+   x.res=200
+   x.yres=200
+   x.armwidth=26.0
+   x.numdiodes=32
+   x.tau=0.051e-6
+   x.firstsliceskip=1
+   x.dofthreshold=0.0
+   x.dofconst=3.0
+   x.wavelength=0.632e-6
+   x.seatag=[310, 311, 312]
+   all=[all,x]
+
+   x=base
+   x.probename='Simulation'
+   x.shortname='SIM'
+   x.format='TXT'
+   x.subformat=0
+   x.probetype='TXT'
+   x.probeid=''
+   x.greythresh=0
+   x.res=0
+   x.yres=0
+   x.armwidth=0
+   x.numdiodes=0
+   x.tau=0
+   x.firstsliceskip=0
+   x.dofthreshold=0.0
+   x.dofconst=0.0
+   x.wavelength=0
+   x.seatag=[0]
+   all=[all,x]
+
 
    IF n_elements(name) ne 0 THEN BEGIN
       w=where(name eq all.probename,nw)
+      IF (name eq 'Simulation') and (n_elements(fn) ne 0) THEN BEGIN
+         ;Need to get Sim properties from the file header.  This is already done in soda2_update_op so use that here.
+         probe=create_struct(all[w], 'fn', fn)
+         soda2_update_op, probe
+         return, probe
+      ENDIF
       IF nw gt 0 THEN return, all[w] ELSE return, base
    ENDIF
    IF n_elements(id) ne 0 THEN BEGIN

@@ -20,10 +20,10 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
       c=0
       imsize=0
       WHILE (c lt framep.n) and (imsize lt maxslices) DO BEGIN
-         CASE (*pop).probetype OF
-            '3VCPI': im=tvcpi_read_frame(lun,framep.ap[c],(*pop).probeid)
-            'HVPS4': im=hvps4_read_frame(lun,framep.ap[c],(*pop).probeid)
-            ELSE: im=spec_read_frame(lun,framep.ap[c],(*pop).probeid)
+         CASE (*pop).subformat OF
+            0: im=spec_read_frame(lun,framep.ap[c],(*pop).probeid)
+            1: im=tvcpi_read_frame(lun,framep.ap[c],(*pop).probeid)
+            2: im=hvps4_read_frame(lun,framep.ap[c],(*pop).probeid)
          ENDCASE
          slices=n_elements(im.image)/128
          IF imsize+slices lt maxslices THEN bitimage[0:127,imsize:imsize+slices-1]=im.image
@@ -51,6 +51,12 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
 
          ;Add a divider
          IF (divider eq 1) THEN bitimage[*, (p.startline-1)>0] = 1
+
+         ;Stretch HVPS1
+         IF (*pop).probetype eq 'HVPS1' THEN BEGIN
+            s = size(bitimage, /dim)
+            bitimage=rebin(bitimage,s[0],s[1]*2,/samp)
+         ENDIF
 
       ENDIF ELSE return, {time:b.time, bitimage:0b, rejectbuffer:1, error:1}
    ENDELSE

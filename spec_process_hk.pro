@@ -11,7 +11,7 @@ PRO spec_process_hk, op, textwidgetid=textwidgetid, fn_out=fn_out, y=y, nosav=no
 
    ;---Initialize variables---------------------------------------
    version = 1
-   IF (op.probetype eq '3VCPI') or (op.probetype eq 'HVPS4') THEN BEGIN
+   IF (op.subformat ne 0) THEN BEGIN  ;3VCPI/Hawkeye/HVPS4/Fast2DS
       version = 2
       fn = op.fn+'HK'   ;These use separate file for HK data
       IF file_test(fn) eq 0 THEN stop,'File: '+fn+' not found.'
@@ -19,7 +19,7 @@ PRO spec_process_hk, op, textwidgetid=textwidgetid, fn_out=fn_out, y=y, nosav=no
       hkindex=spec_index_hk(fn)
       ;Not calling read2dbuffer, so take care of timeoffset here
       hkindex.bufftime=hkindex.bufftime+(*pop).timeoffset
-   ENDIF ELSE BEGIN
+   ENDIF ELSE BEGIN   ;Original 2DS/HVPS3
       fn = op.fn  ;Need to have separate fn variable maintain op.fn in process_2d
       ;Check if index already built and passed in as argument
       IF (n_elements(y) eq 0) THEN hkindex=soda2_buildindex(fn[0], pop) ELSE hkindex = y

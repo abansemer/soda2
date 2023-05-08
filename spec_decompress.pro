@@ -1,23 +1,23 @@
-FUNCTION spec_decompress, cimage, overload
+FUNCTION spec_decompress, cimage, overload, version=version
    ;Function to decompress a 2DS/HVPS3 raw image
    ;and return bitimage and timelines
-   ;AB 10/2011 
+   ;AB 10/2011
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
-  
-   
+
+   IF n_elements(version) eq 0 THEN version=0  ;To account for slight differences in compression algorithm (e.g. HVPS4)
    n=n_elements(cimage)
    timeslice=(cimage and '8000'x)/2L^15    ;Bit 15 indicates time slice (not image)
    startslice=(cimage and '4000'x)/2L^14   ;Bit 14 indicates start of new slice
    numclear=(cimage and '7F'x)             ;Bits 0-6
    numshaded=(cimage and '3F80'x)/128      ;Bits 7-13
-   
+
    numslices=total(startslice[0:(n-1)])+3     ;***  +3 IS TEMPORARY TEST
    bitimage=bytarr(128,numslices)
-   
+
    ;Catch an error in 3VCPI data.  Sometimes the timeslice bit (15) is not set
    ;  properly, leading to lots of streaks in the data.
    ;IF (numshaded[n-1] gt (numshaded[(n-2)>0]+4)) THEN timeslice[n-1]=1 ;Last shaded must be less than previous+4
-   
+
    islice=0
    idiode=0
    skip=overload*2   ;Skip the last two words if the overload is set
@@ -31,10 +31,19 @@ FUNCTION spec_decompress, cimage, overload
          IF numshaded[i] gt 0 THEN BEGIN
             IF cimage[i] eq '7fff'x THEN BEGIN
                ;Check for special case '7fff'x = clear line
-               bitimage[*,islice]=0 
+               bitimage[*,islice]=0
                idiode=0
+               ;Starting with HVPS-4 '7fff' means 8 words of uncompressed data follow
+               IF version eq 1 THEN BEGIN
+                  istart=i+1  ;Start/stop indexes of next 8 words
+                  istop=i+8
+                  ;Make sure 8 words remain in the compressed image, otherwise skip
+                  IF istop lt n THEN bitimage[*,islice]=1-reverse(dec2bin16(cimage[istart:istop]))
+                  i+=8
+                  idiode=0
+               ENDIF
             ENDIF ELSE BEGIN
-               IF idiode+numshaded[i]-1 lt 128 THEN BEGIN  ;Check for indexes above 128                 
+               IF idiode+numshaded[i]-1 lt 128 THEN BEGIN  ;Check for indexes above 128
                   goodbit=1  ;HVPS3 in MC3E had persistent artifacts with 32-diode strips at certain positions
                   ;There is a weird error in some HVPS data (e.g. MC3E) with 32 shaded diodes starting on diodes of 0, 32, 64...
                   IF (numshaded[i] eq 32) and ((idiode mod 32) eq 0) THEN BEGIN
@@ -48,7 +57,7 @@ FUNCTION spec_decompress, cimage, overload
             ENDELSE
          ENDIF ELSE BEGIN
             ;Check for special case '4000'x = solid line
-            IF cimage[i] eq '4000'x THEN bitimage[*,islice]=1 
+            IF cimage[i] eq '4000'x THEN bitimage[*,islice]=1
          ENDELSE
       ENDIF
    ENDFOR

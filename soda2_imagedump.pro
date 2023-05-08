@@ -59,11 +59,12 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    pmisc=ptr_new(misc)
 
    probename=op.shortname
-   IF (op.probetype eq '2DS') THEN probename=op.shortname+'_'+op.probeid  ;Add 'H' or 'V' specifier
+   IF (op.probetype eq '2DS') or (op.probetype eq 'HVPS4') or (op.probetype eq '3VCPI') THEN $
+      probename=op.shortname+'_'+op.probeid  ;Add 'H' or 'V' specifier
    IF (naming_convention eq 'GHRC') THEN BEGIN
       IF (op.probetype eq '2DS') THEN probename=op.shortname+op.probeid
       IF (op.probetype eq '3VCPI') THEN probename='Hawkeye2DS'+op.probeid
-      probename+='-P3'  ;Add aircraft ID for both 2DS/HVPS
+      IF (op.project eq 'IMPACTS') THEN probename+='-P3'  ;Add aircraft ID for both 2DS/HVPS
    ENDIF
    rate=fix(op.rate)
 
@@ -108,8 +109,8 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    ;Create setup for hourly files
    IF hourly ne 0 THEN BEGIN
       hourstart = fix(data.time[0]/3600)
-      hourstop = fix(data.time[-1]/3600)+1
-      numframes = hourstop-hourstart+1
+      hourstop = fix(data.time[-1]/3600)
+      numframes = hourstop-hourstart  ;+1 implicit in main FOR loop below
       rate = fix(hourly)  ;Defaults to one image per minute, but set hourly to another number for 5-minute, etc
       i = 0
       ;Refigure data.ind to put into minutes rather than 'rate' frequency

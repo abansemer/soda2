@@ -21,7 +21,7 @@ FUNCTION soda2_read2dbuffer, lun, pop
       A={probetype:0b, probenumber:0b, hours:0s, minutes:0s, $
         seconds:0s, year:0s, month:0s, day:0s, tas:0s, milliseconds:0s, $
         overload:0s, image:ulonarr(1024) }
-      IF ((*pop).probetype eq 'F2DC') or ((*pop).probetype eq 'F2DC_v2') or ((*pop).probetype eq 'F2DP') THEN $
+      IF ((*pop).probetype eq 'F2DC') or ((*pop).probetype eq 'F2DC_v2') THEN $
         A={probetype:0b, probenumber:0b, hours:0s, minutes:0s, $
         seconds:0s, year:0s, month:0s, day:0s, tas:0s, milliseconds:0s, $
         overload:0s, image:ulon64arr(512)}
@@ -146,6 +146,33 @@ FUNCTION soda2_read2dbuffer, lun, pop
       date=julday(1,1,2000)
       return, {time:particletime[0], image:image, difftime:0.0, eof:0, tas:tas, pointer:pointer, date:date, overload:0, $
                startslice:startslice[0:n-1], nslices:nslices[0:n-1], particletime:particletime[0:n-1], inttime:inttime[0:n-1]}
+   ENDIF
+
+   IF format eq 'T28' THEN BEGIN
+      a={dummy:intarr(56), year:0s, month:0s, day:0s, hours:0s, minutes:0s, seconds:0s, frac_seconds:0s, sfreq:0s, tlent:0s,$
+         amul:0s, adiv:0s, dummy1:intarr(2), elapsedseconds:0l, dummy2:intarr(4), image:ulonarr(1024)}
+
+      readu,lun,A
+
+      ;These files tend to get un-synced
+      IF ((a.year lt 1980) or (a.year gt 2005) or (a.month gt 12) or (a.month lt 1) or (a.day gt 31) or (a.day lt 1)) THEN BEGIN
+         i=0L
+         print,'Resyncing T28 data',format='(a20,$)'
+         REPEAT BEGIN
+            point_lun,lun,pointer+i
+            readu,lun,a
+            print,'.',form='(a1,$)'
+            i=i+1
+         ENDREP UNTIL ((a.year gt 1980) and (a.year lt 2005) and (a.month lt 13) and (a.month gt 0) and (a.day lt 32) and (a.day gt 0))
+      ENDIF
+
+
+      difftime=(a.elapsedseconds / (1.0e6 / 25.0))>0
+      freq=a.amul*50.0/a.adiv  ;Not sure about this....
+      tas=float(a.amul)
+      starttime=a.hours*10000.0+a.minutes*100+a.seconds+a.frac_seconds/100.0d
+      A.image=fix2dimage(A.image)
+
    ENDIF
 
 END
