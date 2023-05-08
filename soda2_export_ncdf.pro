@@ -1,4 +1,4 @@
-PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
+PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip=noskip
    ;PRO to export a netCDF file with the variables contained in a data structure.
    ;Similar to soda2_export_ncdf_raf, but follows a simpler format,
    ;   without the 'SPS' dimension, PSD padding, reversed dimensions, etc.
@@ -7,6 +7,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
 
 
    IF n_elements(lite) eq 0 THEN lite=0  ;Option to avoid writing 2D matrices
+   IF n_elements(noskip) eq 0 THEN noskip=0 ;Option to write everything in the sav file, even with unknown attributes
    !quiet=1  ;Suppress annoying messages from ncdf routines
 
    ;-----------Create new file instead-----------------
@@ -16,15 +17,18 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
    id=ncdf_create(outfile[0],/clobber)
 
    tags=tag_names(data)
+   opnames=tag_names(data.op)
 
    ;Define the x-dimension, should be used in all variables
    xdimid=ncdf_dimdef(id,'Time',n_elements(data.time))
-   ;This is for numbins
-   name='Vector'+strtrim(string(n_elements(data.op.endbins)-1),2)
-   ydimid_size=ncdf_dimdef(id,name,n_elements(data.op.endbins)-1)
-   ;This is for endbins
-   name='Vector'+strtrim(string(n_elements(data.op.endbins)),2)
-   dimid_endbins=ncdf_dimdef(id,name,n_elements(data.op.endbins))
+   IF total(opnames eq 'ENDBINS') THEN BEGIN
+      ;This is for numbins
+      name='Vector'+strtrim(string(n_elements(data.op.endbins)-1),2)
+      ydimid_size=ncdf_dimdef(id,name,n_elements(data.op.endbins)-1)
+      ;This is for endbins
+      name='Vector'+strtrim(string(n_elements(data.op.endbins)),2)
+      dimid_endbins=ncdf_dimdef(id,name,n_elements(data.op.endbins))
+   END
    ;This is for interarrival
    IF total(tags eq 'INTMIDBINS') THEN BEGIN
       name='Vector'+strtrim(string(n_elements(data.intmidbins)),2)
@@ -56,9 +60,8 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
    ;ncdf_attput,id,'Conventions', 'NCAR-RAF/nimbus', /global
    ncdf_attput,id,'DateCreated',systime(),/global
    ncdf_attput,id,'FlightDate',flightdate[0],/global
-   ncdf_attput,id,'DateProcessed',data.date_processed,/global
+   IF total(tags eq 'DATE_PROCESSED') THEN ncdf_attput,id,'DateProcessed',data.date_processed,/global
    ncdf_attput,id,'TimeInterval',str,/global
-   opnames=tag_names(data.op)
    FOR i=0,n_elements(opnames)-1 DO BEGIN
          IF string(data.op.(i)[0]) eq '' THEN data.op.(i)[0]='none' ;To avoid an ncdf error (empty string)
          ncdf_attput,id,opnames[i],data.op.(i)[0],/global
@@ -154,7 +157,14 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
                attvalue={a1:'Interarrival Bin Mid-points',a2:'s'}
                dims=ydimid_int
          END
-         ELSE:skiptag=1
+         ELSE:BEGIN
+            skiptag=1
+            ;Exception to write data without attributes, could be anything with same size as time
+            IF (noskip eq 1) and (n_elements(currentdata) eq n_elements(data.time)) and (tags[j] ne 'TIME') THEN BEGIN
+               attvalue={a1:'Unknown',a2:'Unknown'}
+               skiptag=0
+            ENDIF
+         END
       ENDCASE
 
       IF (lite eq 1) and (n_elements(dims) gt 1) THEN skiptag=1
@@ -176,7 +186,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite
    ENDFOR
 
    ;--------------Sub-structure tags------------------------------
-   IF max(data.op.endbins) gt 100 THEN BEGIN  ;Make sure we have an OAP (not CDP, FSSP, etc.)
+   IF total(opnames eq 'ENDBINS') && max(data.op.endbins) gt 100 THEN BEGIN  ;Make sure we have an OAP (not CDP, FSSP, etc.)
       bulkall=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=0)
       i100=min(where(data.op.endbins ge 100))
       bulk100=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=i100)

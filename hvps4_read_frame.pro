@@ -46,7 +46,7 @@ FUNCTION hvps4_read_frame, lun, bpoint, id
       himageraw=buff[2:nh-1]                  ;Skip last two words (otherwise nh+1)
       hcounter=ulong(buff[nh:nh+2])           ;Last three words for the counter
       time=ishft(hcounter[2],32)+ishft(hcounter[1],16)+hcounter[0]  ;Assemble timeword
-      image=spec_decompress(himageraw,overloadh)
+      image=spec_decompress(himageraw,overloadh,version=1)
       error=0
       IF missingtwh THEN error=1
       overload=overloadh
@@ -57,7 +57,7 @@ FUNCTION hvps4_read_frame, lun, bpoint, id
       vimageraw=buff[2:nv-1]                  ;Skip last two words (otherwise nv+1)
       vcounter=ulong(buff[nv:nv+2])     ;Last three words for the counter
       time=ishft(vcounter[2],32)+ishft(vcounter[1],16)+vcounter[0]  ;Assemble timeword
-      image=spec_decompress(vimageraw,overloadv)
+      image=spec_decompress(vimageraw,overloadv,version=1)
       error=0
       IF missingtwv THEN error=1
       overload=overloadv   ;Not sure about overloads yet, the documentation seems to have typos (HVPS4_Packet_format_Data_and_HK.xls)

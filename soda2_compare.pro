@@ -6,10 +6,10 @@ PRO soda2_compare_event, ev
    ;Get pointers to the restored data
    widget_control,widget_info(ev.top,find='base'),get_uvalue=pinfo
    p1=(*pinfo).p1
-    
+
    CASE 1 OF
       ;====================================================================================================
-      (uname eq 'wt')  or (uname eq 'time') or (uname eq 'plot'):BEGIN      
+      (uname eq 'wt')  or (uname eq 'time') or (uname eq 'plot'):BEGIN
          advance=0
          i=(*pinfo).i
          update=0  ;Flag to enact updates
@@ -25,17 +25,17 @@ PRO soda2_compare_event, ev
          ENDIF ELSE BEGIN
             ;In other tabs just use release events
             IF ((ev.release ne 0) or (ev.type eq 7)) THEN BEGIN
-               IF (uname eq 'plot') THEN BEGIN               
+               IF (uname eq 'plot') THEN BEGIN
                   ;Left click, middle click, or scroll down
                   IF (ev.release eq 1) or (ev.release eq 2) or (ev.release eq 16) THEN advance=1
                   ;Right click or scroll up
-                  IF (ev.release eq 4) or (ev.release eq 8) THEN advance=-1           
-                  IF (ev.type eq 7) THEN advance=-(ev.clicks)   ;For Windows compatibility    
+                  IF (ev.release eq 4) or (ev.release eq 8) THEN advance=-1
+                  IF (ev.type eq 7) THEN advance=-(ev.clicks)   ;For Windows compatibility
                ENDIF
                IF uname eq 'wt' THEN BEGIN   ;Left click on the wt window moves to the click location
                   IF (ev.release eq 1) THEN i=ev.x/float((*pinfo).screen_x) * n_elements((*p1).time)
                   IF (ev.release eq 8) THEN advance =-1
-                  IF (ev.release eq 16) THEN advance=1  
+                  IF (ev.release eq 16) THEN advance=1
                   IF (ev.type eq 7) THEN advance=-(ev.clicks)   ;For Windows compatibility
                ENDIF
                update=1
@@ -43,13 +43,13 @@ PRO soda2_compare_event, ev
          ENDELSE
          ;Update the plot if flagged
          IF update THEN BEGIN
-            i=i + advance > 0 < (n_elements((*p1).time)-1)         
+            i=i + advance > 0 < (n_elements((*p1).time)-1)
 
             (*pinfo).i=i
             ;Update the time indicator
             IF (*pinfo).timeformat eq 1 THEN texttime=sfm2hms((*p1).time[i]) ELSE texttime=(*p1).time[i]
             widget_control,widget_info(ev.top,find='time'),set_value=strtrim(string(long(texttime)),2)
-            
+
             ;Update the time plot
             tsbmp=(*pinfo).bmp
             it=((*p1).time[i]-(*p1).op.starttime)/((*p1).op.stoptime-(*p1).op.starttime)*((*pinfo).screen_x-1)
@@ -58,21 +58,21 @@ PRO soda2_compare_event, ev
             tsbmp[(it-1)>0,*]=70
             wset,(*pinfo).wt
             tv,tsbmp
-      
-            ;Plot new data         
+
+            ;Plot new data
             soda2_compareplot, pinfo
          ENDIF
       END
       ;====================================================================================================
       uname eq 'quit': BEGIN
-         IF ptr_valid(p1) THEN ptr_free,p1   
-         IF ptr_valid(pinfo) THEN ptr_free,pinfo 
+         IF ptr_valid(p1) THEN ptr_free,p1
+         IF ptr_valid(pinfo) THEN ptr_free,pinfo
          WIDGET_CONTROL, ev.TOP, /DESTROY
       END
       ;====================================================================================================
       uname eq 'timeformat': BEGIN
          IF (*pinfo).timeformat eq 1 THEN BEGIN
-            (*pinfo).timeformat=0 
+            (*pinfo).timeformat=0
             widget_control,widget_info(ev.top,find='timeformat'),set_value='SFM'
          ENDIF ELSE BEGIN
             (*pinfo).timeformat=1
@@ -84,7 +84,7 @@ PRO soda2_compare_event, ev
      END
       ;====================================================================================================
       uname eq 'png': BEGIN
-         image=tvrd(/true)           
+         image=tvrd(/true)
 
          base='comparison'
          file=base+'_'+(*p1).op.date+'_'+strtrim(string(sfm2hms((*p1).time[(*pinfo).i]),format='(i06)'),2)
@@ -129,7 +129,7 @@ PRO soda2_compare_event, ev
          (*p2).iwc=bulk.iwc    ;Update these, will be displayed on the plot
          (*p2).dmedianmass=bulk.dmedianmass
          soda2_compareplot,pinfo
-      END        
+      END
       ;====================================================================================================
       (uname eq 'color_invert'): BEGIN
          IF !p.background eq 255 THEN BEGIN
@@ -140,7 +140,7 @@ PRO soda2_compare_event, ev
            !p.background=255
            !p.color=0
            !p.thick=2
-         ENDELSE         
+         ENDELSE
          soda2_compareplot, pinfo
       END
       ;====================================================================================================
@@ -148,7 +148,7 @@ PRO soda2_compare_event, ev
          widget_control,widget_info(ev.top,find='options'),get_value=vals
          (*pinfo).lognormalize=vals[0]
          (*pinfo).xlog=vals[1]
-         (*pinfo).ylog=vals[2]         
+         (*pinfo).ylog=vals[2]
          soda2_compareplot, pinfo
      END
       ELSE: dummy=0
@@ -158,7 +158,7 @@ END
 
 
 PRO soda2_compare_cleanup,tlb
-   heap_gc  ;Ugly, but it works for now....    
+   heap_gc  ;Ugly, but it works for now....
 END
 
 PRO soda2_compareplot, pinfo
@@ -170,7 +170,7 @@ PRO soda2_compareplot, pinfo
    p2=(*pinfo).p2
    wset,(*pinfo).wid
    allbins=[(*p1).midbins,(*p2).midbins]
-  
+
    ;Normalize plots if flagged
    IF (*pinfo).lognormalize eq 1 THEN BEGIN
       conc1=lognormalize((*p1).conc1d[i,*], (*p1).op.endbins)
@@ -187,7 +187,7 @@ PRO soda2_compareplot, pinfo
       concunit='(m!u-4!n)'
       msdunit='(g/m!u4!n)'
    ENDELSE
-   
+
    ;Set axis ranges
    IF (*pinfo).xlog eq 1 THEN padfactor=2.0 ELSE padfactor=1.1
    xrange=[min(allbins)/padfactor, max(allbins)*padfactor]
@@ -209,7 +209,7 @@ PRO soda2_compareplot, pinfo
    oplot,(*p2).midbins, conc2, color=color2, thick=2
    oplot,[(*pinfo).crossover,(*pinfo).crossover], [1e-12, 1e12], line=1, thick=1
    legend_old,[(*p1).op2.shortname+(*p1).op2.probeid,(*p2).op2.shortname+(*p2).op2.probeid],line=0,box=0,color=[color1, color2],/top,/right,charsize=1.0,thick=2
-   
+
    ;Right side plot
    plot,(*p1).midbins, msd1, xlog=(*pinfo).xlog, ylog=(*pinfo).ylog, /nodata, xtit='Diameter (microns)', ytit='Mass '+msdunit, xr=xrange, /xs, yr=yrangemsd
    oplot,(*p1).midbins, msd1,color=color1, thick=3
@@ -218,6 +218,7 @@ PRO soda2_compareplot, pinfo
    legend_old,[string((*p1).iwc[i],format='(f0.2)')+' g/m3 '+string((*p1).dmedianmass[i],format='(f0.1)')+' um',$
                string((*p2).iwc[i],format='(f0.2)')+' g/m3 '+string((*p2).dmedianmass[i],format='(f0.1)')+' um'],$
                line=0,color=[color1, color2],thick=2,/top,/left,box=0,charsize=1.0
+   !p.multi=[0,1,1]
 END
 
 
@@ -227,7 +228,7 @@ PRO soda2_compare, fn1, fn2, fn3=fn3, crossover=crossover, binstart=binstart
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
    device,decompose=0,get_screen_size=screen_size   ;Set to 8-bit color
-   device, retain=2   
+   device, retain=2
    loadct,39    ;A color table that works for Linux....
    tvlct,r,g,b,/get
    ;Load these to maintain color table for soda2_browse, if running concurrently
@@ -277,22 +278,22 @@ PRO soda2_compare, fn1, fn2, fn3=fn3, crossover=crossover, binstart=binstart
 
    ;Restore and organize data
    IF n_elements(binstart) eq 0 THEN binstart=1
-   restore,fn1    
+   restore,fn1
    a=0.00294 & b=1.9  ;Default to Brown and Francis
    IF data.op.water eq 1 THEN BEGIN & a=!pi/6 & b=3.0 & ENDIF  ;Unless processed with water
    bulk=compute_bulk_simple(data.conc1d,data.op.endbins,ac=a,bc=b,binstart=binstart)
    op2=data.op
    soda2_update_op, op2  ;For back compatibility
    data1=create_struct(data, bulk, 'op2', op2)
-   restore,fn2   
+   restore,fn2
    a=0.00294 & b=1.9  ;Default to Brown and Francis
    IF data.op.water eq 1 THEN BEGIN & a=!pi/6 & b=3.0 & ENDIF  ;Unless processed with water
    bulk=compute_bulk_simple(data.conc1d,data.op.endbins,ac=a,bc=b,binstart=binstart)
    op2=data.op
    soda2_update_op, op2  ;For back compatibility
    data2=create_struct(data, bulk, 'op2', op2)
-   IF ptr_valid(p1) THEN ptr_free,p1   
-   IF ptr_valid(p1) THEN ptr_free,p1   
+   IF ptr_valid(p1) THEN ptr_free,p1
+   IF ptr_valid(p1) THEN ptr_free,p1
    IF ptr_valid(pinfo) THEN ptr_free,pinfo
    p1=ptr_new(data1)
    p2=ptr_new(data2)
@@ -300,7 +301,7 @@ PRO soda2_compare, fn1, fn2, fn3=fn3, crossover=crossover, binstart=binstart
       dummy=dialog_message('Time mismatch.  Returning.',dialog_parent=base)
       return
    ENDIF
-   
+
    ;Start GUI
    WIDGET_CONTROL, base, /REALIZE
    XMANAGER, 'soda2_compare', base, cleanup='soda2_compare_cleanup', /no_block
@@ -312,16 +313,16 @@ PRO soda2_compare, fn1, fn2, fn3=fn3, crossover=crossover, binstart=binstart
    bitmap=tvrd()
    tsbmp=bitmap
    tsbmp[1,*]=100 ;Add a time bar at the beginning
-   tsbmp[0,*]=70 
-   tsbmp[2,*]=70 
+   tsbmp[0,*]=70
+   tsbmp[2,*]=70
    tv,tsbmp
-   
+
    ;Establish mouse info
    mouse={down:0, pixid:0, wid:0, xsize:0, ysize:0, sx:0, sy:0, dx:0, dy:0}
    pmouse=ptr_new(mouse)
 
    ;Set up info
-   outdir=file_dirname(fn1)+path_sep()           
+   outdir=file_dirname(fn1)+path_sep()
    widget_control,widget_info(base,find='plot'),get_value=wid
    IF n_elements(crossover) eq 0 THEN crossover=0
    info={i:0L, timeformat:1, wid:wid, wt:wt, p1:p1, p2:p2, pmouse:pmouse, bmp:bitmap, $
@@ -329,7 +330,7 @@ PRO soda2_compare, fn1, fn2, fn3=fn3, crossover=crossover, binstart=binstart
          lognormalize:1, xlog:1, ylog:1, binstart:binstart}
    pinfo=ptr_new(info)
    widget_control,widget_info(base,find='base'),set_uvalue=pinfo
-   
+
    ;Plot new data
    soda2_compareplot, pinfo
 END

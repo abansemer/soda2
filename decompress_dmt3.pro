@@ -45,7 +45,6 @@ FUNCTION decompress_dmt3, cimage
          ipos=lastgoodipos
          image[ipos:*] = 255    ;reset written data from previous particle.
       ENDIF
-      ;print,'*'
       lastgoodipos = ipos  ;Keep track of this so can revert back to this position when corrupt data encountered
       FOR cipos=syncpos[i], syncpos[i+1]-1 DO BEGIN
          zeroes=0 & ones=0 & dummy=0
@@ -54,7 +53,6 @@ FUNCTION decompress_dmt3, cimage
          if (rlehb and 64b) eq 64 then ones=1      ;There are 'count' zeroes to follow
          if (rlehb and 32b) eq 32 then dummy=1     ;This is a dummy byte, skip it
          count=rlehb and 31b  ;Number of zeroes, ones, or existing bytes to follow.  Actual number to add is count+1 per manual.
-         ;print,rlehb,dec2bin8(rlehb), 'z=',zeroes, 'o=',ones, 'd=',dummy , 'c=',count+1,format='(i5, 8i4, a6,i3,a6,i3,a6,i3,a6,i3)'
 
          IF (zeroes eq 1) and (ones eq 0) and (dummy eq 0) THEN BEGIN           ;Add in zeroes
             image[ipos:ipos+count]=0B
@@ -75,12 +73,11 @@ FUNCTION decompress_dmt3, cimage
                image[ipos:ipos+count]=cimage[cipos+1:cipos+count+1]
                ipos=ipos+count+1
                cipos=cipos+count+1
-            ENDIF ;ELSE stop
+            ENDIF
          ENDIF
       ENDFOR
    ENDFOR
-;bitimage=reform(reverse(dec2bin8(not(image)),1),64,5000)
-;stop
+
    image=image[0:ipos-1] ; truncate image to size
 
    ;-------Find the rest of the sync slices, some are not always detected above-------------
@@ -121,16 +118,12 @@ FUNCTION decompress_dmt3, cimage
    time=time[0:sync_count>1-1]
    time_total=time_total[0:sync_count>1-1]
    header_slice_count=header_slice_count[0:sync_count>1-1]
+
    ;Sometimes the recorded slice_count is off, which screws up processbuffer.  Compute here.
    slice_stop = [sync_ind[1:*], fix(slices-1)]
    slice_count = slice_stop - sync_ind - 1   ;Not counting sync/time slices
-   ;-----------------------------------------------------
 
    bitimage=reform(reverse(dec2bin8(not(image)),1),64,slices)  ; change to 64 x #Slices binary image
-
-   ;This is for running on Windows PCs to avoid a crash
-   IF !version.os_family eq 'Windows' THEN wait,0.01
-
    remainder=cimage[syncpos[c-1]:nbytes-1]   ;Save this to add to next buffer, if desired for bridging.
 
    return, {image:image, bitimage:bitimage, sync_ind:sync_ind, time_elap:time, time_sfm:time_total, $
