@@ -247,7 +247,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           inttime=x.time_sfm[good]-previoustime
           particle_count=x.particle_count[good]
           dof=(greymax[good]-2)>0  ;Should only flag particles with a level-3 pixel
-          ;dof=bytarr(num_images)+1  ;No dof flag, assume all are good
+          ;Implement Mode3 here?  Need to get N75 and N50 first, maybe better later
+
           ;Need to reform previouscount now to only use good particles
           previouscount=[(*pmisc).lastparticlecount, x.particle_count[good]]
           diffcount=x.particle_count[good]-previouscount
@@ -462,17 +463,25 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           missed = 0
           particle_count = intarr(num_images) ;No counter
           dof = pixels75[2:*] < 1             ;Set flag to 'accept' if at least one 75% pixel, flag must be 0 or 1
+          IF (*pop).dofreject eq 2 THEN BEGIN
+             ;Stricter DoF for N75/N50 > 0.5, aka Mode3.  This forces Mode3 even if data recorded in Mode1 or Mode2.
+             n75 = pixels75[2:*]
+             n50 = pixels50[2:*]  ;this can sometimes be slightly different than computed area, but ignore for now
+             dof = bytarr(num_images)+1
+             FOR i=0,num_images-1 DO IF float(n75[i])/n50[i] lt 0.5 THEN dof[i]=0
+          ENDIF
+
           stretch = fltarr(num_images)+1.0    ;Not implemented yet for this probe, assume no stretch
           clocktas = fltarr(num_images)+buffer.tas
        END
 
        ((*pop).probetype eq 'HVPS1'): BEGIN
           ;Trying out some SDSMT code, never worked....
-          IF 1 eq 2 THEN BEGIN
-             y=decompress_hvps1(buffer.image)
-             charge_sw = 0 ;Try 1 and 0
-             get_img_only,buffer.image,1,1000,256,10.0,charge_sw,z
-          ENDIF
+          ;IF 1 eq 2 THEN BEGIN
+          ;    y=decompress_hvps1(buffer.image)
+          ;    charge_sw = 0 ;Try 1 and 0
+          ;    get_img_only,buffer.image,1,1000,256,10.0,charge_sw,z
+          ;ENDIF
 
           ;Adapted from SODA-1 code
           ;numdiodes=lp-fp+1  ;this is returned to calling program for computing sample area later on
