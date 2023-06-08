@@ -181,14 +181,58 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
    ENDELSE
 
 
-   ;Set up particlefile
+   ;====================================================================================================
+   ;====================================================================================================
+   ;Set up PBP files
+   ;====================================================================================================
+   ;====================================================================================================
    lun_pbp=2
    ncdf_offset=0L
    ncdf_id=0L
+
+   ;List of variables to include in netCDF file: [varname, longname, unit, datatype, ascii_format]
+   pbpprops=[['time', 'UTC time', 'seconds', 'double', 'f0.5'],$
+              ['probetime', 'Unadjusted probe particle time', 'seconds', 'double', 'f0.5'],$
+              ['buffertime', 'Buffer time', 'seconds', 'double', 'f0.5'],$
+              ['rawtime', 'Raw time', 'slices or seconds', 'double', 'f0.5'],$
+              ['reftime', 'Reference time for buffer matching', 'seconds', 'double', 'f0.5'],$
+              ['inttime', 'Interarrival time from previous particle', 'seconds', 'float', 'e0.5'],$
+              ['diam', 'Particle diameter from circle fit. No Poisson spot size corrections applied', 'microns', 'float', 'f0.1'],$
+              ['xsize', 'X-size (across array). No Poisson spot size corrections applied', 'microns', 'float', 'f0.1'],$
+              ['ysize', 'Y-size (along airflow). No Poisson spot size corrections applied', 'microns', 'float', 'f0.1'],$
+              ['xextent', 'Maximum x-size (across array) for a single slice. No Poisson spot size corrections applied', 'microns', 'float', 'f0.1'],$
+              ['oned', '1-D emulation size. Number of latched pixels. No Poisson spot size corrections applied', 'microns', 'float', 'f0.1'],$
+              ['twod', '2-D emulation size. Maximum number of shaded pixels on a single slice. No Poisson spot size corrections applied', 'microns', 'float', 'f0.1'],$
+              ['areasize', 'Equivalent area size. No Poisson spot size corrections applied', 'microns', 'float', 'f0.1'],$
+              ['arearatio', 'Area ratio', 'unitless', 'float', 'f0.2'],$
+              ['arearatiofilled', 'Area ratio with particle voids filled', 'unitless', 'float', 'f0.2'],$
+              ['aspectratio', 'Aspect ratio', 'unitless', 'float', 'f0.2'],$
+              ['area', 'Number of shaded pixels', 'pixels', 'short', 'i0'],$
+              ['areafilled', 'Number of shaded pixels including voids', 'pixels', 'short', 'i0'],$
+              ['perimeterarea', 'Number of shaded pixels on particle perimeter', 'pixels', 'short', 'i0'],$
+              ['area75', 'Number of shaded pixels at the 75% (or grey level-3) shading', 'pixels', 'short', 'i0'],$
+              ['xpos', 'X-position of particle center (across array)', 'pixels', 'float', 'f0.2'],$
+              ['ypos', 'Y-position of particle center (along airflow)', 'pixels', 'float', 'f0.2'],$
+              ['allin', 'All-in flag (1=all-in)', 'unitless', 'byte','i0'],$
+              ['centerin', 'Center-in flag (1=center-in)', 'unitless', 'byte','i0'],$
+              ['dofflag', 'Depth of field flag from probe (1=accepted)', 'unitless', 'byte','i0'],$
+              ['edgetouch', 'Edge touch (1=left 2=right 3=both)', 'unitless', 'byte','i0'],$
+              ['sizecorrection', 'Size correction factor from Korolev 2007 (D_edge/D0). Use to adjust sizes in this file if necessary', 'unitless', 'float', 'f0.2'],$
+              ['zd', 'Z position from Korolev correction', 'microns', 'float', 'f0.2'],$
+              ['missed', 'Missed particle count', 'number', 'float', 'i0'],$
+              ['probetas', 'True air speed for probe clock', 'm/s', 'float', 'f0.2'],$
+              ['aircrafttas', 'True air speed for aircraft (if available)', 'm/s', 'float', 'f0.2'],$
+              ['overloadflag', 'Overload flag', 'boolean', 'byte', 'i0'],$
+              ['particlecounter', 'Particle counter', 'number', 'long', 'i0'],$
+              ['orientation', 'Particle orientation relative to array axis', 'degrees', 'float', 'f0.2'],$
+              ['rejectionflag', 'Particle rejection code (see soda2_reject.pro)', 'unitless', 'byte', 'i0']]
+
+   ;NetCDF PBP
    IF op.ncdfparticlefile eq 1 THEN BEGIN
       fn_ncdf=soda2_filename(op,op.shortname,extension='.pbp.nc')
       file_delete, fn_ncdf, /quiet ;The 'clobber' switch does not work on ncdf_create with netcdf4
       ncdf_id=ncdf_create(fn_ncdf, /netcdf4_format)
+
       ;Define the x-dimension, should be used in all variables
       xdimid=ncdf_dimdef(ncdf_id,'Time',/unlimited)
 
@@ -215,82 +259,40 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
          ENDIF ELSE ncdf_attput,ncdf_id,opnames[i],op.(i),/global   ;Non-strings, all elements
       ENDFOR
 
-      ;List of variables to include in netCDF file: [varname, longname, unit, datatype]
-      ncdfprops=[['time', 'UTC time', 'seconds', 'double'],$
-                 ['probetime', 'Unadjusted probe particle time', 'seconds', 'double'],$
-                 ['buffertime', 'Buffer time', 'seconds', 'double'],$
-                 ['rawtime', 'Raw time', 'slices or seconds', 'double'],$
-                 ['reftime', 'Reference time for buffer matching', 'seconds', 'double'],$
-                 ['inttime', 'Interarrival time', 'seconds', 'float'],$
-                 ['diam', 'Particle diameter from circle fit. No Poisson spot size corrections applied', 'microns', 'float'],$
-                 ['xsize', 'X-size (across array). No Poisson spot size corrections applied', 'microns', 'float'],$
-                 ['ysize', 'Y-size (along airflow). No Poisson spot size corrections applied', 'microns', 'float'],$
-                 ['xextent', 'Maximum x-extent (across array) for all individual slices. No Poisson spot size corrections applied', 'microns', 'float'],$
-                 ['oned', '1-D emulation size, number of latched pixels. No Poisson spot size corrections applied', 'microns', 'float'],$
-                 ['twod', '2-D emulation size, slice with maximum number of shaded pixels. No Poisson spot size corrections applied', 'microns', 'float'],$
-                 ['areasize', 'Equivalent area size. No Poisson spot size corrections applied', 'microns', 'float'],$
-                 ['arearatio', 'Area ratio', 'unitless', 'float'],$
-                 ['arearatiofilled', 'Area ratio with particle voids filled', 'unitless', 'float'],$
-                 ['aspectratio', 'Aspect ratio', 'unitless', 'float'],$
-                 ['area', 'Number of shaded pixels', 'pixels', 'short' ],$
-                 ['areafilled', 'Number of shaded pixels including voids', 'pixels', 'short' ],$
-                 ['perimeterarea', 'Number of shaded perimeter pixels', 'pixels', 'short'],$
-                 ['area75', 'Number of shaded pixels at the 75% (or grey level-3) shading', 'pixels', 'short'],$
-                 ['xpos', 'X-position of particle center (across array)', 'pixels', 'float'],$
-                 ['ypos', 'Y-position of particle center (along airflow)', 'pixels', 'float'],$
-                 ['allin', 'All-in flag', 'unitless', 'byte'],$
-                 ['centerin', 'Center-in flag', 'unitless', 'byte'],$
-                 ['dofflag', 'Depth of field flag from probe (1=accepted)', 'unitless', 'byte'],$
-                 ['edgetouch', 'Edge touch (1=left, 2=right, 3=both)', 'unitless', 'byte'],$
-                 ['sizecorrection', 'Size correction factor from Korolev 2007 (D_edge/D0), use to adjust sizes in this file if necessary', 'unitless', 'float'],$
-                 ['zd', 'Z position from Korolev correction', 'microns', 'float'],$
-                 ['missed', 'Missed particle count', 'number', 'float'],$
-                 ['probetas', 'True air speed for probe clock', 'm/s', 'float'],$
-                 ['aircrafttas', 'True air speed for aircraft (if available)', 'm/s', 'float'],$
-                 ['overloadflag', 'Overload flag', 'boolean', 'byte'],$
-                 ['particlecounter', 'Particle counter', 'number', 'long'],$
-                 ['orientation', 'Particle orientation relative to array axis', 'degrees', 'float'],$
-                 ['rejectionflag', 'Particle rejection code', 'unitless', 'byte']]
-
-      tagnames=ncdfprops[0,*]
+      tagnames=pbpprops[0,*]
       FOR i=0,n_elements(tagnames)-1 DO BEGIN
-         CASE ncdfprops[3,i] OF
+         CASE pbpprops[3,i] OF
             'float': varid = ncdf_vardef(ncdf_id,tagnames[i], xdimid, /float, gzip=5)
             'double': varid = ncdf_vardef(ncdf_id,tagnames[i], xdimid, /double, gzip=5)
             'byte': varid = ncdf_vardef(ncdf_id,tagnames[i], xdimid, /byte, gzip=5)
             'short': varid = ncdf_vardef(ncdf_id,tagnames[i], xdimid, /short, gzip=5)
             'long': varid = ncdf_vardef(ncdf_id,tagnames[i], xdimid, /long, gzip=5)
          ENDCASE
-         ncdf_attput,ncdf_id,varid,'longname',ncdfprops[1,i]
-         ncdf_attput,ncdf_id,varid,'units',ncdfprops[2,i]
+         ncdf_attput,ncdf_id,varid,'longname',pbpprops[1,i]
+         ncdf_attput,ncdf_id,varid,'units',pbpprops[2,i]
       ENDFOR
       ncdf_control,ncdf_id,/endef                ;put in data mode
    ENDIF
 
+   ;ASCII/CSV PBP
    IF op.particlefile eq 1 THEN BEGIN
-      fn_pbp=soda2_filename(op,op.shortname,extension='.pbp')
+      fn_pbp=soda2_filename(op,op.shortname,extension='.pbp.csv')
       close, lun_pbp
       openw, lun_pbp, fn_pbp
-      ;printf,lun_pbp, ['Time(UTC)', 'IPT(s)', 'Diam(um)', 'XSize(um)', 'YSize(um)', 'AreaRatio', 'AspectRatio', 'Allin(bool)', $
-      ;                'Missed', 'Overload', 'Orientation'], format='(99a14)'
+
       printf, lun_pbp, 'Source: SODA-2 OAP Processing Software'
-      printf, lun_pbp, 'Flight Date: ', strmid(op.date,0,2)+'/'+strmid(op.date,2,2)+'/'+strmid(op.date,4,4)
-      printf, lun_pbp, 'Data output for each column: '
-      printf, lun_pbp, '  1: Particle time [seconds from midnight]'
-      printf, lun_pbp, '  2: Raw unadjusted probe particle time [seconds from midnight]'
-      printf, lun_pbp, '  3: Buffer time [seconds from midnight]'
-      printf, lun_pbp, '  4: Interparticle time [seconds]'
-      printf, lun_pbp, '  5: Particle diameter from circle sizing [microns]'
-      printf, lun_pbp, '  6: X-size (across array) [microns]'
-      printf, lun_pbp, '  7: Y-size (along airflow) [microns]'
-      printf, lun_pbp, '  8: Area ratio [unitless]'
-      printf, lun_pbp, '  9: Aspect ratio [unitless]'
-      printf, lun_pbp, '  10: Particle orientation relative to array axis [degrees]'
-      printf, lun_pbp, '  11: All-in flag [boolean]'
-      printf, lun_pbp, '  12: Overload flag [boolean]'
-      printf, lun_pbp, '  13: Missed particles [number]'
-      printf, lun_pbp, '  14: Particle counter [number]'
+      printf, lun_pbp, 'Flight Date (mm/dd/yyyy): ', strmid(op.date,0,2)+'/'+strmid(op.date,2,2)+'/'+strmid(op.date,4,4)
+      printf,lun_pbp, 'Date Processed: ' + systime()
+
+      printf, lun_pbp, 'Variable Descriptions: '
+      tagnames=pbpprops[0,*]
+
+      ;Print long-form header
+      FOR i=0, n_elements(tagnames)-1 DO printf, lun_pbp, string(i+1, format='(4i)')+'. '+pbpprops[0,i]+': '+pbpprops[1,i]+' ['+pbpprops[2,i]+']'
+
+      ;Print short-form header
       printf, lun_pbp, '-------------------------------------------'
+      printf,lun_pbp, pbpprops[0,*], format='(99(a0,:,","))'  ;The colon suppresses final comma
    ENDIF
 
 
@@ -492,7 +494,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
          ENDELSE
          IF (istop+500) gt num2process THEN BEGIN
             ;Memory limit reached, process particles and reset arrays
-            soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id
+            soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id, pbpprops
             ncdf_offset=ncdf_offset + istop + 1
             istop=-1L
          ENDIF
@@ -502,7 +504,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
       IF istop lt 0 THEN return
       infoline='Sorting Particles...'
       IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
-      soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id
+      soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id, pbpprops
       close,1
 
 
@@ -530,7 +532,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
          ;IF gotnt eq 1 THEN x.buffertime=newtime[i*num2process:i*num2process+n_elements(x.buffertime)-1]
          IF (*pop).format eq 'SPEC' THEN reprocessed_time = newtime[i*num2process:i*num2process+n_elements(x.buffertime)-1]
          ncdf_offset = num2process*i
-         soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id, reprocessed_time=reprocessed_time
+         soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id, pbpprops, reprocessed_time=reprocessed_time
 
          percentcomplete=fix(float(i+1)*num2process / n_elements(pbp.time) * 100) < 100
          infoline=strtrim(string(percentcomplete))+'%'
@@ -557,9 +559,11 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
    numactivediodes = op.numdiodes  ;Default to full range
    IF (op.dioderange[0] ne 0) or (op.dioderange[1] ne 0) THEN numactivediodes = op.dioderange[1] - op.dioderange[0] + 1
 
-   ;Sample area
-   FOR i=0,numbins-1 DO sa[i]=soda2_samplearea(midbins[i], op.res, op.armwidth, numactivediodes, op.eawmethod, $
-      op.smethod, op.wavelength, op.dofconst)
+   ;Sample area, will use op.customdof if nonzero
+   ;FOR i=0,numbins-1 DO sa[i]=soda2_samplearea(midbins[i], op.res, op.armwidth, numactivediodes, op.eawmethod, $
+   ;   op.smethod, op.wavelength, op.dofconst, dof=op.customdof[i])
+   sa=soda2_samplearea(midbins, op.res, op.armwidth, numactivediodes, op.eawmethod, $
+      op.smethod, op.wavelength, op.dofconst, dof=op.customdof)
 
    ;Assume probe is always active, minus deadtime
    IF op.ignoredeadtime eq 1 THEN BEGIN

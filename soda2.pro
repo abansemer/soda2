@@ -34,7 +34,7 @@ PRO soda2_event, ev
             widget_control,widget_info(ev.top,find='tascheckbox'),set_value=op.stretchcorrect
 
             ;--------Checkboxes
-            checkboxarray=[0,0,0,0,0,0,0,0]
+            checkboxarray=[0,0,0,0,0,0,0,0,0,0]
             id=widget_info(ev.top,find='options')
             widget_control,id,get_uvalue=values
             IF total(where(tag_names(op) eq 'RECONSTRUCT')) ne -1 THEN IF op.reconstruct eq 0 THEN checkboxarray[where(values eq 'All-In')]=1
@@ -47,16 +47,19 @@ PRO soda2_event, ev
             IF op.juelichfilter eq 1 THEN checkboxarray[where(values eq 'Pixel Noise Filter')]=1
             IF op.keeplargest eq 1 THEN checkboxarray[where(values eq 'Largest Particle')]=1
             IF op.apply_psc eq 1 THEN checkboxarray[where(values eq 'Force PSC')]=1
-            IF op.dofreject eq 1 THEN checkboxarray[where(values eq 'DoF Reject')]=1
+            IF op.dofreject eq 1 THEN checkboxarray[where(values eq 'DoF Reject')]=1   ;Mode2 rejection N75 > 1
+            IF op.dofreject eq 2 THEN checkboxarray[where(values eq 'Shadow Ratio Reject')]=1 ;Mode3 rejection N75/N50 > 0.5
+            IF total(op.customdof) gt 0 THEN checkboxarray[where(values eq 'Custom DoF Curve')]=1
             widget_control,id,set_value=checkboxarray
 
             ;--------Output checkboxes
             checkboxarray=[0,0,0,0]
             id=widget_info(ev.top,find='outputflags')
             widget_control,id,get_uvalue=values
-            IF op.savfile THEN checkboxarray[where(values eq 'IDL sav')]=1
-            IF op.asciipsdfile THEN checkboxarray[where(values eq 'ASCII PSD')]=1
-            IF op.ncdfparticlefile THEN checkboxarray[where(values eq 'Particle-by-Particle(netCDF)')]=1
+            IF op.savfile THEN checkboxarray[where(values eq 'IDL(sav)')]=1
+            IF op.asciipsdfile THEN checkboxarray[where(values eq 'PSD(ASCII)')]=1
+            IF op.ncdfparticlefile THEN checkboxarray[where(values eq 'ParticleFile(netCDF)')]=1
+            IF op.particlefile THEN checkboxarray[where(values eq 'ParticleFile(CSV)')]=1
             widget_control,id,set_value=checkboxarray
 
             ;--------Filenames
@@ -94,6 +97,7 @@ PRO soda2_event, ev
             ENDIF ELSE BEGIN
                widget_control,id,set_value=['None', p.probename]
                widget_control,id,set_combobox_select=w[0]+1 ;w[0] for duplicates, +1 for "None"
+               widget_control,id,set_uvalue=p[w].probename
             ENDELSE
         END
 
@@ -163,6 +167,17 @@ PRO soda2_event, ev
             widget_control,widget_info(ev.top,find='filelist'),get_value=fn
             probe=soda2_probespecs(name=probename, fn=fn)
             widget_control,widget_info(ev.top,find='xres'),get_value=xres  ;Get current x-res from GUI
+            endbins=findgen(probe.numdiodes*2 + 1)*xres + xres/2.0
+            widget_control,widget_info(ev.top,find='endbins'),set_value=string(endbins,form='(500(f0.1," "))')
+        END
+
+        'custombins': BEGIN ;===========================================================================
+            id=widget_info(ev.top,find='probetype')
+            widget_control,id,get_uvalue=probename
+            widget_control,widget_info(ev.top,find='filelist'),get_value=fn
+            probe=soda2_probespecs(name=probename, fn=fn)
+            widget_control,widget_info(ev.top,find='xres'),get_value=xres  ;Get current x-res from GUI
+            endbins=soda2_custombins(dummy)
             endbins=findgen(probe.numdiodes*2 + 1)*xres + xres/2.0
             widget_control,widget_info(ev.top,find='endbins'),set_value=string(endbins,form='(500(f0.1," "))')
         END
@@ -249,7 +264,10 @@ PRO soda2_event, ev
             IF iadv[where(values eq 'Pixel Noise Filter')] eq 1 THEN juelichfilter=1 ELSE juelichfilter=0
             IF iadv[where(values eq 'Largest Particle')] eq 1 THEN keeplargest=1 ELSE keeplargest=0
             IF iadv[where(values eq 'Force PSC')] eq 1 THEN apply_psc=1 ELSE apply_psc=0
-            IF iadv[where(values eq 'DoF Reject')] eq 1 THEN dofreject=1 ELSE dofreject=0
+            dofreject=0
+            IF iadv[where(values eq 'DoF Reject')] eq 1 THEN dofreject=1
+            IF iadv[where(values eq 'Shadow Ratio Reject')] eq 1 THEN dofreject=2  ;Mode3 rejection N75/N50 > 0.5
+            IF iadv[where(values eq 'Custom DoF Curve')] eq 1 THEN customdof=1 ELSE customdof=0
             widget_control,widget_info(ev.top,find='tascheckbox'),get_value=stretchcorrect
 
             ;--------Size Method
@@ -270,10 +288,11 @@ PRO soda2_event, ev
             id=widget_info(ev.top,find='outputflags')
             widget_control,id,get_uvalue=values
             widget_control,id,get_value=iadv
-            IF iadv[where(values eq 'IDL sav')] eq 1 THEN savfile=1 ELSE savfile=0
-            IF iadv[where(values eq 'ASCII PSD')] eq 1 THEN asciipsdfile=1 ELSE asciipsdfile=0
-            IF iadv[where(values eq 'Particle-by-Particle(netCDF)')] eq 1 THEN ncdfparticlefile=1 ELSE ncdfparticlefile=0
-            IF iadv[where(values eq 'Housekeeping')] eq 1 THEN housefile=1 ELSE housefile=0
+            IF iadv[where(values eq 'IDL(sav)')] eq 1 THEN savfile=1 ELSE savfile=0
+            IF iadv[where(values eq 'PSD(ASCII)')] eq 1 THEN asciipsdfile=1 ELSE asciipsdfile=0
+            IF iadv[where(values eq 'ParticleFile(netCDF)')] eq 1 THEN ncdfparticlefile=1 ELSE ncdfparticlefile=0
+            IF iadv[where(values eq 'ParticleFile(CSV)')] eq 1 THEN particlefile=1 ELSE particlefile=0
+            IF iadv[where(values eq 'Housekeeping(sav)')] eq 1 THEN housefile=1 ELSE housefile=0
 
             ;--------Probe Details
             id=widget_info(ev.top,find='probetype')
@@ -311,26 +330,59 @@ PRO soda2_event, ev
 
             ;-------Bin size and option checks
             warn=0 & go='Yes'
+            ;Bin/Resolution mismatch checks
             IF xres ge 100 and mean(endbins) lt 2000 THEN warn=1
             IF xres lt 100 and mean(endbins) ge 2000 THEN warn=1
             IF xres lt 25  and endbins[0] gt 20 THEN warn=1
             IF warn eq 1 THEN go=dialog_message('The bin sizes seem strange for this probe... Continue?',/question,dialog_parent=widget_info(ev.top,find='process'))
             IF go eq 'No' THEN return
 
+            ;Resolution checks
             IF (xres lt 5) or (xres gt 1000) or (yres lt 5) or (yres gt 1000) THEN $
                go=dialog_message('X-res or Y-res invalid... Continue?',/question,dialog_parent=widget_info(ev.top,find='process'))
             IF go eq 'No' THEN return
 
+            ;Bin checks
             dendbins=endbins[1:*]-endbins
             IF min(dendbins) le 0 THEN BEGIN
                dummy=dialog_message('Bin end-points must be increasing',dialog_parent=widget_info(ev.top,find='process'))
                return
             ENDIF
 
+            ;DoF constant checks
+            IF (dofreject eq 2) and (dofconst gt 2) THEN $
+               go=dialog_message('DoF Const unusually high for Mode3... Continue?',/question,dialog_parent=widget_info(ev.top,find='process'))
+            IF go eq 'No' THEN return
+
+            IF (dofreject le 2) and (dofconst lt 2) THEN $
+               go=dialog_message('DoF Const unusually low... Continue?',/question,dialog_parent=widget_info(ev.top,find='process'))
+            IF go eq 'No' THEN return
+
+            ;All-in check
             warn=0 & go='Yes'
             IF (total(smethod eq ['xsize','xextent','oned','twod']) gt 0) and (eawmethod ne 'allin') THEN warn=1
             IF warn THEN go=dialog_message('All-in recommended for this sizing method... Continue?',/question,dialog_parent=widget_info(ev.top,find='process'))
             IF go eq 'No' THEN return
+
+            ;Custom DoF check
+            IF (customdof eq  1) THEN BEGIN
+               dofop={endbins:endbins, armwidth:probe.armwidth, res:xres, numdiodes:probe.numdiodes, eawmethod:eawmethod,$
+                  wavelength:probe.wavelength, dofconst:dofconst, smethod:smethod}
+
+               soda2_customdof, dofop, pinfo=pdof, groupleaderid=(*pinfo).groupleader
+               IF (*pdof).proceedprocessing_flag eq 1 THEN BEGIN
+                  endbins = (*pdof).newendbins[0:(*pdof).newnumbins]
+                  customdofvalues = (*pdof).newdof[0:(*pdof).newnumbins-1]
+                  ptr_free, pdof  ;This is not released in soda2_customdof
+                  IF max(customdofvalues/1e4) gt probe.armwidth THEN BEGIN
+                     go=dialog_message('DoF exceeds arm width... Continue?',/question,dialog_parent=widget_info(ev.top,find='process'))
+                     IF go eq 'No' THEN return
+                  ENDIF
+               ENDIF ELSE BEGIN
+                  ptr_free, pdof  ;This is not released in soda2_customdof
+                  return
+               ENDELSE
+            ENDIF ELSE customdofvalues = fltarr(n_elements(endbins)-1)
 
             ;Can add bindistribution to this structure if desired
             op={fn:fn, date:date[0], starttime:hms2sfm(starttime[0]), stoptime:hms2sfm(stoptime[0]), format:probe.format, $
@@ -339,8 +391,9 @@ PRO soda2_event, ev
                savfile:savfile, inttime_reject:inttime_reject, eawmethod:eawmethod, stuckbits:stuckbits, juelichfilter:juelichfilter, water:water,$
                fixedtas:fixedtas, outdir:outdir[0], project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
                numdiodes:probe.numdiodes, probeid:probe.probeid, shortname:probe.shortname, greythresh:probe.greythresh, $
-               wavelength:probe.wavelength, seatag:seatag, ncdfparticlefile:ncdfparticlefile, stretchcorrect:stretchcorrect[0],$
-               keeplargest:keeplargest, apply_psc:apply_psc, dofreject:dofreject, dioderange:probe.dioderange}
+               wavelength:probe.wavelength, seatag:seatag, ncdfparticlefile:ncdfparticlefile, particlefile:particlefile, $
+               stretchcorrect:stretchcorrect[0], keeplargest:keeplargest, apply_psc:apply_psc, dofreject:dofreject, $
+               dioderange:probe.dioderange, customdof:customdofvalues}
 
             ;Process housekeeping if flagged
             IF (housefile eq 1) and (probe.format eq 'SPEC') THEN BEGIN
@@ -350,7 +403,7 @@ PRO soda2_event, ev
             ENDIF
 
             ;Process image data
-            IF (savfile eq 1) or (asciipsdfile eq 1) or (ncdfparticlefile eq 1) THEN BEGIN
+            IF (savfile eq 1) or (asciipsdfile eq 1) or (ncdfparticlefile eq 1)  or (particlefile eq 1) THEN BEGIN
                widget_control,widget_info(ev.top,find='process'),set_value='Processing...'
                soda2_process_2d, op, textwidgetid=widget_info(ev.top,find='process')
                widget_control,widget_info(ev.top,find='process'),set_value='BEGIN PROCESSING'
@@ -399,15 +452,16 @@ PRO soda2
    ;Main GUI for SODA-2
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
-    IF !version.os_family eq 'windows' THEN widget_control,default_font='Helvetica*fixed*12'
-    IF !version.os_family eq 'unix' THEN widget_control,default_font='-adobe-helvetica-medium-r-normal--12-120-75-75-p-67-iso8859-1' ;use xlsfonts to see more
-    ;IF !version.os_family eq 'unix' THEN widget_control,default_font='-adobe-helvetica-bold-r-normal--14-100-100-100-p-82-iso8859-1'
-   device,get_screen_size=screen_size
-   IF screen_size[1] lt 900 THEN compact=1 ELSE compact=0  ;For smaller screens
+    IF !version.os_family eq 'windows' THEN default_font='Helvetica*fixed*12'
+    IF !version.os_family eq 'unix' THEN default_font='-adobe-helvetica-medium-r-normal--12-120-75-75-p-67-iso8859-1' ;use xlsfonts to see more
+    widget_control, default_font=default_font
+
+    device,get_screen_size=screen_size
+    IF screen_size[1] lt 900 THEN compact=1 ELSE compact=0  ;For smaller screens
 
     ;----------Main widget setup-------------------------------------------
     base = WIDGET_BASE(COLUMN=1,title='SODA-2 Optical Array Probe Processor',MBar=menubarID)
-    info={datpath:'', rawpath:''}
+    info={datpath:'', rawpath:'', groupleader:base}
     pinfo=ptr_new(info)
     fileID=widget_button(menubarID, value='Menu', /menu, uname='base', uvalue=pinfo)
     loadfile=widget_button(fileID, value='Load settings...',uname='loadfile')
@@ -431,54 +485,63 @@ PRO soda2
     IF compact ne 1 THEN dummy=widget_label(subbase3,value='---Aircraft TAS Data---',/align_left)
     subbase3a=widget_base(subbase3,row=1)
     subbase3b=widget_base(subbase3,row=1)
-    addpthfile=cw_bgroup(subbase3a,['Select...','Clear'], uname='findpthfile',/row,label_left='Aircraft TAS data file (SODA or ASCII format):')
-    pthfile=widget_text(subbase3,uname='pthfile',/editable,xsize=62,/all_events)
+    addpthfile=cw_bgroup(subbase3a,['Select...','Clear'], uname='findpthfile',/row,label_left='TAS data (dat/ASCII):')
+    pthfile=widget_text(subbase3a,uname='pthfile',/editable,xsize=50,/all_events)
     subbase3c=widget_base(subbase3,row=1)
     tas=cw_field(subbase3c,/int, title='or use fixed TAS of (m/s):',uname='tas', value='0', xsize=4)
     vals=['Apply stretch correction']
     tasadvanced=cw_bgroup(subbase3c,vals,uname='tascheckbox',/row,/nonexclusive,uval=vals,set_value=[0])
 
 
-    ;-----------Processing options widget block----------------------------
+    ;-----------Probe options widget block----------------------------
     subbase2=widget_base(base,column=1,frame=5)
-    IF compact ne 1 THEN dummy=widget_label(subbase2,value='---Processing Options---',/align_left)
+    IF compact ne 1 THEN dummy=widget_label(subbase2,value='---Probe Options---',/align_left)
 
     subbase2d=widget_base(subbase2,row=1)
+    autofill=widget_button(subbase2d,   value='Auto-Fill',uname='autofill')
     projectname=cw_field(subbase2d,/string,title='Project Name',uname='project',xsize=10,value='NONE',/column)
     date=cw_field(subbase2d,/string,       title='Date (mmddyyyy)',uname='date',xsize=10,value='01012000',/column)
     starttime=cw_field(subbase2d,/string,  title='Start Time (hhmmss)',uname='starttime',value='000000',xsize=10,/column)
     stoptime=cw_field(subbase2d,/string,   title='Stop Time (hhmmss)',uname='stoptime',value='240000',xsize=10,/column)
     rate=cw_field(subbase2d,/float, title='Rate (s):', uname='rate', xsize=5, value=5.0, /column)
 
-    autofill=widget_button(subbase2d,   value='Auto-Fill',uname='autofill')
-
     subbase2b=widget_base(subbase2,row=1)
     specs=soda2_probespecs()
     dummy=widget_label(subbase2b,value='Probe:',/align_left)
     probetype=widget_combobox(subbase2b,value=['None',specs.probename],uname='probetype',uvalue='None')
-    dummy=widget_label(subbase2b,value='  Size Method:',/align_left)
-    methodnames=['Circle fit','X-size (across array)','Y-size (with airflow)','Area equivalent','Lx (max slice width)', $
-                 '1D emulation', '2D emulation']
-    sizemethod=widget_combobox(subbase2b,value=methodnames,uname='sizemethod',uvalue=methodnames[0])
-
-    subbase2e=widget_base(subbase2,row=1)
-    binstring=string([25, 50, 100, 150, 200, 250, 300, 350, 400, 500, 600,700,800,900,1000,1200,1400,1600,1800,2000],form='(100(i0," "))')
-    endbins=cw_field(subbase2e, title='Bin edges (um):  ', uname='endbins', xsize=45, value=binstring)
-    defaultbins=widget_button(subbase2e, value=' Default ',uname='defaultbins')
-    fullbins=widget_button(subbase2e, value=' Full ',uname='fullbins')
-    fullbinsx2=widget_button(subbase2e, value=' x2 ',uname='fullbinsx2')
 
     subbase2a=widget_base(subbase2,row=1)
     xres=cw_field(subbase2a,/float, title='X-resolution (um):',uname='xres' , xsize=5, value=0)
     yres=cw_field(subbase2a,/float, title='Y-resolution (um):',uname='yres' , xsize=5, value=0)
     dofconst=cw_field(subbase2a,/float, title='DoF Const:',uname='dofconst' , xsize=5, value=0)
-
     subbase2f=widget_base(subbase2a,row=1,sensitive=0,uname='tagbase')
     seatag=cw_field(subbase2f, title='SEA Tags:', uname='seatag' , xsize=10, value='0 0 0')
 
-    subbase2c=widget_base(subbase2,row=1)
-    vals=['Shatter Correct','All-In','Water Processing','Stuck Bit Correct','Pixel Noise Filter','Largest Particle','Force PSC','DoF Reject']
-    advanced=cw_bgroup(subbase2c,vals,uname='options',row=2,/nonexclusive,uval=vals,set_value=[1,0,0,0,0,0,0,0])
+
+    ;---------Processing options-------------------------
+    subbase5=widget_base(base,column=1,frame=5)
+    IF compact ne 1 THEN dummy=widget_label(subbase5,value='---Processing Options---',/align_left)
+
+    subbase5a=widget_base(subbase5,row=1)
+    binstring=string([25, 50, 100, 150, 200, 250, 300, 350, 400, 500, 600,700,800,900,1000,1200,1400,1600,1800,2000],form='(100(i0," "))')
+    endbins=cw_field(subbase5a, title='Bin edges (um):  ', uname='endbins', xsize=45, value=binstring)
+    defaultbins=widget_button(subbase5a, value=' Default ',uname='defaultbins')
+    fullbins=widget_button(subbase5a, value=' Full ',uname='fullbins')
+    fullbinsx2=widget_button(subbase5a, value=' x2 ',uname='fullbinsx2')
+
+    subbase5b=widget_base(subbase5,row=1)
+    dummy=widget_label(subbase5b,value='Size Method:',/align_left)
+    methodnames=['Circle fit','X-size (across array)','Y-size (with airflow)','Area equivalent','Lx (max slice width)', $
+                 '1D emulation', '2D emulation']
+    sizemethod=widget_combobox(subbase5b,value=methodnames,uname='sizemethod',uvalue=methodnames[0])
+    ;dummy=widget_label(subbase5b,value='    DoF Curve:',/align_left)
+    ;standarddof=widget_button(subbase5b, value=' Standard ', uname='standardbins')
+    ;customdof=widget_button(subbase5b, value=' Custom ', uname='custombins')
+
+    subbase5c=widget_base(subbase5,row=1)
+    vals=['Shatter Correct','All-In','Water Processing','Stuck Bit Correct','Pixel Noise Filter','Largest Particle',$
+      'Force PSC','DoF Reject','Shadow Ratio Reject','Custom DoF Curve']
+    advanced=cw_bgroup(subbase5c,vals,uname='options',row=2,/nonexclusive,uval=vals,set_value=[1,0,0,0,0,0,0,0,0,0])
 
 
     ;---------Output directory and process button-------------------------
@@ -486,7 +549,7 @@ PRO soda2
     IF compact ne 1 THEN dummy=widget_label(subbase4,value='---Output Options---',/align_left)
 
     subbase4a=widget_base(subbase4,row=1)
-    vals=['IDL sav','ASCII PSD','Particle-by-Particle(netCDF)','Housekeeping']
+    vals=['IDL(sav)','PSD(ASCII)','ParticleFile(netCDF)','ParticleFile(CSV)','Housekeeping(sav)']
     outputflags=cw_bgroup(subbase4a,vals,uname='outputflags',/row,/nonexclusive,uval=vals,set_value=[1,0,0])
 
     subbase4b=widget_base(subbase4,row=1)
