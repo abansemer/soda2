@@ -476,18 +476,22 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
        END
 
        ((*pop).probetype eq 'HVPS1'): BEGIN
-          ;Trying out some SDSMT code, never worked....
-          ;IF 1 eq 2 THEN BEGIN
-          ;    y=decompress_hvps1(buffer.image)
-          ;    charge_sw = 0 ;Try 1 and 0
-          ;    get_img_only,buffer.image,1,1000,256,10.0,charge_sw,z
-          ;ENDIF
+          ;Adapted from SODA-1 code for the SDSMT HVPS
+          ;There are at least 3 different raw formats, use year to distinguish
+          year = fix(strmid((*pop).date, 4, 4))
+          CASE 1 OF
+             year le 1999: x=decompress_hvps(buffer.image)  ;Not yet tested, see get_img_1995hvps.pro in SDSMT code base.  Also hvps95_buff_times.pro for outer buffer.
+             year eq 2000: x=decompress_hvps_chargeplates(buffer.image)
+             year ge 2001: x=decompress_hvps(buffer.image)
+          ENDCASE
 
-          ;Adapted from SODA-1 code
-          ;numdiodes=lp-fp+1  ;this is returned to calling program for computing sample area later on
-          x=decompress_hvps(buffer.image)
-          IF (x.mask eq 1) or (x.error eq 1) THEN return, nullbuffer
+          IF (x.mask eq 1) || (x.error eq 1) || (n_elements(x.time) lt 5) || (n_elements(x.image) lt 1000) THEN return, nullbuffer
 
+          ;Take care of an error in 1995 data where the timestamps are not lined up right.  This ensures accurate
+          ;separation of particles.  Use Diagnostic Plots below to test.
+          IF year eq 1995 THEN x.particle_index--
+
+          ;Particle separation
           num_images = n_elements(x.time)
           num_slices = fix((size(x.image))[2])
           startline = [0, x.particle_index[0:num_images-2]+1]
@@ -506,7 +510,10 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           restore_slice = 0
           missed = 0
           particle_count = intarr(num_images) ;No counter
-          yresfromtas = buffer.tas/250000.0 * 1.0e6  ; clock speed is 250kHz
+          ;Clock speed is 250kHz, *2 for half res on HVPS
+          ;This doesn't work on 2003 data since TAS is not correctly recorded.  Just setting it to 400 for now
+          ;yresfromtas = buffer.tas/250000.0 * 1.0e6 * 2
+          yresfromtas = (*pop).yres  ;Results in no TAS dependency
           stretch = fltarr(num_images) + yresfromtas/(*pop).yres  ;Should work no matter what is given in *pop.yres
           clocktas = fltarr(num_images) + buffer.tas
           time_sfm = buffer.time + total(inttime, /cumulative)
@@ -519,7 +526,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           ENDIF
 
 
-          ;Diagnostic stuff
+          ;Diagnostic plots, mainly to check particle separation which varies from year to year
           IF 1 eq 2 THEN BEGIN
              colorimage = bitimage
              FOR i = 0, num_images-1 do begin
@@ -527,9 +534,13 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
                 color = ((i mod 4) + 1)*50
                 colorimage[*,startline[i]:stopline[i]] *= color
              ENDFOR
-             tv, colorimage
-             tv, x.image*80 + 20, 300, 0
+             tv, bytarr(1200,1200)
+             sss=size(colorimage, /dim)
+             tv, congrid(colorimage, sss[0]*2, sss[1]*2)
+             tv, x.image*80 + 20, 600, 0
+             stop
           ENDIF
+          ;IF max(x.area) gt 10 then stop
        END
 
        ((*pop).probetype eq 'HAIL'): BEGIN

@@ -50,7 +50,9 @@ FUNCTION decompress_hvps, cimage
          IF startslice THEN BEGIN  ; start of a slice
             slice=slice+1  ;move pointers to the beginning of the next slice
             diode=0
-            IF (num_shaded eq 0) and (num_clear eq 0) THEN diode=127 ELSE BEGIN
+            IF (num_shaded eq 0) and (num_clear eq 0) THEN BEGIN
+               diode=127
+            ENDIF ELSE BEGIN
                IF num_shaded gt 0 THEN image[diode+num_clear:diode+num_clear+num_shaded-1,slice]=1
                diode=diode+num_clear+num_shaded-1
             ENDELSE

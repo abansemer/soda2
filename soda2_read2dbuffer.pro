@@ -148,7 +148,7 @@ FUNCTION soda2_read2dbuffer, lun, pop
                startslice:startslice[0:n-1], nslices:nslices[0:n-1], particletime:particletime[0:n-1], inttime:inttime[0:n-1]}
    ENDIF
 
-   IF format eq 'T28' THEN BEGIN
+   IF (*pop).format eq 'T28' THEN BEGIN
       a={dummy:intarr(56), year:0s, month:0s, day:0s, hours:0s, minutes:0s, seconds:0s, frac_seconds:0s, sfreq:0s, tlent:0s,$
          amul:0s, adiv:0s, dummy1:intarr(2), elapsedseconds:0l, dummy2:intarr(4), image:ulonarr(1024)}
 
@@ -166,13 +166,40 @@ FUNCTION soda2_read2dbuffer, lun, pop
          ENDREP UNTIL ((a.year gt 1980) and (a.year lt 2005) and (a.month lt 13) and (a.month gt 0) and (a.day lt 32) and (a.day gt 0))
       ENDIF
 
-
       difftime=(a.elapsedseconds / (1.0e6 / 25.0))>0
       freq=a.amul*50.0/a.adiv  ;Not sure about this....
       tas=float(a.amul)
       starttime=a.hours*10000.0+a.minutes*100+a.seconds+a.frac_seconds/100.0d
       A.image=fix2dimage(A.image)
-
    ENDIF
 
+   IF (*pop).format eq 'HVPS1995' THEN BEGIN
+      ;One-off format for the SDSMT HVPS-1.  Adapted from hvps95_buff_times.pro in SDSMT library.
+      header = {type:bytarr(2), sec1900:0UL, millisec:0s, timezone:0s, dstflag:0s}
+      house = {data:bytarr(16), dummy:bytarr(4), tascnt:bytarr(2)}  ;not sure what tascnt is, does not change with actual TAS
+      image = uintarr(2048)
+      mask = {shutdown:bytarr(2), data:bytarr(32)}
+      gotimage = 0
+
+      REPEAT BEGIN
+         readu, lun, header
+         orig=header
+         CASE header.type[0] OF
+            65: readu, lun, house				;0x4141 for housekeeping
+            66: BEGIN
+               readu, lun, image				;0x4242 for images
+               gotimage = 1
+            END
+            67: readu, lun, mask
+         ENDCASE
+         ;Time zone convert to UTC. No idea why this works, copied from SDSMT hvps95_time.pro.  DSTflag is ignored.
+         sec1900 = header.sec1900 - ((header.timezone-420)*60L)
+         time = double((sec1900 mod 86400)) + double(header.millisec)/1000
+      ENDREP UNTIL (gotimage eq 1) or (eof(lun) eq 1)
+      jdate = sec1900 / 86400d + julday(12,31,1899,0,0,0)  ;Should be Jan1 1900 but always a day off.
+      CalDat, jdate, month, day, year, hour, min, sec
+      date = julday(month, day, year)  ;Do it this way, without h:m:s or else messes up usage in soda2_process_2d.
+
+      return, {time:time+(*pop).timeoffset, image:image, difftime:0.0, eof:eof(lun), tas:100, pointer:pointer, date:date, overload:0}
+   ENDIF
 END

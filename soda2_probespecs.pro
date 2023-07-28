@@ -297,6 +297,26 @@ FUNCTION soda2_probespecs, name=name, id=id, fn=fn
    all=[all,x]
 
    x=base
+   x.probename='University of Oslo CIP (PADS)'
+   x.shortname='CIP'
+   x.format='DMT'
+   x.subformat=1
+   x.probetype='CIP'
+   x.probeid=''
+   x.greythresh=0
+   x.res=25
+   x.yres=25
+   x.armwidth=10.0
+   x.numdiodes=64
+   x.tau=0.051e-6
+   x.firstsliceskip=0
+   x.dofthreshold=0.0
+   x.dofconst=3.0
+   x.wavelength=0.658e-6
+   x.seatag=[0]
+   all=[all,x]
+   x=base
+
    x.probename='FAAM CIP100 (PADS)'
    x.shortname='CIP'
    x.format='DMT'
@@ -1275,6 +1295,27 @@ FUNCTION soda2_probespecs, name=name, id=id, fn=fn
    x.wavelength=0.660e-6
    x.seatag=[6000, 6001, 6002]  ;[ImageTag, TASfactorTag, Elapsed], not valid for 1995 data [66,65]?
    x.dioderange=[40, 230]
+   all=[all,x]
+
+   x=base
+   x.probename='SDSMT HVPS-1 (1995 Format)'
+   x.shortname='HVPS1'
+   x.format='HVPS1995'
+   x.subformat=0
+   x.probetype='HVPS1'
+   x.probeid=''
+   x.greythresh=0
+   x.res=200
+   x.yres=400
+   x.armwidth=20.0
+   x.numdiodes=256
+   x.tau=0.020e-6
+   x.firstsliceskip=0
+   x.dofthreshold=0.0
+   x.dofconst=3.0
+   x.wavelength=0.660e-6
+   x.seatag=[6000, 6001, 6002]  ;[ImageTag, TASfactorTag, Elapsed], not valid for 1995 data [66,65]?
+   x.dioderange=[35, 220]
    all=[all,x]
 
    x=base

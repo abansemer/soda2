@@ -53,7 +53,7 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
          IF (divider eq 1) THEN bitimage[*, (p.startline-1)>0] = 1
 
          ;Stretch HVPS1
-         IF (*pop).probetype eq 'HVPS1' THEN BEGIN
+         IF (*pop).probetype eq 'HVPS1' and (n_elements(bitimage) gt 256) THEN BEGIN
             s = size(bitimage, /dim)
             bitimage=rebin(bitimage,s[0],s[1]*2,/samp)
          ENDIF

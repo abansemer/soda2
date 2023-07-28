@@ -91,7 +91,7 @@ function read2dseabuffer,lun,res=res,tags=tags,probetype=probetype
       point_lun,lun,taspoint
       readu,lun,tas
       tas2=tas[0]*100.0*res*1.0e-6/ (tas[1]*0.002)  ;see SEA manual TAS factors (type 6) and equation in type 8
-   ENDIF ELSE tas2=0.0
+   ENDIF ELSE tas2=100.0
 
    ;Prepare for next read
    nextbuffer=buf.dataoffset+lastpointer+buf.parameter1*65536l   ; the 999 tag points to the start of next buffer

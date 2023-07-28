@@ -62,6 +62,32 @@ FUNCTION soda2_startstop, fn
       return, out
    ENDIF
 
+   ;Next check for HVPS1995 format (T28)
+   ;==================================================================
+   point_lun, lun, 0
+   header = {type:bytarr(2), sec1900:0UL, millisec:0s, timezone:0s, dstflag:0s}
+   readu, lun, header
+   IF (header.sec1900 gt 3000000000) and (header.sec1900 lt 3160000000) THEN BEGIN  ;roughly 1995-2000
+      out.format = 'HVPS1995'
+      ;starttime = header.sec1900 / 86400d + JulDay(1,1,1900,0,0,0)
+      ;out.starttime = starttime
+
+      ;Index the entire file to get the times, since need to take care of time zones, etc.
+      op = {format:'HVPS1995', timeoffset:0}
+      pop = ptr_new(op)
+      index = soda2_buildindex(fn, pop)
+      ptr_free, pop
+      caldat, index.date[0] + index.bufftime[0]/86400d + 0.5, month, day, year, hour, minute, second
+      out.starttime =  index.date[0] + index.bufftime[0]/86400d - 0.5
+      out.stoptime = index.date[-1] + index.bufftime[-1]/86400d - 0.5
+
+      elaptime = index.bufftime[-1] - index.bufftime[0]
+      IF elaptime lt 0 THEN stop ;need to test:  elaptime += 86400 ;Midnight crossing
+
+      free_lun, lun
+      return, out
+   ENDIF
+
    ;Next check for DMT, SPEC, or NCAR
    ;==================================================================
    ;Find the buffer size from the position of 'year' data, should typically be 4114 bytes
