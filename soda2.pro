@@ -15,8 +15,8 @@ PRO soda2_event, ev
 
             ;--------Fill in boxes
             widget_control,widget_info(ev.top,find='timeoffset'),set_value=op.timeoffset
-            widget_control,widget_info(ev.top,find='starttime'),set_value=sfm2hms(op.starttime)
-            widget_control,widget_info(ev.top,find='stoptime'),set_value=sfm2hms(op.stoptime)
+            widget_control,widget_info(ev.top,find='starttime'),set_value=string(sfm2hms(op.starttime), format='(i06)')
+            widget_control,widget_info(ev.top,find='stoptime'),set_value=string(sfm2hms(op.stoptime), format='(i06)')
             widget_control,widget_info(ev.top,find='rate'),set_value=op.rate
             widget_control,widget_info(ev.top,find='xres'),set_value=op.res
             widget_control,widget_info(ev.top,find='yres'),set_value=op.yres

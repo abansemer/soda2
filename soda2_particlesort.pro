@@ -166,8 +166,8 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       END
    END
 
-   ;Print particles if flagged
-   IF op.ncdfparticlefile eq 1 THEN BEGIN   ;NetCDF version, now default
+   ;Print particles if flagged, netCDF version is now default
+   IF op.ncdfparticlefile eq 1 THEN BEGIN
       varid=ncdf_varid(ncdf_id,'time')
       ncdf_varput,ncdf_id,varid,truetime[0:istop],count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'probetime')
@@ -239,32 +239,27 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       varid=ncdf_varid(ncdf_id,'rejectionflag')
       ncdf_varput,ncdf_id,varid,rejectionflag,count=numparticles,offset=ncdf_offset
    ENDIF
-   IF op.particlefile eq 1 THEN BEGIN   ;ASCII version
+
+   ;ASCII particle file
+   IF op.particlefile eq 1 THEN BEGIN
       tags = tag_names(x)
       propnames = strupcase(pbpprops[0,*])
       propformat = pbpprops[4,*]
       ;Write data
       FOR i = 0L,numparticles-1 DO BEGIN
+         ;Print each property individually.  Slow, but maintains flexibility when new properties are added.
          FOR j = 0, n_elements(propnames)-1 DO BEGIN
             w = where(tags eq propnames[j], nw)
             IF j lt (n_elements(propnames)-1) THEN suffix=',",",$' ELSE suffix=''
             IF nw eq 1 THEN BEGIN
                printf, lun_pbp, x[i].(w), format='('+propformat[j]+suffix+')'
             ENDIF ELSE BEGIN
-               ;Special cases with data not in 'x' array of structures
+               ;Special cases for data not in 'x' array of structures
                IF propnames[j] eq 'REJECTIONFLAG' THEN printf, lun_pbp, rejectionflag[i], format='(i0'+suffix+')'
                IF propnames[j] eq 'TIME' THEN printf, lun_pbp, truetime[i], format='(f0.5'+suffix+')'
             ENDELSE
          ENDFOR
       ENDFOR
    ENDIF
-
-
-
-   ;   printf, lun_pbp, truetime[i], x[i].probetime, x[i].buffertime, interarrival[i], $
-   ;      x[i].diam, x[i].xsize, x[i].ysize, x[i].arearatio, x[i].aspectratio, x[i].orientation, x[i].allin, $
-   ;      x[i].overloadflag, x[i].missed, x[i].particlecounter, form='(3f13.5,e13.5,3f12.3,2f6.2,f8.1,2i3,i7,i7)'
-   ;ENDIF
-
 
 END
