@@ -70,7 +70,7 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
    ENDIF
 
    ;Loop through all time indices and sort/analyze particles
-   FOR itime=min(timeindex), max(timeindex) DO BEGIN
+   FOR itime=(min(timeindex)>0), max(timeindex) DO BEGIN
       iparticles=where(timeindex eq itime, nparticles)
       IF (itime ge 0) and (itime lt d.numrecords) and (nparticles gt 0) THEN BEGIN      ;Make sure in time range
          ;Find TAS

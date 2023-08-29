@@ -104,7 +104,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           extralines=where((image and 'ff000000'x) eq '55000000'x)  ;[time_ind, sync_ind]  Changed to clear up some stray timelines that sneak in
           image[extralines]='ffffffff'X             ;replace the non-image lines with blanks (blanks bits are 1, for now)
 
-          freq=(*pop).res/(1.0e6*buffer.tas)  ; the time interval of each tick in a timeline
+          freq=(*pop).yres/(1.0e6*buffer.tas)  ; the time interval of each tick in a timeline
           parttime=(timelines+2)*freq  ; particle interarrival time for each particle, not including transit time.  +2 is for sync and time slices.
           elaptime=dblarr(num_images)
           elaptime[0]=parttime[0]
@@ -309,7 +309,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
                ;Compute stretching factor, keep between reasonable values 0.1 to 10
                IF ((*pmisc).aircrafttas gt 0) and (hk.tas gt 0) and ((*pop).stretchcorrect eq 1) THEN $
                   stretch[c]=((*pmisc).aircrafttas/hk.tas) > 0.1 < 10.0
-               freq=double((*pop).res/(1.0e6*clocktas[c]))  ; the time interval of each tick in a timeline
+               freq=double((*pop).yres/(1.0e6*clocktas[c]))  ; the time interval of each tick in a timeline
                ;Special case for Hawkeye, horizontal 50um array uses the 10um clock on the V-array, not a 50um clock
                IF ((*pop).probetype eq '3VCPI') and ((*pop).res eq 50) THEN freq=double(10.0/(1.0e6*clocktas[c]))
                ;Special case for HVPS-4, horizontal 150um array uses the 50um clock, not a 150um clock

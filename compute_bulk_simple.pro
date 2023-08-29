@@ -68,5 +68,6 @@ FUNCTION compute_bulk_simple, conc1d, endbins, binstart=binstart, binstop=binsto
    mnd=meandiam(u[*,binstart:binstop],midbins[binstart:binstop])
 
    return, {iwc:iwc, lwc:lwc, dmass:dmass, dmedianmass:dmedianmass, dmassw:dmassw, dmassmelted:dmassmelted, $
-            dbz:10*(alog10(z))-7.2, dbzw:10*(alog10(z)), nt:nt, mvd:mvd, mnd:mnd, msd:msd, msdnorm:msdnorm}
+            dbz:10*(alog10(z))-7.2, dbzw:10*(alog10(z)), nt:nt, mvd:mvd, mnd:mnd, msd:msd, msdnorm:msdnorm, $
+            massparam:mass, massparamlwc:massLWC}
 END

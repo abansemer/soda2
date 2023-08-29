@@ -16,7 +16,7 @@ FUNCTION spec_newtime, fn, data=data
    dcounter[rollover] += 2ULL^32    ;Add the rollover max value to get positive inttimes
 
    ;Convert dcounter to inttime based on probe's airspeed
-   freq = double(data.global.res/(1.0e6*data.probetas))  ;Time interval of each tick in a timeline
+   freq = double(data.global.yres/(1.0e6*data.probetas))  ;Time interval of each tick in a timeline
    inttime = dcounter * freq
 
    ;First guess is buffertime, should be no drift or rollovers
