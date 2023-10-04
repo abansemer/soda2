@@ -1264,8 +1264,8 @@ FUNCTION soda2_probespecs, name=name, id=id, fn=fn
    x.probetype='HAIL'
    x.probeid=''
    x.greythresh=0
-   x.res=1800
-   x.yres=1800
+   x.res=900
+   x.yres=900
    x.armwidth=99.0
    x.numdiodes=64
    x.tau=0.020e-6

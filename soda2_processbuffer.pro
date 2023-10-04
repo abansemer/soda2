@@ -545,6 +545,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
 
        ((*pop).probetype eq 'HAIL'): BEGIN
           x = decompress_hail(buffer.image)
+          IF n_elements(x) lt 640 THEN return, nullbuffer  ;Need 10 at least slices
 
           ;The images tend to have lots of breaks in them, try a few strategies to pull particles together
           ;xgfb appears to work best on Flt729.  Try others.

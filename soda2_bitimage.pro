@@ -58,6 +58,14 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
             bitimage=rebin(bitimage,s[0],s[1]*2,/samp)
          ENDIF
 
+         ;Compress Hail Spectrometer
+         IF (*pop).probetype eq 'HAIL' and (n_elements(bitimage) gt 256) THEN BEGIN
+            s = size(bitimage, /dim)
+            ;Crop a slice if there are an odd number of slices so rebin works
+            bitimage = bitimage[*, 0:s[1]/2*2 - 1]
+            bitimage=rebin(bitimage,s[0],s[1]/2,/samp)
+         ENDIF
+
       ENDIF ELSE return, {time:b.time, bitimage:0b, rejectbuffer:1, error:1}
    ENDELSE
 
