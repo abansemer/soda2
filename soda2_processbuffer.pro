@@ -691,7 +691,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
       sizecorrection[i] = poisson_spot_correct(area_orig[i], area_filled[i], zd=zeed) ; as in Korolev 2007
 
       ;Find particle metrics and fill arrays
-      part=soda2_findsize(roi,(*pop).res, (*pmisc).yres * stretch[i], voidarea=area_filled[i]-area_orig[i])
+      part=soda2_findsize(roi,(*pop).res, (*pop).yres * stretch[i], voidarea=area_filled[i]-area_orig[i])
       diam[i]=part.diam
       xsize[i]=part.xsize
       ysize[i]=part.ysize

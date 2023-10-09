@@ -36,7 +36,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
 
    pop=ptr_new(op)      ;make a pointer to this for all other programs, these are constants
    ;Keep miscellaneous stuff here, things that change during processing
-   misc={f2d_remainder:ulon64arr(512), f2d_remainder_slices:0, yres:op.yres, lastbufftime:0D, aircrafttas:0.0, probetas:0.0,$
+   misc={f2d_remainder:ulon64arr(512), f2d_remainder_slices:0, lastbufftime:0D, aircrafttas:0.0, probetas:0.0,$
          nimages:0, imagepointers:lon64arr(500), hkpointers:lon64arr(500), lastclock:0d, lastparticlecount:0L, maxsfm:0D, $
          lastdhist:lonarr(op.numdiodes)}
    pmisc=ptr_new(misc)  ;a different pointer, for stuff that changes

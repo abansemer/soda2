@@ -52,7 +52,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
       free_lun, lun
    ENDIF ELSE misc={dummy:0}
    ;Keep miscellaneous stuff here, things that change during processing
-   misc2={f2d_remainder:ulon64arr(512), f2d_remainder_slices:0, yres:op.res, lastbufftime:0.0, $
+   misc2={f2d_remainder:ulon64arr(512), f2d_remainder_slices:0, lastbufftime:0.0, $
          nimages:0, imagepointers:lon64arr(500), lastclock:0d, lastparticlecount:0L, lastdhist:lonarr(op.numdiodes)}
 
    misc=create_struct(temporary(misc), misc2)  ;Join the SPEC and misc structures
