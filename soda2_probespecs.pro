@@ -137,6 +137,26 @@ FUNCTION soda2_probespecs, name=name, id=id, fn=fn
    all=[all,x]
 
    x=base
+   x.probename='WMI CIP (SEA M300)'
+   x.shortname='CIP'
+   x.format='SEA'
+   x.subformat=1
+   x.probetype='CIPG'  ;This probe uses the grey array board.  All shadows are at grey level 1.
+   x.probeid=''
+   x.greythresh=1
+   x.res=25
+   x.yres=25
+   x.armwidth=10.0
+   x.numdiodes=64
+   x.tau=0.051e-6
+   x.firstsliceskip=0
+   x.dofthreshold=0.0
+   x.dofconst=3.0
+   x.wavelength=0.658e-6
+   x.seatag=[33000, 32000]
+   all=[all,x]
+
+   x=base
    x.probename='CIRPAS CIP (PACS)'
    x.shortname='CIP'
    x.format='DMT'
