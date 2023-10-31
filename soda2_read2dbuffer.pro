@@ -70,7 +70,7 @@ FUNCTION soda2_read2dbuffer, lun, pop
            A=readseabuffer_caps(lun, probetype='CIP', tag=(*pop).seatag[0])
         END
         ELSE: BEGIN
-           ;This should work for 1D2D, HVPS, and Hail Spectrometer.  Maybe legacy 2DC (untested).
+           ;Legacy 2DC, 1D2D, HVPS, and Hail Spectrometer
            A=read2dseabuffer(lun, res=(*pop).res, probetype=(*pop).probetype, tags=(*pop).seatag)
            IF a.eof eq 0 THEN tas=a.tas
            ;IF pversion.tlfix THEN A.image=fix2dimage(A.image)
@@ -79,7 +79,8 @@ FUNCTION soda2_read2dbuffer, lun, pop
       IF a.eof eq 1 THEN return, nullbuffer
       IF a.year gt 0 THEN date=julday(a.month,a.day,a.year) ELSE date=0
       return, {time:hms2sfm(a.starttime)+(*pop).timeoffset, stoptime:hms2sfm(a.stoptime)+(*pop).timeoffset, image:a.image, $
-               difftime:0.0, eof:eofile, tas:tas, pointer:pointer, date:date, overload:0}
+               difftime:0.0, eof:eofile, tas:tas, pointer:pointer, imagepoint:a.imagepoint, timepoint:a.timepoint, $
+               date:date, overload:0}
    ENDIF
 
    IF (*pop).format eq 'DMT' THEN BEGIN

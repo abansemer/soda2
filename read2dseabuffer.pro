@@ -98,5 +98,6 @@ function read2dseabuffer,lun,res=res,tags=tags,probetype=probetype
    point_lun,lun,nextbuffer ; position the file pointer at the start of next buffer
 
    return, {starttime:hhmmss, stoptime:hhmmss_stop, year:year, month:month, day:day, image:image, $
-            elapsedtime:elapsedtime, tas:tas2, eof:0, pointer:q.cur_ptr, imagepoint:imagepoint, numberbytes:numberbytes}
+            elapsedtime:elapsedtime, tas:tas2, eof:0, pointer:q.cur_ptr, imagepoint:imagepoint, numberbytes:numberbytes, $
+            timepoint:timepoint}
 END

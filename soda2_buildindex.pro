@@ -4,7 +4,7 @@ FUNCTION soda2_buildindex, fn, pop
    ;AB 4/2009
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
-   
+
    IF (*pop).format eq 'SPEC' THEN BEGIN
       ;Wrote a separate program for this completely different format
       close,1
@@ -12,11 +12,11 @@ FUNCTION soda2_buildindex, fn, pop
       data=spec_index(1)
       close,1
       ;Not calling read2dbuffer, so take care of timeoffset here
-      data.bufftime=data.bufftime+(*pop).timeoffset 
+      data.bufftime=data.bufftime+(*pop).timeoffset
       return, data
    ENDIF
-   
-   
+
+
    ;Test for .gz extension
    compress=0
    IF strcmp(strmid(fn,strlen(fn)-3,3), '.gz') THEN compress=1
@@ -27,15 +27,15 @@ FUNCTION soda2_buildindex, fn, pop
       close,1
       return, {error:2}
    ENDIF
-   
+
    c=0L
    bignumber=5000000
    pointer=lonarr(bignumber)
    bufftime=dblarr(bignumber)
    date=lonarr(bignumber)
-           
+
    ;Read the buffers, record start time and pointer
-   laststart=0
+   lasttime=0
    REPEAT BEGIN
       x=soda2_read2dbuffer(1, pop)
       ;print,c,x.time
@@ -43,6 +43,7 @@ FUNCTION soda2_buildindex, fn, pop
          pointer[c]=x.pointer
          bufftime[c]=x.time
          date[c]=x.date
+         lasttime=x.time  ;For troubleshooting
          c=c+1
       ENDIF
    ENDREP UNTIL (x.eof eq 1)
@@ -51,11 +52,11 @@ FUNCTION soda2_buildindex, fn, pop
    errortest=0
    IF c lt 2 THEN errortest=1
    IF errortest THEN return, {error:1}
-             
+
    pointer=pointer[0:c-1]
    bufftime=bufftime[0:c-1]
    date=date[0:c-1]
-                    
+
    data={bufftime:bufftime, date:date, pointer:pointer, count:c, error:0}
    return, data
 END
