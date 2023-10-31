@@ -105,7 +105,7 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
          numpanels=buffcount/num2plot
          IF buffcount mod num2plot ne 0 THEN numpanels=numpanels+1
          panelcountid=widget_info(topid,find='panelcount')
-         widget_control,panelcountid,set_value='Panel '+strtrim(string(panelstart+1),2) + ' of ' + strtrim(string(floor(numpanels)),2)
+         widget_control,panelcountid,set_value='Panel '+strtrim(string(panelstart+1),2) + ' of ' + strtrim(string(floor(numpanels>1)),2)
       END
 
 
