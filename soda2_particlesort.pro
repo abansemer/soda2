@@ -33,6 +33,11 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       ;There are still some mismatches between buffer elapsed time and probe elapsed time, so
       ;errors in truetime still appear.  Might just use buffertime in future.
       truetime=x.probetime - x.reftime + x.buffertime
+
+      ;Look for errors in interarrival time, which can zero out large blocks of time in the deadtime/missed loop
+      it2 = [0,truetime[1:*]-truetime] > 0             ;Secondary interarrival calculation
+      bad = where(abs(interarrival-it2) gt 0.1, nbad)  ;Allow errors up to 0.1 seconds
+      IF nbad gt 0 THEN interarrival[bad] = 0          ;Set bad interarrival times to zero
    ENDIF
    IF op.format eq 'TXT' THEN BEGIN
       interarrival=x.inttime > 0
@@ -104,12 +109,15 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
                   IF timeindexstart eq timeindexstop THEN BEGIN
                      d.deadtime[timeindexstart] += interarrival[iparticles[j]]
                   ENDIF ELSE BEGIN
+;print, timeindexstart, timeindexstop
+;IF timeindexstop-timeindexstart gt 100 then stop
                      ;Portion in start index
                      d.deadtime[timeindexstart] += (d.time[timeindexstart]+op.rate - deadtimestart)
                      ;Portion in stop index
                      d.deadtime[timeindexstop] += (deadtimestop-d.time[timeindexstop])
-                     ;Portion in intermediate indices will be have full deadtime
-                     IF timeindexstop-timeindexstart gt 1 THEN d.deadtime[timeindexstart+1:timeindexstop-1] = op.rate
+                     ;Portion in intermediate indices will be have full deadtime.  Decided to remove this, since
+                     ;it marked cloud-free time as 'dead'.
+                     ;IF timeindexstop-timeindexstart gt 1 THEN d.deadtime[timeindexstart+1:timeindexstop-1] = op.rate
                   ENDELSE
                ENDIF
             ENDFOR
