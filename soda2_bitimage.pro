@@ -26,7 +26,7 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
             2: im=hvps4_read_frame(lun,framep.ap[c],(*pop).probeid)
          ENDCASE
          slices=n_elements(im.image)/128
-         IF imsize+slices lt maxslices THEN bitimage[0:127,imsize:imsize+slices-1]=im.image
+         IF (imsize+slices lt maxslices) THEN bitimage[0:127,imsize:imsize+slices-1]=im.image
 
          ;Add a divider
          IF (divider eq 1) and (imsize+slices lt (maxslices-1)) and (total(im.image) gt 0) THEN BEGIN
@@ -34,7 +34,8 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
             imsize=imsize+1
          ENDIF
 
-         imsize=imsize+slices
+         ;Increment size if there is a valid particle
+         IF (max(im.image) gt 0) THEN imsize=imsize+slices
          c=c+1
       ENDWHILE
       bitimage=bitimage[0:127, 0:((imsize < maxslices)-1 > 0)]

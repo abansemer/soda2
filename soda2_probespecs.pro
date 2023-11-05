@@ -144,8 +144,8 @@ FUNCTION soda2_probespecs, name=name, id=id, fn=fn
    x.probetype='CIPG'  ;This probe uses the grey array board.  All shadows are at grey level 1.
    x.probeid=''
    x.greythresh=1
-   x.res=25
-   x.yres=25
+   x.res=15
+   x.yres=15
    x.armwidth=10.0
    x.numdiodes=64
    x.tau=0.051e-6
