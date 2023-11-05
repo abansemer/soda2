@@ -56,12 +56,16 @@ FUNCTION spec_index, lun, lite=lite, minimagesize=minimagesize, pointerstart=poi
    IF absolutepointer eq 1 THEN imagep=lon64arr(numpointers)   ;Image pointers (full)
    ibuffer=lonarr(numpointers)  ;Index of nearest buffer header to each image
    ihk=lonarr(numpointers)      ;Index of nearest housekeeping header to each image
+   particlecounter=uintarr(numpointers)
+   arrayid=bytarr(numpointers)
    imagec=0L                    ;Image counter
    maskp=lon64arr(1000)         ;Mask pointers
    maskc=0L                     ;Mask counter
    hkp=lon64arr(100000)         ;Housekeeping pointers
    hkc=0L                       ;Housekeeping counter
    j=0
+   lastparticlecounterh = 0us
+   lastparticlecounterv = 0us
 
    ;Get all the time buffers
     FOR i=0L,numbuffs-2 DO BEGIN
@@ -81,14 +85,33 @@ FUNCTION spec_index, lun, lite=lite, minimagesize=minimagesize, pointerstart=poi
             12883:BEGIN  ;'2S'
                nh=b[j+1] and 'fff'x
                nv=b[j+2] and 'fff'x
+               thisparticlecounter = b[j+3]
                IF (nh ge minimagesize) or (nv ge minimagesize) THEN BEGIN  ;Ignore small particles
-                  imagep[imagec]=headersize+j*2    ;i*buffsize+ removed... just using offset now
-                  ibuffer[imagec]=i     ;Index of nearest buffer header
-                  ihk[imagec]=(hkc-1)>0 ;Index of nearest housekeeping header
-                  IF absolutepointer eq 1 THEN imagep[imagec]=i*buffsize+headersize+j*2    ;full pointer
-                  IF firstp[i] eq -1 THEN firstp[i]=imagec  ;Index of first image in each buffer
-                  numimages[i]=numimages[i]+1
-                  imagec=imagec+1  ;Total count
+                  ;Get counter increment, will be different for each array
+                  IF (nh ge minimagesize) THEN deltacounter = thisparticlecounter - lastparticlecounterh
+                  IF (nv ge minimagesize) THEN deltacounter = thisparticlecounter - lastparticlecounterv
+                  ;Particles spanning two+ frames will have the same counter,
+                  ;keep the first one only (will be read in full in spec_read_frame.pro)
+                  IF (deltacounter ne 0) THEN BEGIN
+                     imagep[imagec]=headersize+j*2    ;i*buffsize+ removed... just using offset now
+                     ibuffer[imagec]=i     ;Index of nearest buffer header
+                     ihk[imagec]=(hkc-1)>0 ;Index of nearest housekeeping header
+                     particlecounter[imagec] = thisparticlecounter
+                     IF absolutepointer eq 1 THEN imagep[imagec]=i*buffsize+headersize+j*2    ;full pointer
+                     IF firstp[i] eq -1 THEN firstp[i]=imagec  ;Index of first image in each buffer
+                     numimages[i]=numimages[i]+1
+                     ;Horizontal images
+                     IF (nh ge minimagesize) THEN BEGIN
+                        arrayid[imagec] = byte('H')
+                        lastparticlecounterh = thisparticlecounter
+                     ENDIF
+                     ;Vertical images
+                     IF (nv ge minimagesize) THEN BEGIN
+                        arrayid[imagec] = byte('V')
+                        lastparticlecounterv = thisparticlecounter
+                     ENDIF
+                     imagec=imagec+1  ;Total count
+                  ENDIF
                ENDIF
                j=j+5+nh+nv
             END
@@ -116,7 +139,6 @@ FUNCTION spec_index, lun, lite=lite, minimagesize=minimagesize, pointerstart=poi
         j=j-ndataints
         IF j ge ndataints THEN j=0  ;Take care of rare error in noisy data where j gets way too big, resets at start of next buffer
         thisbuffer=nextbuffer
-
    ENDFOR
    ;for the last header
    bufftime[numbuffs-1]=header.hour*3600D + header.minute*60D + header.second + header.millisecond/1000D
@@ -127,11 +149,13 @@ FUNCTION spec_index, lun, lite=lite, minimagesize=minimagesize, pointerstart=poi
    imagep=temporary(imagep[0:(imagec-1)>0])
    ibuffer=temporary(ibuffer[0:(imagec-1)>0])
    ihk=temporary(ihk[0:(imagec-1)>0])
+   particlecounter=temporary(particlecounter[0:(imagec-1)>0])
+   arrayid=temporary(arrayid[0:(imagec-1)>0])
    hkp=hkp[0:(hkc-1)>0]
    maskp=maskp[0:(maskc-1)>0]
    ;print,'allocated: ',numpointers,' image: ',imagec,' house: ',hkc,' mask: ',maskc
    return,{date:date, bufftime:bufftime, pointer:buffpoint, firstp:firstp, imagep:imagep, $
            hkp:hkp, maskp:maskp, count:numbuffs, numimages:numimages, buffsize:buffsize, $
-           ibuffer:ibuffer, ihk:ihk, error:0}
+           ibuffer:ibuffer, ihk:ihk, particlecounter:particlecounter, arrayid:arrayid, error:0}
 
 END
