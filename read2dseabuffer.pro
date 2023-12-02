@@ -26,6 +26,7 @@ function read2dseabuffer,lun,res=res,tags=tags,probetype=probetype
 
    ;Variable initialization
    imagepoint=0
+   elapsedpoint=-1
    gotdata=0             ;flag to test if 2d records found
    i=0l
 
@@ -78,7 +79,7 @@ function read2dseabuffer,lun,res=res,tags=tags,probetype=probetype
    readu,lun,image
 
    ;Elapsed time
-   IF (elapsed_tagexists eq 1) THEN BEGIN
+   IF (elapsed_tagexists eq 1) and (elapsedpoint ne -1) THEN BEGIN
       elapsedtime=0ul
       point_lun,lun,elapsedpoint
       readu,lun,elapsedtime
