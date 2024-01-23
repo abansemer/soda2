@@ -109,8 +109,8 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
                   IF timeindexstart eq timeindexstop THEN BEGIN
                      d.deadtime[timeindexstart] += interarrival[iparticles[j]]
                   ENDIF ELSE BEGIN
-;print, timeindexstart, timeindexstop
-;IF timeindexstop-timeindexstart gt 100 then stop
+                     ;print, timeindexstart, timeindexstop
+                     ;IF timeindexstop-timeindexstart gt 100 then stop
                      ;Portion in start index
                      d.deadtime[timeindexstart] += (d.time[timeindexstart]+op.rate - deadtimestart)
                      ;Portion in stop index

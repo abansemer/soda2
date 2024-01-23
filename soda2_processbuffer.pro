@@ -407,7 +407,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
 
        ((*pop).probetype eq '1D2D'): BEGIN
           ;Make sure last slice is full alternating on/off pixels
-          IF buffer.image[-1] ne ulong64('AAAAAAAAAAAAAAAA'x) THEN print, 'Buffer may be misaligned'
+          IF buffer.image[-1] ne ulong64('AAAAAAAAAAAAAAAA'x) THEN print, 'Buffer may be misaligned, invalid final slice on 1D2D'
 
           ;Particle headers use 3 slices, should come in triplicate
           ;First conditional matches '55'x pattern.  Second conditional is to avoid error where '55'x exists with blank slice afterward.
