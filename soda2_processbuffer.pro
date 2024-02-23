@@ -17,7 +17,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    ;Define the structure to return for bad buffers
    nullbuffer= {diam:0,probetime:0,reftime:0,ar:0, rawtime:0, aspr:0, rejectbuffer:1,bitimage:0,$
                 allin:0,streak:0,zd:0,dhist:0,nslices:0,missed:0,overloadflag:0,dofflag:0b,particlecounter:0L, $
-                inttime:0d, clocktas:0.0}
+                inttime:0d, clocktas:0.0, startline:0}
 
    CASE 1 OF
       ;-----------------------------------------------------------------------------------------------
@@ -411,18 +411,27 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
 
           ;Particle headers use 3 slices, should come in triplicate
           ;First conditional matches '55'x pattern.  Second conditional is to avoid error where '55'x exists with blank slice afterward.
-          sync_ind = where(((buffer.image and 'FF00000000000000'x) eq ulong64('5500000000000000'x)) and (buffer.image ne '55FFFFFFFFFFFFFF'x), nsync)
-          IF (nsync mod 3) ne 0 THEN return, nullbuffer    ;Uneven number of sync slices, can happen when a particle makes the '55'x pattern
-          IF nsync lt 15 THEN return, nullbuffer  ;Reject buffers that are filled with noise and have few timelines
-          num_timelines = nsync/3
+          ;sync_ind = where(((buffer.image and 'FF00000000000000'x) eq ulong64('5500000000000000'x)) and (buffer.image ne '55FFFFFFFFFFFFFF'x), nsync)
+
+          ;More robust (but slower) approach needed after some errors found in tunnel data
+          patternmatch = (buffer.image and 'FF00000000000000'x) eq ulong64('5500000000000000'x)
+          sync_ind = []
+          FOR i = 0s, n_elements(buffer.image)-4 DO BEGIN
+             ;Look for 3 pattern matches in a row
+             IF (patternmatch[i] eq 1) and (patternmatch[i+1] eq 1) and (patternmatch[i+2] eq 1) THEN BEGIN
+                sync_ind = [sync_ind, i]  ;Add to list
+                i+=2                      ;Skip the next two lines which already matched
+             ENDIF
+          ENDFOR
+          num_timelines = n_elements(sync_ind)
+          IF num_timelines lt 5 THEN return, nullbuffer  ;Reject buffers that are filled with noise and have few timelines
 
           ;Decode time and particle information
-          ;First index of each triplet, contains the time of the particle
-          i = indgen(num_timelines) * 3
-          timecounter = (buffer.image[sync_ind[i]] and '0000FFFFFFFFFFFF'x)
+          ;First index of each triplet contains the time of the particle
+          timecounter = (buffer.image[sync_ind] and '0000FFFFFFFFFFFF'x)
 
           ;Second timeline contains probe settings, should usually be the same for all particles
-          secondtimeline = buffer.image[sync_ind[i+1]]
+          secondtimeline = buffer.image[sync_ind+1]
           largereject = ishft(secondtimeline and '00FFF00000000000'x, -44)  ;Maximum number of slices, otherwise reject
           smallreject = ishft(secondtimeline and '00000FFF00000000'x, -32)  ;Minimum number of slices, otherwise reject
           dofpercent  = ishft(secondtimeline and '000000003C000000'x, -26)  ;Indicates which dof% setting is used, see manual
@@ -430,7 +439,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           rightreject = secondtimeline and '0000000000000FFF'x    ;Number of slices required on right edge to reject
 
           ;Third timeline contains number of pixels at 50 and 75 percent shading, as well as the dofnumreject setting
-          thirdtimeline = buffer.image[sync_ind[i+2]]
+          thirdtimeline = buffer.image[sync_ind+2]
           dofnumreject = ishft(thirdtimeline and '00FFF00000000000'x, -44)  ;Number of pixels required at 75% to accept
           pixels75     = ishft(thirdtimeline and '000003FFFF000000'x, -24)
           pixels50     = thirdtimeline and '000000000003FFFF'x
@@ -443,20 +452,24 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           time_sfm = time[2:*]        ;Particles start on third timeline
           rawtime = timecounter[2:*]
           inttime = time_sfm - [bufferstarttime, time_sfm]  ;Use buffer start time as the first time to use (may not be exactly right)
-          reftime = time[-1]    ;The time that should match the starttime on the SEA buffer
+          reftime = bufferstarttime ; time[-1]    ;The time that should match the starttime on the SEA buffer
 
           ;Update the SEA buffer stoptime, since the start/stop times in the particle headers are more accurate
           buffer.stoptime = buffer.time + (time[-1] - time[0])
 
           ;Make image
           image = buffer.image
-          image[sync_ind] = 'FFFFFFFFFFFFFFFF'x    ;Replace timelines with blank(1) data
+
+          ;Replace all three timelines with blank(1) data
+          image[sync_ind] = 'FFFFFFFFFFFFFFFF'x
+          image[sync_ind+1] = 'FFFFFFFFFFFFFFFF'x
+          image[sync_ind+2] = 'FFFFFFFFFFFFFFFF'x
           bitimage = dec2bin64(not(image))
 
           ;Start/stop indexes of image, starting with third timeline
           ;Note: The timelines in 1D2D come AFTER the particle itself, so will always start with line 6
-          startline = [6, (sync_ind[i[2:num_timelines-2]]+3)]   ;Don't use the last timeline as a startline, since only empty space after
-          stopline  = sync_ind[i[2:num_timelines-1]]-1
+          startline = [6, (sync_ind[2:-2]+3)]   ;Don't use the last timeline as a startline, since only empty space after
+          stopline  = sync_ind[2:-1]-1
 
           ;Misc
           restore_slice = 0
@@ -623,6 +636,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    xpos=fltarr(num_images)
    ypos=fltarr(num_images)
    nsep=intarr(num_images)
+   numregions=bytarr(num_images)  ;Number of blobs, if enabled
    dhist=intarr((*pop).numdiodes)
 
    ;Boolean flag for SPEC probes indicates empty particle with overload time, set to 0 if not already defined.
@@ -665,6 +679,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
       IF ((*pop).keeplargest eq 1) THEN BEGIN
          blobs=label_blobs(roi, dilate=2)  ;Neighborhood of 2 allowed
          nblobs=max(blobs)
+         numregions[i]=nblobs    ;Keep for PBP output
          IF nblobs gt 1 THEN BEGIN
             blobhist=histogram(blobs, min=1)  ;min=1 skips white space
             dummy=max(blobhist, ilargest)
@@ -718,5 +733,6 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
            sizecorrection:sizecorrection, dhist:dhist, nslices:nslices, missed:missed, nsep:nsep, $
            overloadflag:overloadflag, dofflag:dof, xpos:xpos, ypos:ypos, orientation:orientation, area_orig:area_orig, $
            area_filled:area_filled, perimeterarea:perimeterarea, area75:area75, particlecounter:particle_count, $
-           edgetouch:edgetouch, inttime:inttime, clocktas:clocktas, startline:startline, stopline:stopline}
+           edgetouch:edgetouch, inttime:inttime, clocktas:clocktas, startline:startline, stopline:stopline, $
+           numregions:numregions}
 END

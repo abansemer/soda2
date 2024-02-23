@@ -1,4 +1,4 @@
-PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
+PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
    ;Make various plots in the GUI windows
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
@@ -93,7 +93,8 @@ PRO soda2_windowplot,topid,p1,pinfo,pop,pmisc,noset=noset
          ENDIF
          imagestop=((panelstart+1)*num2plot-1) < (buffcount-1)
          FOR i=imagestart, imagestop DO BEGIN
-            b=soda2_bitimage(fn[(*p1).currentfile[ind[i]]], (*p1).pointer[ind[i]], pop, pmisc)
+            ;Get bitimage.  A showdividers option of -1 shows white lines.  +1 for blue, +2 for black.
+            b=soda2_bitimage(fn[(*p1).currentfile[ind[i]]], (*p1).pointer[ind[i]], pop, pmisc, divider=-(*pinfo).showdividers)
             ;Display buffers
             IF b.rejectbuffer eq 0 THEN BEGIN
                tv, b.bitimage+1, panelwidth*ibuffer+buffermargin, 20

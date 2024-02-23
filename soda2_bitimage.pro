@@ -51,7 +51,7 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
          bitimage=p.bitimage
 
          ;Add a divider
-         IF (divider eq 1) THEN bitimage[*, (p.startline-1)>0] = 1
+         IF (divider ne 0) THEN bitimage[*, (p.startline-1)>0] = divider  ;-1 makes a white line in soda2_browse.
 
          ;Stretch HVPS1
          IF (*pop).probetype eq 'HVPS1' and (n_elements(bitimage) gt 256) THEN BEGIN

@@ -32,7 +32,8 @@ PRO soda2_browse_event, ev
             outdir=file_dirname(fn)+path_sep()
             ;Reset pinfo
             info={i:0L,i1:0L,i2:0L,b1i:-1L,fn:fn,gotfile:0,timeformat:1,declutter:1,wid:wid,wt:wt,$
-               bmp:bytarr(float(screen_x),50),outdir:outdir,rawdir:'',show_correction:1,panelstart:0,adjustrange:0}
+               bmp:bytarr(float(screen_x),50),outdir:outdir,rawdir:'',show_correction:1,panelstart:0,$
+               showdividers:0,adjustrange:0}
 
             ;Restore files, set pointers to the restored data
             restore,fn
@@ -166,7 +167,7 @@ PRO soda2_browse_event, ev
 
 
             ;Plot new data
-            soda2_windowplot,ev.top,p1,pinfo,pop,pmisc
+            soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
 
          END
         ;====================================================================================================
@@ -304,13 +305,13 @@ PRO soda2_browse_event, ev
                tv,tsbmp
 
                ;Plot new data
-               soda2_windowplot,ev.top,p1,pinfo,pop,pmisc
+               soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
             ENDIF
         END
         ;====================================================================================================
         uname eq 'tab': BEGIN
            ;The current tab has been changed
-           soda2_windowplot,ev.top,p1,pinfo,pop,pmisc
+           soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
         END
         ;====================================================================================================
         uname eq 'reset_range': BEGIN
@@ -326,7 +327,7 @@ PRO soda2_browse_event, ev
             tsbmp[(it-1)>0,*]=70
             wset,(*pinfo).wt
             tv,tsbmp
-          soda2_windowplot,ev.top,p1,pinfo,pop,pmisc
+          soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
         END
         ;====================================================================================================
         uname eq 'properties': BEGIN
@@ -390,13 +391,19 @@ PRO soda2_browse_event, ev
         (uname eq 'nextpanel'): BEGIN
            ;Show next panel of images
            (*pinfo).panelstart=(*pinfo).panelstart+1
-           soda2_windowplot,ev.top,p1,pinfo,pop,pmisc
+           soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
         END
         ;====================================================================================================
         (uname eq 'previouspanel'): BEGIN
            ;Show previous panel of images
            (*pinfo).panelstart=((*pinfo).panelstart-1) > 0
-           soda2_windowplot,ev.top,p1,pinfo,pop,pmisc
+           soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
+        END
+        ;====================================================================================================
+        (uname eq 'showdividers'): BEGIN
+           ;Add/remove particle dividers
+           (*pinfo).showdividers = ev.select
+           soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
         END
         ;====================================================================================================
         (strmid(uname,0,9) eq 'massparam'): BEGIN
@@ -425,7 +432,7 @@ PRO soda2_browse_event, ev
            IF uname eq 'massparam_water' THEN (*p1).dbz=bulk.dbzw  ;Use water dBZ in this case
            (*p1).mvd=bulk.mvd
            (*p1).mnd=bulk.mnd
-           soda2_windowplot,ev.top,p1,pinfo,pop,pmisc
+           soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
         END
         ;====================================================================================================
         (uname eq 'color_invert'): BEGIN
@@ -438,7 +445,7 @@ PRO soda2_browse_event, ev
               !p.color=0
               !p.thick=2
            ENDELSE
-           soda2_windowplot,ev.top,p1,pinfo,pop,pmisc
+           soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
         END
         ;====================================================================================================
 
@@ -481,14 +488,14 @@ PRO soda2_browse_event, ev
            plot,smooth(alog10(bulk.nt),5,/nan),xsty=5,ysty=5,pos=[0,0,1,1],yr=[0.2,8],/yl
            (*pinfo).bmp=tvrd()     ;The raw plot
 
-           soda2_windowplot,ev.top,p1,pinfo,pop,pmisc
+           soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
        END
        ;====================================================================================================
 
        (uname eq 'toggle_adjustrange'): BEGIN
           ;Toggle the color range option, so z-colors auto-adjust to the current time selection
           IF (*pinfo).adjustrange eq 1 THEN (*pinfo).adjustrange = 0 ELSE (*pinfo).adjustrange = 1
-          soda2_windowplot,ev.top,p1,pinfo,pop,pmisc
+          soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
        END
 
        ELSE: dummy=0
@@ -552,6 +559,8 @@ PRO soda2_browse, fn
     previouspanel=widget_button(drawbase2b,uname='previouspanel',value='<--',/frame)
     panelcount=widget_label(drawbase2b,uname='panelcount',value=' Panel  1 of  1  ')
     nextpanel=widget_button(drawbase2b,uname='nextpanel',value='-->',/frame)
+    vals=['Show Dividers']
+    showdividers=cw_bgroup(drawbase2b, vals, uname='showdividers', /row, /nonexclusive, uval=vals, set_value=[0])
 
     ;Tab 3
     drawbase3=widget_base(tab,row=1,title='Timing/Diodes',uname='tab3')

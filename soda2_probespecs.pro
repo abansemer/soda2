@@ -1237,8 +1237,8 @@ FUNCTION soda2_probespecs, name=name, id=id, fn=fn
    all=[all,x]
 
    x=base
-   x.probename='SEA 1D2D (15um)'
-   x.shortname='1D2D'
+   x.probename='SEA 1D2D-X (15um)'
+   x.shortname='1D2D-X'
    x.format='SEA'
    x.subformat=0
    x.probetype='1D2D'
@@ -1257,8 +1257,8 @@ FUNCTION soda2_probespecs, name=name, id=id, fn=fn
    all=[all,x]
 
    x=base
-   x.probename='SEA 1D2D (50um)'
-   x.shortname='1D2D'
+   x.probename='SEA 1D2D-Y (50um)'
+   x.shortname='1D2D-Y'
    x.format='SEA'
    x.subformat=0
    x.probetype='1D2D'
