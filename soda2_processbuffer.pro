@@ -386,16 +386,20 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           stopline=buffer.startslice+buffer.nslices-1
           particle_count=intarr(num_images)  ;No counter
           dof=bytarr(num_images)+1  ;Assume all are good to start
+          n50=fltarr(num_images)    ;Save for later like main 1D2D
+          n75=fltarr(num_images)
           ;Figure out dofreject for greyscale or 1D2D criteria
           IF (*pop).dofreject ne 0 THEN BEGIN
              FOR i=0,num_images-1 DO BEGIN
-                dummy=where(bitimage[*, startline[i]:stopline[i]] ge 2, n50)
-                dummy=where(bitimage[*, startline[i]:stopline[i]] eq 3, n75)
-                IF (*pop).dofreject eq 1 THEN IF n75 eq 0 THEN dof[i]=0  ;No level-3 pixels
-                IF (*pop).dofreject eq 2 THEN IF float(n75)/n50 lt 0.5 THEN dof[i]=0  ;"Mode3" for SEA-1D2D
-
+                thisimage = bitimage[*, startline[i]:stopline[i]]
+                dummy=where(thisimage ge 2, num50)
+                dummy=where(thisimage eq 3, num75)
+                n50[i]=num50
+                n75[i]=num75
+                IF (*pop).dofreject eq 1 THEN IF num75 eq 0 THEN dof[i]=0  ;No level-3 pixels
+                IF (*pop).dofreject eq 2 THEN IF float(num75)/num50 lt 0.5 THEN dof[i]=0  ;"Mode3" for SEA-1D2D
                 ;Set greythresh if it is not already, can be missed easily in the TXT data
-                IF (n50 gt 0) and ((*pop).greythresh eq 0) THEN (*pop).greythresh=1
+                IF (num50 gt 0) and ((*pop).greythresh eq 0) THEN (*pop).greythresh=1
              ENDFOR
           ENDIF
           stretch=fltarr(num_images)+1.0  ;Not implemented yet for this probe, assume no stretch
@@ -476,14 +480,13 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           missed = 0
           particle_count = intarr(num_images) ;No counter
           dof = pixels75[2:*] < 1             ;Set flag to 'accept' if at least one 75% pixel, flag must be 0 or 1
+          n75 = pixels75[2:*]
+          n50 = pixels50[2:*]  ;this can sometimes be slightly different than computed area, but ignore for now
           IF (*pop).dofreject eq 2 THEN BEGIN
              ;Stricter DoF for N75/N50 > 0.5, aka Mode3.  This forces Mode3 even if data recorded in Mode1 or Mode2.
-             n75 = pixels75[2:*]
-             n50 = pixels50[2:*]  ;this can sometimes be slightly different than computed area, but ignore for now
              dof = bytarr(num_images)+1
              FOR i=0,num_images-1 DO IF float(n75[i])/n50[i] lt 0.5 THEN dof[i]=0
           ENDIF
-
           stretch = fltarr(num_images)+1.0    ;Not implemented yet for this probe, assume no stretch
           clocktas = fltarr(num_images)+buffer.tas
        END
@@ -647,7 +650,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    IF lp eq 0 THEN lp = (*pop).numdiodes-1
    FOR i=0,num_images-1 DO BEGIN
       roi=bitimage[fp:lp, startline[i]:stopline[i]]  ;extract a single particle from the buffer image
-      roi_orig=bitimage_orig[fp:lp, startline[i]:stopline[i]]  ;the original bitimage preserving stuck bits
+      roi_orig=bitimage_orig[fp:lp, startline[i]:stopline[i]]  ;the original bitimage preserving stuck bits and keeplargest bits
       IF ((*pop).probetype eq 'HAIL') THEN BEGIN
          ;Hail spectrometer has no timelines, only blobs.  Handle that here by separating indexed blobs.
          roi = byte(blobimage*0)

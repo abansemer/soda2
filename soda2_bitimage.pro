@@ -29,9 +29,9 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
          IF (imsize+slices lt maxslices) THEN bitimage[0:127,imsize:imsize+slices-1]=im.image
 
          ;Add a divider
-         IF (divider eq 1) and (imsize+slices lt (maxslices-1)) and (total(im.image) gt 0) THEN BEGIN
-            bitimage[0:127,imsize+slices]=(indgen(128) mod 4 / 3)*2
-            imsize=imsize+1
+         IF (divider ne 0) and (imsize+slices lt (maxslices-1)) and (total(im.image) gt 0) THEN BEGIN
+            IF divider eq 1 THEN bitimage[0:127,imsize+slices-1]=(indgen(128) mod 4 / 3)*2   ;Dotted line
+            IF divider eq -1 THEN bitimage[*,imsize+slices-1] = -1                           ;White line in soda2_browse
          ENDIF
 
          ;Increment size if there is a valid particle
@@ -44,7 +44,6 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
 
    ;All other probes
    ENDIF ELSE BEGIN
-
       IF n_elements(b.image) gt 1 THEN BEGIN
          p=soda2_processbuffer(b, pop, pmisc)
          rejectbuffer=p.rejectbuffer

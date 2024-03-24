@@ -65,6 +65,7 @@ PRO soda2_event, ev
             ;--------Filenames
             widget_control,widget_info(ev.top,find='filelist'),set_value=op.fn
             widget_control,widget_info(ev.top,find='outdir'),set_value=op.outdir
+            widget_control,widget_info(ev.top,find='filetag'),set_value=op.filetag
 
             ;--------Bins
             widget_control,widget_info(ev.top,find='endbins'),set_value=string(op.endbins,form='(100(f0.1," "))')
@@ -306,6 +307,7 @@ PRO soda2_event, ev
             ;--------Filenames
             widget_control,widget_info(ev.top,find='filelist'),get_value=fn
             widget_control,widget_info(ev.top,find='outdir'),get_value=outdir
+            widget_control,widget_info(ev.top,find='filetag'),get_value=filetag
             widget_control,widget_info(ev.top,find='pthfile'),get_value=pthfile
 
             ;--------Filename checks
@@ -389,7 +391,7 @@ PRO soda2_event, ev
                subformat:probe.subformat, probetype:probe.probetype, res:xres, yres:yres, dofconst:dofconst, $
                endbins:endbins, arendbins:arendbins, rate:rate, smethod:smethod, pth:pthfile[0], asciipsdfile:asciipsdfile, $
                savfile:savfile, inttime_reject:inttime_reject, eawmethod:eawmethod, stuckbits:stuckbits, juelichfilter:juelichfilter, water:water,$
-               fixedtas:fixedtas, outdir:outdir[0], project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
+               fixedtas:fixedtas, outdir:outdir[0], filetag:filetag, project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
                numdiodes:probe.numdiodes, probeid:probe.probeid, shortname:probe.shortname, greythresh:probe.greythresh, $
                wavelength:probe.wavelength, seatag:seatag, ncdfparticlefile:ncdfparticlefile, particlefile:particlefile, $
                stretchcorrect:stretchcorrect[0], keeplargest:keeplargest, apply_psc:apply_psc, dofreject:dofreject, $
@@ -554,8 +556,9 @@ PRO soda2
 
     subbase4b=widget_base(subbase4,row=1)
     cd,current=currentdir
-    outdirID=cw_field(subbase4b,/string,  title='Output directory: ',uname='outdir',xsize=52,value=currentdir+path_sep())
+    outdirID=cw_field(subbase4b,/string,  title='Output directory: ',uname='outdir',xsize=45,value=currentdir+path_sep())
     browse2=widget_button(subbase4b,value='Select...',uname='findoutdir')
+    filetagID=cw_field(subbase4b, /string, title='Tag: ', uname='filetag', xsize=6)
 
     process = WIDGET_BUTTON(base, value='BEGIN PROCESSING', uname='process')
 

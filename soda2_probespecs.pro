@@ -1403,7 +1403,7 @@ FUNCTION soda2_probespecs, name=name, id=id, fn=fn
       w=where(name eq all.probename,nw)
       IF (name eq 'Simulation') and (n_elements(fn) ne 0) THEN BEGIN
          ;Need to get Sim properties from the file header.  This is already done in soda2_update_op so use that here.
-         probe=create_struct(all[w], 'fn', fn)
+         probe=create_struct(all[w], 'fn', fn, 'endbins', [0,0])
          soda2_update_op, probe
          return, probe
       ENDIF

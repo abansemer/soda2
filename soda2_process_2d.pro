@@ -24,7 +24,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
    ;smethod:smethod, pth:pth, particlefile:0, inttime_reject:inttime_reject, reconstruct:1, stuckbits:0, water:water,$
    ;fixedtas:fixedtas, outdir:outdir, project:project, timeoffset:timeoffset, armwidth:armwidth, $
    ;numdiodes:numdiodes, greythresh:greythresh}
-   soda2_update_op,op
+   soda2_update_op, op
 
    ;Option to reprocess data using an already-generated pbp file to save time
    IF n_elements(fn_pbp) eq 0 THEN reprocess=0 ELSE BEGIN
@@ -101,6 +101,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
    numbuffsrejected=intarr(numrecords)
    dhist=lonarr(numrecords,op.numdiodes)
    activetime_sea=dblarr(numrecords)
+   date=soda2_parsedate(op.date)
 
    ;Set up the particle structure.
    num2process=10000000L ;Limit to reduce memory consumption
@@ -214,7 +215,6 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
               ['area75', 'Number of shaded pixels at the 75% (or grey level-3) shading', 'pixels', 'short', 'i0'],$
               ['xpos', 'X-position of particle center (across array)', 'pixels', 'float', 'f0.2'],$
               ['ypos', 'Y-position of particle center (along airflow)', 'pixels', 'float', 'f0.2'],$
-              ['numregions', 'Number of connected regions (blobs) in the particle image, if the KEEP_LARGEST option is enabled', 'count', 'byte', 'i0'],$
               ['allin', 'All-in flag (1=all-in)', 'unitless', 'byte','i0'],$
               ['centerin', 'Center-in flag (1=center-in)', 'unitless', 'byte','i0'],$
               ['dofflag', 'Depth of field flag from probe (1=accepted)', 'unitless', 'byte','i0'],$
@@ -227,7 +227,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
               ['overloadflag', 'Overload flag', 'boolean', 'byte', 'i0'],$
               ['particlecounter', 'Particle counter', 'number', 'long', 'i0'],$
               ['orientation', 'Particle orientation relative to array axis', 'degrees', 'float', 'f0.2'],$
-              ['rejectionflag', 'Particle rejection code (see soda2_reject.pro)', 'unitless', 'byte', 'i0']]
+              ['rejectionflag', 'Particle rejection code (see soda2_reject.pro)', 'unitless', 'byte', 'i0'],$
+              ['numregions', 'Number of connected regions (blobs) in the particle image, if the KEEP_LARGEST option is enabled', 'count', 'byte', 'i0']]
 
    ;NetCDF PBP
    IF op.ncdfparticlefile eq 1 THEN BEGIN
@@ -240,7 +241,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
 
       ;These are for ncplot compatibility
       opnames=tag_names(op)
-      flightdate=strmid(op.date,0,2)+'/'+strmid(op.date,2,2)+'/'+strmid(op.date,4,4)
+      flightdate=date.month+'/'+date.day+'/'+date.year
 
       tb='0000'+strtrim(string(sfm2hms(op.starttime)),2)
       te='0000'+strtrim(string(sfm2hms(op.stoptime)),2)
@@ -283,7 +284,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
       openw, lun_pbp, fn_pbp
 
       printf, lun_pbp, 'Source: SODA-2 OAP Processing Software'
-      printf, lun_pbp, 'Flight Date (mm/dd/yyyy): ', strmid(op.date,0,2)+'/'+strmid(op.date,2,2)+'/'+strmid(op.date,4,4)
+      printf, lun_pbp, 'Flight Date (mm/dd/yyyy): ', date.month+'/'+date.day+'/'+date.year
       printf,lun_pbp, 'Date Processed: ' + systime()
 
       printf, lun_pbp, 'Variable Descriptions: '
@@ -337,6 +338,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
    ;Get housekeeping data, if available
    house={op:op}
    IF op.format eq 'SPEC' THEN spec_process_hk, op, y=y, /nosav, data=house
+   IF (op.format eq 'SEA') and (op.probetype eq '1D2D') THEN process_hk_1d2d, op, /nosav, data=house
    IF (op.format eq 'SEA') and (op.probetype eq 'CIP') and (n_elements(op.seatag) ge 2) THEN $
       process_cip1d_sea, op, /nowrite, data=house
 
@@ -349,7 +351,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
 
    ;Make sure buffers are sorted
    numbuffs=n_elements(bufftime)
-   startdate=julday(strmid(op.date,0,2), strmid(op.date,2,2), strmid(op.date,4,4))
+   startdate=julday(date.month, date.day, date.year)
    IF abs(buffdate[0]-startdate) gt 5 THEN BEGIN
       ;Some probes do not have the date right, just use the first one in this case
       caldat,startdate,usermo,userday,useryear
@@ -603,8 +605,9 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
       ENDIF
    ENDFOR
 
+   currenttime=string(systime(/julian), format='(C(CYI, "/", CMOI2.2, "/", CDI2.2, " ", CHI2.2, ":", CMI2.2, ":", CSI2.2))')
    data={op:op, time:d.time, tas:aircrafttas, probetas:probetas, midbins:midbins, activetime:activetime, $
-         Date_Processed:systime(), sa:sa, intspec_all:d.intspec_all, intspec_accepted:d.intspec_accepted, $
+         Date_Processed:currenttime, sa:sa, intspec_all:d.intspec_all, intspec_accepted:d.intspec_accepted, $
          intendbins:intendbins, intmidbins:intmidbins, count_rejected:d.count_rejected, $
          total_count_rejected:d.total_count_rejected, count_accepted:d.count_accepted, count_missed:d.count_missed, $
          missed_hist:d.missed_hist, conc1d:conc1d, spec1d:spec1d, spec2d:d.spec2d, spec2d_aspr:d.spec2d_aspr, $

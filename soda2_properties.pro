@@ -4,7 +4,8 @@ PRO soda2_properties,p1,pop,top
 
     base = WIDGET_BASE(COLUMN=1,title='File Properties',MBar=menubarID,group_leader=top)
     subbase1=widget_base(base,column=2,/frame)
-    dummy=widget_label(subbase1,value='Flight date: '+(*pop).date,/align_left)
+    date=soda2_parsedate((*pop).date)
+    dummy=widget_label(subbase1,value='Date (yyyy/mm/dd): '+date.year+'/'+date.month+'/'+date.day,/align_left)
     dummy=widget_label(subbase1,value='Data start (s): '+strtrim(string((*pop).starttime),2),/align_left)
     dummy=widget_label(subbase1,value='Data stop (s): '+strtrim(string((*pop).stoptime),2),/align_left)
     dummy=widget_label(subbase1,value='Date processed: '+(*p1).date_processed,/align_left)

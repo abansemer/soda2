@@ -18,8 +18,8 @@ PRO soda2_browse_event, ev
         uname eq 'load':BEGIN
             IF ptr_valid(pinfo) THEN path=(*pinfo).outdir ELSE path=''
             IF ev.select eq 999 THEN fn=ev.fn ELSE $  ;Loaded as argument
-               fn=dialog_pickfile(/read,filter=['*.dat'],dialog_parent=widget_info(ev.top,find='tab'),path=path)
-            IF (file_test(fn) eq 0) or (file_test(fn,/directory) eq 1) THEN return
+               fn=dialog_pickfile(/read, filter=['*.dat'], dialog_parent=widget_info(ev.top,find='tab'), path=path)
+            IF (file_test(fn) eq 0) or (file_test(fn, /directory) eq 1) THEN return
 
             ;Get window IDs to store in pinfo
             widget_control,widget_info(ev.top,find='w1'),get_value=w1
@@ -31,32 +31,30 @@ PRO soda2_browse_event, ev
 
             outdir=file_dirname(fn)+path_sep()
             ;Reset pinfo
-            info={i:0L,i1:0L,i2:0L,b1i:-1L,fn:fn,gotfile:0,timeformat:1,declutter:1,wid:wid,wt:wt,$
+            info={i:0L,i1:0L,i2:0L,b1i:-1L,fn:fn,gotfile:0,timeformat:1,declutter:0,wid:wid,wt:wt,$
                bmp:bytarr(float(screen_x),50),outdir:outdir,rawdir:'',show_correction:1,panelstart:0,$
-               showdividers:0,adjustrange:0}
+               showdividers:0,adjustrange:0,acoeff:0.00294,bcoeff:1.9,minsize:0}
 
             ;Restore files, set pointers to the restored data
-            restore,fn
+            restore, fn
             op=data.op
-            soda2_update_op,op
-            IF ptr_valid(p1) THEN ptr_free,p1
-            IF ptr_valid(pinfo) THEN ptr_free,pinfo
-            IF ptr_valid(pop) THEN ptr_free,pop
+            soda2_update_op, op
+            IF ptr_valid(p1) THEN ptr_free, p1
+            IF ptr_valid(pinfo) THEN ptr_free, pinfo
+            IF ptr_valid(pop) THEN ptr_free, pop
 
-            ;Compute meanAR and declutter
+            ;Compute meanAR
             armidbins=(op.arendbins[1:*]+op.arendbins[1:*])/2.0
             meanar=compute_meanar(data.spec2d,armidbins)
-            binary=data.conc1d and (data.conc1d*0 + 1)  ;Declutter the meanar and conc1d data
-            kernel=[[0,1,0],[1,1,1],[0,1,0]]
-            binary=morph_open(binary,kernel)
-            meanar=meanar*binary
-            data.conc1d=data.conc1d*binary
 
-            ;Make all bulk computations starting at 100um
-            binstart=min(where(op.endbins ge 100))
-            a=0.00294 & b=1.9  ;Default to Brown and Francis
-            IF op.water eq 1 THEN BEGIN & a=!pi/6 & b=3.0 & ENDIF  ;Unless processed with water
-            bulk=compute_bulk_simple(data.conc1d,op.endbins,binstart=binstart,ac=a,bc=b)
+            ;Initial bulk computations, start at 0um
+            IF op.water eq 1 THEN BEGIN
+                info.acoeff=!pi/6
+                info.bcoeff=3.0
+                widget_control,widget_info(ev.top,find='massparam'),get_value=paramlist
+                widget_control,widget_info(ev.top,find='massparam'),set_droplist_select=where(paramlist eq 'Water')
+            ENDIF
+            bulk=compute_bulk_simple(data.conc1d,op.endbins,binstart=0,ac=info.acoeff,bc=info.bcoeff)
 
             IF total(tag_names(data) eq 'COUNT_ALL') eq 1 THEN BEGIN
                ;SODA-1
@@ -81,7 +79,7 @@ PRO soda2_browse_event, ev
                data=create_struct(data,bulk,'count_rejected_total',count_rejected_total,'meanar',meanar,'sodaversion',sodaversion)
                ;Add in aspect ratio if it is in the dat file
                IF total(tag_names(data) eq 'SPEC2D_ASPR') ne 0 THEN BEGIN
-                  meanaspr=(compute_meanar(data.spec2d_aspr, armidbins)) * binary  ;Uses same bins as area ratio
+                  meanaspr=(compute_meanar(data.spec2d_aspr, armidbins))  ;Uses same bins as area ratio
                   data=create_struct(data, 'meanaspr', meanaspr)
                ENDIF
                ;Set available plot types
@@ -90,7 +88,10 @@ PRO soda2_browse_event, ev
                   'Color Area Ratio','Color Aspect Ratio','Color Mass Distribution','Color Orientation','Rejection Codes',$
                   'Particle Counts','Active Time','TAS']
                ;Add housekeeping plots if available
-               IF (total(tag_names(data) eq 'HOUSE') eq 1) && (n_elements(tag_names(data.house)) gt 1) THEN soda2_plots=[soda2_plots,'Diode Voltages','Probe Temperature']
+               IF (total(tag_names(data) eq 'HOUSE') eq 1) && (n_elements(tag_names(data.house)) gt 1) THEN $
+                  soda2_plots=[soda2_plots,'Diode Voltages','Probe Temperature']
+               IF (total(tag_names(data) eq 'HOUSE') eq 1) && (n_elements(tag_names(data.house)) gt 1) && (data.op.probetype eq '1D2D') THEN $
+                  soda2_plots=[soda2_plots,'Probe Settings']
                widget_control,widget_info(ev.top,find='ts_type1'),set_value=soda2_plots
                widget_control,widget_info(ev.top,find='ts_type2'),set_value=soda2_plots
                widget_control,widget_info(ev.top,find='ts_type2'),set_droplist_select=1
@@ -154,21 +155,17 @@ PRO soda2_browse_event, ev
             widget_control,widget_info(ev.top,find='wt'),sensitive=1
             widget_control,widget_info(ev.top,find='properties'),sensitive=1
             widget_control,widget_info(ev.top,find='color_invert'),sensitive=1
-            widget_control,widget_info(ev.top,find='toggle_clutter_filter'),sensitive=1
             widget_control,widget_info(ev.top,find='toggle_adjustrange'),sensitive=1
-            widget_control,widget_info(ev.top,find='massparammenu'),sensitive=1
             widget_control,widget_info(ev.top,find='newbrowser'),sensitive=1
-            widget_control,widget_info(ev.top,find='filedisplay'),set_value=file_basename(fn)
+            widget_control,widget_info(ev.top,find='filedisplay'),set_value=file_basename(fn[0])
 
             ;Establish mouse info
             mouse={down:0, pixid:0, wid:0, xsize:0, ysize:0, sx:0, sy:0, dx:0, dy:0}
             pmouse=ptr_new(mouse)
             widget_control,widget_info(ev.top,find='tab5'),set_uvalue=pmouse
 
-
             ;Plot new data
             soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
-
          END
         ;====================================================================================================
         (uname eq 'wt')  or (uname eq 'time') or (uname eq 'w1') or (uname eq 'w2') or (uname eq 'w3') or (uname eq 'w5'):BEGIN
@@ -355,7 +352,6 @@ PRO soda2_browse_event, ev
            ;Update time
            IF (*pinfo).timeformat eq 1 THEN texttime=sfm2hms((*p1).time[(*pinfo).i]) ELSE texttime=(*p1).time[(*pinfo).i]
            widget_control,widget_info(ev.top,find='time'),set_value=strtrim(string(long(texttime)),2)
-
         END
         ;====================================================================================================
         uname eq 'png': BEGIN
@@ -406,32 +402,49 @@ PRO soda2_browse_event, ev
            soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
         END
         ;====================================================================================================
-        (strmid(uname,0,9) eq 'massparam'): BEGIN
+        (uname eq 'massparam') or (uname eq 'minsize'): BEGIN
+           widget_control,widget_info(ev.top,find='massparam'),get_value=paramnames
+           widget_control,widget_info(ev.top,find='minsize'),get_value=sizenames
+           iparam=widget_info(widget_info(ev.top,find='massparam'),/droplist_select)
+           isize=widget_info(widget_info(ev.top,find='minsize'),/droplist_select)
+
            ;Adjust mass/size param
-           ;Make all bulk computations starting at 100um
            ;Note: may be small differences from original due to declutter application
-           CASE uname OF
-              'massparam_bf':BEGIN
-                 a=0.00294 & b=1.9
+           CASE paramnames[iparam] OF
+              'Brown/Francis':BEGIN
+                 (*pinfo).acoeff=0.00294
+                 (*pinfo).bcoeff=1.9
               END
-              'massparam_crystal':BEGIN
-                 a=0.0061 & b=2.05
+              'CRYSTAL':BEGIN
+                 (*pinfo).acoeff=0.0061
+                 (*pinfo).bcoeff=2.05
               END
-              'massparam_2010':BEGIN
-                 a=0.00528 & b=2.1
+              'Heymsfield 2010':BEGIN
+                 (*pinfo).acoeff=0.00528
+                 (*pinfo).bcoeff=2.1
               END
-              'massparam_water':BEGIN
-                 a=!pi/6 & b=3.0
+              'Water':BEGIN
+                 (*pinfo).acoeff=!pi/6
+                 (*pinfo).bcoeff=3.0
               END
            ENDCASE
-           binstart=min(where((*pop).endbins ge 100))
-           bulk=compute_bulk_simple((*p1).conc1d,(*pop).endbins,binstart=binstart,ac=a,bc=b)
-           (*p1).iwc=bulk.iwc
-           (*p1).dmedianmass=bulk.dmedianmass
-           (*p1).dbz=bulk.dbz
-           IF uname eq 'massparam_water' THEN (*p1).dbz=bulk.dbzw  ;Use water dBZ in this case
-           (*p1).mvd=bulk.mvd
-           (*p1).mnd=bulk.mnd
+           CASE sizenames[isize] OF
+              'None':(*pinfo).minsize=0
+              '50':(*pinfo).minsize=50
+              '100':(*pinfo).minsize=100
+              '200':(*pinfo).minsize=200
+              '1000':(*pinfo).minsize=1000
+           ENDCASE
+
+           ;Update bulk properties
+           recompute_bulk, p1, pop, pinfo, bulkerror=bulkerror
+
+           ;Update the droplist on error
+           IF bulkerror THEN BEGIN
+              widget_control,widget_info(ev.top,find='minsize'),get_value=paramlist
+              widget_control,widget_info(ev.top,find='minsize'),set_droplist_select=where(paramlist eq 'None')
+           ENDIF
+
            soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
         END
         ;====================================================================================================
@@ -449,8 +462,10 @@ PRO soda2_browse_event, ev
         END
         ;====================================================================================================
 
-        (uname eq 'toggle_clutter_filter'): BEGIN
-           ;Reload file and restore conc1d, meanar
+        (uname eq 'declutter'): BEGIN
+           (*pinfo).declutter = ev.select
+
+           ;Reload file to restore conc1d, meanar
            restore,(*pinfo).fn
 
            ;Recompute mask
@@ -458,11 +473,8 @@ PRO soda2_browse_event, ev
            kernel=[[0,1,0],[1,1,1],[0,1,0]]
            binary=morph_open(binary,kernel)
 
-           ;Toggle the filter
-           IF (*pinfo).declutter eq 1 THEN BEGIN
-               (*pinfo).declutter = 0
-               binary[*] = 1
-           ENDIF ELSE (*pinfo).declutter = 1
+           ;Disable the filter if indicated
+           IF (*pinfo).declutter eq 0 THEN binary[*] = 1
 
            ;Replace data
            armidbins=((*pop).arendbins[1:*]+(*pop).arendbins[1:*])/2.0
@@ -470,22 +482,18 @@ PRO soda2_browse_event, ev
            (*p1).meanar = meanar * binary
            (*p1).conc1d = data.conc1d * binary
 
-           ;Recompute bulk using BF
-           a=0.00294 & b=1.9
-           binstart=min(where((*pop).endbins ge 100))
-           bulk=compute_bulk_simple((*p1).conc1d,(*pop).endbins,binstart=binstart,ac=a,bc=b)
-           (*p1).iwc=bulk.iwc
-           (*p1).lwc=bulk.lwc
-           (*p1).dmedianmass=bulk.dmedianmass
-           (*p1).mnd=bulk.mnd
-           (*p1).mvd=bulk.mvd
-           (*p1).dbz=bulk.dbz
-           (*p1).nt=bulk.nt
-           (*p1).msdnorm=bulk.msdnorm
+           ;Replace aspect ratio
+           IF total(tag_names(data) eq 'SPEC2D_ASPR') ne 0 THEN BEGIN
+             meanaspr=(compute_meanar(data.spec2d_aspr, armidbins))  ;Uses same bins as area ratio
+             (*p1).meanaspr = meanaspr * binary
+           ENDIF
+
+           ;Update bulk properties
+           recompute_bulk, p1, pop, pinfo
 
            ;Update the time bar window
            wset,(*pinfo).wt
-           plot,smooth(alog10(bulk.nt),5,/nan),xsty=5,ysty=5,pos=[0,0,1,1],yr=[0.2,8],/yl
+           plot,smooth(alog10((*p1).nt),5,/nan),xsty=5,ysty=5,pos=[0,0,1,1],yr=[0.2,8],/yl
            (*pinfo).bmp=tvrd()     ;The raw plot
 
            soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
@@ -502,13 +510,29 @@ PRO soda2_browse_event, ev
     ENDCASE
 END
 
-
+PRO recompute_bulk, p1, pop, pinfo, bulkerror=bulkerror
+   ;Recompute bulk using updated parameters
+   binstart=min(where((*pop).endbins ge (*pinfo).minsize))
+   IF binstart lt 0 THEN BEGIN
+      ;Error check if minsize exceeds bin range
+      (*pinfo).minsize=0
+      binstart=0
+      bulkerror=1
+   ENDIF ELSE bulkerror=0
+   bulk=compute_bulk_simple((*p1).conc1d,(*pop).endbins,binstart=binstart,ac=(*pinfo).acoeff,bc=(*pinfo).bcoeff)
+   (*p1).iwc=bulk.iwc
+   (*p1).lwc=bulk.lwc
+   (*p1).dmedianmass=bulk.dmedianmass
+   (*p1).mnd=bulk.mnd
+   (*p1).mvd=bulk.mvd
+   (*p1).dbz=bulk.dbz
+   (*p1).nt=bulk.nt
+   (*p1).msdnorm=bulk.msdnorm
+END
 
 PRO soda2_browse_cleanup,tlb
     heap_gc  ;Ugly, but it works for now....
 END
-
-
 
 
 PRO soda2_browse, fn
@@ -530,19 +554,13 @@ PRO soda2_browse, fn
     ;Main widget
     base = WIDGET_BASE(COLUMN=1,title='Browse Processed Data',MBar=menubarID)
     fileID=widget_button(menubarID, value='File', /menu,uname='base') ;uvalue=pinfo,
+    plotID=widget_button(menubarID, value='Plot', /menu,uname='base') ;uvalue=pinfo,
     loadID=widget_button(fileID, value='Load...',uname='load')
     newbrowserID=widget_button(fileID, value='Open new browser',uname='newbrowser',sensitive=0)
     propID=widget_button(fileID, value='Properties',uname='properties',sensitive=0)
-    colorID=widget_button(fileID, value='Invert colors',uname='color_invert',sensitive=0)
-    clutterID=widget_button(fileID, value='Toggle clutter filter',uname='toggle_clutter_filter',sensitive=0)
-    rangeadjustID=widget_button(fileID, value='Toggle color range auto-adjust',uname='toggle_adjustrange',sensitive=0)
-    massparamID=widget_button(fileID, value='Change mass/size parameterization',uname='massparammenu',sensitive=0,/menu)
-    mp1ID=widget_button(massparamID, value='Brown/Francis',uname='massparam_bf')
-    mp2ID=widget_button(massparamID, value='CRYSTAL',uname='massparam_crystal')
-    mp3ID=widget_button(massparamID, value='Heymsfield 2010',uname='massparam_2010')
-    mp4ID=widget_button(massparamID, value='Water',uname='massparam_water')
+    colorID=widget_button(plotID, value='Invert colors',uname='color_invert',sensitive=0)
+    rangeadjustID=widget_button(plotID, value='Toggle color range auto-adjust',uname='toggle_adjustrange',sensitive=0)
     quitID=widget_button(fileID, value='Quit',uname='quit')
-
 
     tab=widget_tab(base,uname='tab',sensitive=0,uvalue=[screen_x, screen_y])
 
@@ -580,7 +598,11 @@ PRO soda2_browse, fn
     ts_units=widget_droplist(drawbase5b,uname='ts_units',value=['Hours','Seconds'],title='X-units',/frame)
     reset_range=widget_button(drawbase5b,uname='reset_range',value=' Reset Range ',/frame)
 
-
+    drawbase5c=widget_base(drawbase5,row=1)
+    massparamlist=['Brown/Francis','CRYSTAL','Heymsfield 2010','Water']
+    dd_massparam=widget_droplist(drawbase5c,uname='massparam',value=massparamlist,title='MassParam')
+    dd_minsize=widget_droplist(drawbase5c,uname='minsize',value=['None','50','100','200','1000'],title='MinimumSize')
+    tog_declutter=cw_bgroup(drawbase5c, 'Declutter', uname='declutter', /row, /nonexclusive, uval='Declutter', set_value=[0])
 
     ;Time series bar
     tsbase=widget_base(base,row=1)
@@ -595,7 +617,6 @@ PRO soda2_browse, fn
 
     loadct,39    ;A color table that works for Linux....
     tvlct,r,g,b,/get
-    ;r=r/1.5 & g=g/1.5 & b=b/1.5
     r[1]=220 & g[1]=220 & b[1]=220  ;add a grey color
     r[2]=100 & g[2]=100 & b[2]=250  ;add three blue shades for images
     r[3]=000 & g[3]=000 & b[3]=200  ;add three blue shades for images

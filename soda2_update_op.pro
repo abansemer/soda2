@@ -34,6 +34,7 @@ PRO soda2_update_op, op
    IF total(where(tag_names(op) eq 'ACTIVETIMEFROMMISSED')) eq -1 THEN op=create_struct(op,'activetimefrommissed',0)  ;Compute active/dead time based on missed particle counts (DMT)
    IF total(where(tag_names(op) eq 'DIODERANGE')) eq -1 THEN op=create_struct(op,'dioderange',[0, op.numdiodes-1])  ;Lower/upper limit of active diodes
    IF total(where(tag_names(op) eq 'CUSTOMDOF')) eq -1 THEN op=create_struct(op,'customdof',fltarr(n_elements(op.endbins)-1))  ;Custom depth of field
+   IF total(where(tag_names(op) eq 'FILETAG')) eq -1 THEN op=create_struct(op,'filetag','')  ;Optional file identifier
    ;IF total(where(tag_names(op) eq 'CUSTOMDOFFILE')) eq -1 THEN op=create_struct(op,'customdoffile','')
 
    ;Check for incompatible options

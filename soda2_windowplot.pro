@@ -46,8 +46,6 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
          xyouts,0.07,0.12,'Accepted:',/norm & xyouts,0.2,0.12,strtrim(string((*p1).count_accepted[i]),2),/normal
          xyouts,0.07,0.09,'Rejected:',/norm & xyouts,0.2,0.09,strtrim(string((*p1).count_rejected_total[i]),2),/normal
          xyouts,0.07,0.06,'Missed:',/norm & xyouts,0.2,0.06,strtrim(string((*p1).count_missed[i]),2),/normal
-
-         ;plot,(*p1).intmidbins,(*p1).intspec[i,*],/xl,/xs,position=[0.05,0.05,0.35,0.35],/noerase
       END
 
       ;------------------------------------------------------
@@ -250,10 +248,26 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
                   temps2plot=[0,2,6,7,9,10,12]  ;More available for SPEC
                   IF (*pop).probetype eq 'CIP' THEN temps2plot=[0,1,2,3,4]
                   IF (*pop).probetype eq '3VCPI' THEN temps2plot=[0,1,2,3,4,5]
+                  IF (*pop).probetype eq '1D2D' THEN temps2plot=[0]
                   miny=-20 & maxy=40
                   plot,x,(*p1).house.temp[a:b,0],ytitle='Temperature (C)',yr=[miny,maxy],/ys,/nodata
                   FOR i=0, n_elements(temps2plot)-1 DO oplot, x, (*p1).house.temp[a:b,temps2plot[i]], color=colorarray[i]
                   legend_old,(*p1).house.tempid[temps2plot],line=0,color=colorarray[0:n_elements(temps2plot)-1],box=1,/bottom,/right,/clear,charsize=1.0,thick=2
+               END
+               'Probe Settings':BEGIN
+                  ;1D2D probe settings
+                  IF (*pop).probetype eq '1D2D' THEN BEGIN
+                     colorarray=[color7, color5, color4, color2, color1, color3]  ;Put these in a rainbow order array
+                     plot,x,(*p1).house.leftreject[a:b],ytitle='Status',yr=[-0.1,1.2],/ys,/nodata,yticks=1,ytickv=[0,1],ytickname=['Off','On']
+                     oplot,x,((*p1).house.smallreject[a:b]<1)+0.1,color=colorarray[0]
+                     oplot,x,((*p1).house.largereject[a:b]<1)+0.08,color=colorarray[1]
+                     oplot,x,(*p1).house.leftreject[a:b]+0.06,color=colorarray[2]
+                     oplot,x,(*p1).house.rightreject[a:b]+0.04,color=colorarray[3]
+                     oplot,x,((*p1).house.dofnumreject[a:b]<1)+0.02,color=colorarray[4]
+                     oplot,x,((*p1).house.dofpercent[a:b]<1)+0.0,color=colorarray[5]
+                     legend_old,['Small Reject','Large Reject','Left Reject','Right Reject','Num Reject','Ratio Reject'], $
+                        line=0,color=colorarray[0:5],box=1,/bottom,/right,/clear,charsize=1.0,thick=2
+                  ENDIF ELSE plot, x, x*0
                END
                'Color Concentration':BEGIN
                    conc=alog10((*p1).conc1d[a:b,*] > 1)
@@ -285,10 +299,6 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
 
                    barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
                    barposy=[1.01,1.04]*(!y.window[1]-!y.window[0]) + !y.window[0]
-;                    k=0.002 ;Border thickness
-;                    k2=0.015  ;Thickness for wiping the background where text will be
-;                    polyfill,[barposx[0]-k,barposx[1]+k,barposx[1]+k,barposx[0]-k],[barposy[0]-k,barposy[0]-k,barposy[1]+k,barposy[1]+k],/norm
-;                    polyfill,[barposx[0]-k2,barposx[1]+k2,barposx[1]+k2,barposx[0]-k2],[barposy[1]+k,barposy[1]+k,barposy[1]+k2*2,barposy[1]+k2*2],/norm,color=255
                    bar=findgen(nlevels+1)/nlevels*(zrange[1]-zrange[0])+zrange[0]
                    xsave=!x
                    contour,[[bar],[bar]],findgen(nlevels+1),[0,1],/cell,nlevels=nlevels,$

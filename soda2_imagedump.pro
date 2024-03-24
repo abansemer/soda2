@@ -32,11 +32,9 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
 
    IF nofile eq 1 THEN data=file ELSE restore, file
    op=data.op
-   soda2_update_op,op
-   month=strmid(op.date,0,2)
-   day=strmid(op.date,2,2)
-   year=strmid(op.date,4,4)
-   IF datestyle eq 1 THEN op.date=year+month+day
+   soda2_update_op, op
+   date=soda2_parsedate(op.date)
+   IF datestyle eq 1 THEN op.date=date.year+date.month+date.day
 
    ft=file_test(op.fn[0])
    IF (ft eq 0) THEN BEGIN
@@ -181,7 +179,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
          ;-------Write the image---------
          pngfile=op.date+'_'+imagetime+'_'+probename+'.png'
          IF naming_convention eq 'GHRC' THEN BEGIN
-            pngfile=op.project+'_'+probename+'_'+year+month+day+'-'+imagetime+'_images_'+version+'.png'
+            pngfile=op.project+'_'+probename+'_'+date.year+date.month+date.day+'-'+imagetime+'_images_'+version+'.png'
          ENDIF
          IF (writejunk eq 0) and (numaccepted eq 0) THEN gotimage = 0  ;Cull bad images
          IF (gotimage eq 1) or (writeempty eq 1) THEN write_png,outdir+pngfile,tvrd(),r,g,b
@@ -258,7 +256,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
                ;-------Write the image---------
                pngfile=op.date+'_'+imagetime+'_'+probename+'.png'
                IF naming_convention eq 'GHRC' THEN BEGIN
-                  pngfile=op.project+'_'+probename+'_'+year+month+day+'-'+imagetime+'_images_'+version+'.png'
+                  pngfile=op.project+'_'+probename+'_'+date.year+date.month+date.day+'-'+imagetime+'_images_'+version+'.png'
                ENDIF
                write_png,outdir+pngfile,tvrd(),r,g,b
 
