@@ -15,5 +15,6 @@ FUNCTION soda2_parsedate, date
       day = strmid(date, 2, 2)
    ENDELSE
 
-   return, {year:year, month:month, day:day, yearnum:fix(year), monthnum:fix(month), daynum:fix(day)}
+   return, {year:year, month:month, day:day, yearnum:fix(year), monthnum:fix(month), daynum:fix(day), $
+      julday:julday(month, day, year)}
 END

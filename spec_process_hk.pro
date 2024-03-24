@@ -36,7 +36,7 @@ PRO spec_process_hk, op, textwidgetid=textwidgetid, fn_out=fn_out, y=y, nosav=no
 
 
    IF n_elements(fn) gt 1 THEN stop,'Multiple SPEC raw files not supported, concatenate first'
-   startdate=julday(strmid(op.date,0,2), strmid(op.date,2,2), strmid(op.date,4,4))
+   startdate=(soda2_parsedate(op.date)).julday
    IF abs(hkindex.date[0]-startdate) gt 5 THEN BEGIN
       ;Some probes do not have the date right, just use the first one in this case
       startdate=hkindex.date[0]
