@@ -34,9 +34,9 @@ PRO soda2_event, ev
             widget_control,widget_info(ev.top,find='tascheckbox'),set_value=op.stretchcorrect
 
             ;--------Checkboxes
-            checkboxarray=[0,0,0,0,0,0,0,0,0,0]
             id=widget_info(ev.top,find='options')
             widget_control,id,get_uvalue=values
+            checkboxarray = intarr(n_elements(values))  ;Initialize all options with zero
             IF total(where(tag_names(op) eq 'RECONSTRUCT')) ne -1 THEN IF op.reconstruct eq 0 THEN checkboxarray[where(values eq 'All-In')]=1
             IF total(where(tag_names(op) eq 'EAWMETHOD')) ne -1 THEN IF op.eawmethod eq 'allin' THEN checkboxarray[where(values eq 'All-In')]=1
             IF total(where(tag_names(op) eq 'INTTIME_REJECT')) ne -1 THEN IF op.inttime_reject eq 1 THEN checkboxarray[where(values eq 'Shatter Correct')]=1
@@ -47,8 +47,6 @@ PRO soda2_event, ev
             IF op.juelichfilter eq 1 THEN checkboxarray[where(values eq 'Pixel Noise Filter')]=1
             IF op.keeplargest eq 1 THEN checkboxarray[where(values eq 'Largest Particle')]=1
             IF op.apply_psc eq 1 THEN checkboxarray[where(values eq 'Force PSC')]=1
-            IF op.dofreject eq 1 THEN checkboxarray[where(values eq 'DoF Reject')]=1   ;Mode2 rejection N75 > 1
-            IF op.dofreject eq 2 THEN checkboxarray[where(values eq 'Shadow Ratio Reject')]=1 ;Mode3 rejection N75/N50 > 0.5
             IF total(op.customdof) gt 0 THEN checkboxarray[where(values eq 'Custom DoF Curve')]=1
             widget_control,id,set_value=checkboxarray
 
@@ -84,6 +82,16 @@ PRO soda2_event, ev
             ENDCASE
             w=w[0]  ;Can double up when old data loaded
             widget_control,id,set_combobox_select=w
+
+            ;--------DoF Criteria
+            id=widget_info(ev.top,find='dofcriteria')
+            widget_control,id,get_value=criteria  ;See main routine below for values to compare with CASE here
+            CASE op.dofreject OF
+               0:w=where(criteria eq 'Off')
+               1:w=where(criteria eq 'One Level3 Pixel')        ;Mode2 rejection N75 > 1
+               2:w=where(criteria eq '50% Level3 Pixel Ratio')  ;Mode3 rejection N75/N50 > 0.5
+            ENDCASE
+            widget_control,id,set_combobox_select=w[0]
 
             ;--------Probe type
             id=widget_info(ev.top,find='probetype')
@@ -265,9 +273,6 @@ PRO soda2_event, ev
             IF iadv[where(values eq 'Pixel Noise Filter')] eq 1 THEN juelichfilter=1 ELSE juelichfilter=0
             IF iadv[where(values eq 'Largest Particle')] eq 1 THEN keeplargest=1 ELSE keeplargest=0
             IF iadv[where(values eq 'Force PSC')] eq 1 THEN apply_psc=1 ELSE apply_psc=0
-            dofreject=0
-            IF iadv[where(values eq 'DoF Reject')] eq 1 THEN dofreject=1
-            IF iadv[where(values eq 'Shadow Ratio Reject')] eq 1 THEN dofreject=2  ;Mode3 rejection N75/N50 > 0.5
             IF iadv[where(values eq 'Custom DoF Curve')] eq 1 THEN customdof=1 ELSE customdof=0
             widget_control,widget_info(ev.top,find='tascheckbox'),get_value=stretchcorrect
 
@@ -283,6 +288,15 @@ PRO soda2_event, ev
                '1':smethod='oned'
                '2':smethod='twod'
                ELSE:print,'Unknkown size method'
+            ENDCASE
+
+            ;--------DoF Criteria
+            id=widget_info(ev.top,find='dofcriteria')
+            dofcriteriastr=widget_info(id, /combobox_gettext)
+            CASE dofcriteriastr OF
+               'Off':dofreject=0
+               'One Level3 Pixel':dofreject=1
+               '50% Level3 Pixel Ratio':dofreject=2
             ENDCASE
 
             ;--------Output Flag Checkboxes
@@ -366,7 +380,7 @@ PRO soda2_event, ev
             IF warn THEN go=dialog_message('All-in recommended for this sizing method... Continue?',/question,dialog_parent=widget_info(ev.top,find='process'))
             IF go eq 'No' THEN return
 
-            ;Custom DoF check
+            ;Custom DoF check - Create popup window
             IF (customdof eq  1) THEN BEGIN
                dofop={endbins:endbins, armwidth:probe.armwidth, res:xres, numdiodes:probe.numdiodes, eawmethod:eawmethod,$
                   wavelength:probe.wavelength, dofconst:dofconst, smethod:smethod}
@@ -513,8 +527,8 @@ PRO soda2
     probetype=widget_combobox(subbase2b,value=['None',specs.probename],uname='probetype',uvalue='None')
 
     subbase2a=widget_base(subbase2,row=1)
-    xres=cw_field(subbase2a,/float, title='X-resolution (um):',uname='xres' , xsize=5, value=0)
-    yres=cw_field(subbase2a,/float, title='Y-resolution (um):',uname='yres' , xsize=5, value=0)
+    xres=cw_field(subbase2a,/float, title='X-res (um):',uname='xres' , xsize=5, value=0)
+    yres=cw_field(subbase2a,/float, title='Y-res (um):',uname='yres' , xsize=5, value=0)
     dofconst=cw_field(subbase2a,/float, title='DoF Const:',uname='dofconst' , xsize=5, value=0)
     subbase2f=widget_base(subbase2a,row=1,sensitive=0,uname='tagbase')
     seatag=cw_field(subbase2f, title='SEA Tags:', uname='seatag' , xsize=10, value='0 0 0')
@@ -536,14 +550,14 @@ PRO soda2
     methodnames=['Circle fit','X-size (across array)','Y-size (with airflow)','Area equivalent','Lx (max slice width)', $
                  '1D emulation', '2D emulation']
     sizemethod=widget_combobox(subbase5b,value=methodnames,uname='sizemethod',uvalue=methodnames[0])
-    ;dummy=widget_label(subbase5b,value='    DoF Curve:',/align_left)
-    ;standarddof=widget_button(subbase5b, value=' Standard ', uname='standardbins')
-    ;customdof=widget_button(subbase5b, value=' Custom ', uname='custombins')
+    dummy=widget_label(subbase5b,value='  DoF Criteria:',/align_left)
+    dofcriterianames=['Off', 'One Level3 Pixel', '50% Level3 Pixel Ratio']
+    dofcriteria=widget_combobox(subbase5b,value=dofcriterianames,uname='dofcriteria',uvalue=dofcriterianames[0])
 
     subbase5c=widget_base(subbase5,row=1)
     vals=['Shatter Correct','All-In','Water Processing','Stuck Bit Correct','Pixel Noise Filter','Largest Particle',$
-      'Force PSC','DoF Reject','Shadow Ratio Reject','Custom DoF Curve']
-    advanced=cw_bgroup(subbase5c,vals,uname='options',row=2,/nonexclusive,uval=vals,set_value=[1,0,0,0,0,0,0,0,0,0])
+      'Force PSC','Custom DoF Curve']
+    advanced=cw_bgroup(subbase5c,vals,uname='options',row=2,/nonexclusive,uval=vals,set_value=[1,0,0,0,0,0,0,0])
 
 
     ;---------Output directory and process button-------------------------
