@@ -42,12 +42,9 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
    ;These are for ncplot compatibility
    opnames=tag_names(data.op)
    ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-   ;month=string(where(ms eq strmid(data.op.date,0,2))+1,format='(i02)')
-   month=strmid(data.op.date,0,2)
-   day=strmid(data.op.date,2,2)
-   year=strmid(data.op.date,4,4)
-   days1970=julday(month,day,year)-julday(1,1,1970)
-   flightdate=month+'/'+day+'/'+year
+   date=soda2_parsedate(data.op.date)
+   days1970=date.julday-julday(1,1,1970)
+   flightdate=date.month+'/'+date.day+'/'+date.year
 
    tb='0000'+strtrim(string(sfm2hms(min(data.time))),2)
    te='0000'+strtrim(string(sfm2hms(max(data.time))),2)
@@ -70,7 +67,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
 
 
    attname=['long_name','units']
-   attvalue=['Elapsed time','seconds since '+year+'-'+month+'-'+day+' '+starttime+' +0000']
+   attvalue=['Elapsed time','seconds since '+date.year+'-'+date.month+'-'+date.day+' '+starttime+' +0000']
    timeid=ncdf_vardef(id,'elapsed_time',xdimid,/double)
    FOR k=0,n_elements(attname)-1 DO ncdf_attput,id,timeid,attname[k],attvalue[k]
 
