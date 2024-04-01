@@ -33,7 +33,7 @@ PRO soda2_browse_event, ev
             ;Reset pinfo
             info={i:0L,i1:0L,i2:0L,b1i:-1L,fn:fn,gotfile:0,timeformat:1,declutter:0,wid:wid,wt:wt,$
                bmp:bytarr(float(screen_x),50),outdir:outdir,rawdir:'',show_correction:1,panelstart:0,$
-               showdividers:0,adjustrange:0,acoeff:0.00294,bcoeff:1.9,minsize:0}
+               showdividers:0,adjustrange:0,acoeff:0.00294,bcoeff:1.9,minsize:0,xlog:1,ylogpsd:1,ylogmsd:0}
 
             ;Restore files, set pointers to the restored data
             restore, fn
@@ -47,13 +47,25 @@ PRO soda2_browse_event, ev
             armidbins=(op.arendbins[1:*]+op.arendbins[1:*])/2.0
             meanar=compute_meanar(data.spec2d,armidbins)
 
-            ;Initial bulk computations, start at 0um
+            ;Initial bulk computations
+            ;Use water parameterization if processed with 'water' rejection criteria
+            widget_control,widget_info(ev.top,find='massparam_t1'),get_value=paramlist
             IF op.water eq 1 THEN BEGIN
                 info.acoeff=!pi/6
                 info.bcoeff=3.0
-                widget_control,widget_info(ev.top,find='massparam'),get_value=paramlist
-                widget_control,widget_info(ev.top,find='massparam'),set_droplist_select=where(paramlist eq 'Water')
-            ENDIF
+                widget_control,widget_info(ev.top,find='massparam_t1'),set_droplist_select=where(paramlist eq 'Water')
+                widget_control,widget_info(ev.top,find='massparam_t5'),set_droplist_select=where(paramlist eq 'Water')
+            ENDIF ELSE BEGIN
+               widget_control,widget_info(ev.top,find='massparam_t1'),set_droplist_select=where(paramlist eq 'Brown/Francis')
+               widget_control,widget_info(ev.top,find='massparam_t5'),set_droplist_select=where(paramlist eq 'Brown/Francis')
+            ENDELSE
+            ;Update minsize and declutter indicators to zero
+            widget_control,widget_info(ev.top,find='minsize_t1'),set_droplist_select=0
+            widget_control,widget_info(ev.top,find='minsize_t5'),set_droplist_select=0
+            widget_control,widget_info(ev.top,find='declutter_t1'),set_value=0
+            widget_control,widget_info(ev.top,find='declutter_t5'),set_value=0
+
+
             bulk=compute_bulk_simple(data.conc1d,op.endbins,binstart=0,ac=info.acoeff,bc=info.bcoeff)
 
             IF total(tag_names(data) eq 'COUNT_ALL') eq 1 THEN BEGIN
@@ -134,10 +146,12 @@ PRO soda2_browse_event, ev
             pmisc=ptr_new(misc)
             widget_control,widget_info(ev.top,find='tab2'),set_uvalue=pmisc
 
-            ;Plot Nt in the time bar window
+            ;Plot Nt or LWC in the time bar window
             wset,wt
-            plot,smooth(alog10(data.nt),5,/nan),xsty=5,ysty=5,pos=[0,0,1,1],yr=[0.2,8],/yl
-            ;plot,smooth(data.conc1d[*,1],5,/nan),xsty=5,ysty=5,pos=[0,0,1,1],yr=[1e2,1e12],/yl
+            plotline = smooth(data.msd[*,2],1,/nan)  ;Have tried many things... nothing works everywhere
+            zerodata = where(plotline eq 0, nzero)
+            IF nzero gt 0 THEN plotline[zerodata]=!values.f_nan  ;Make plot look slightly better
+            plot, plotline, xsty=5, ysty=5, pos=[0,0,1,1]
             info.bmp=tvrd()     ;The raw plot
             tsbmp=info.bmp
             tsbmp[info.i,*]=150 ;Add a time bar at the beginning
@@ -402,11 +416,24 @@ PRO soda2_browse_event, ev
            soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
         END
         ;====================================================================================================
-        (uname eq 'massparam') or (uname eq 'minsize'): BEGIN
-           widget_control,widget_info(ev.top,find='massparam'),get_value=paramnames
-           widget_control,widget_info(ev.top,find='minsize'),get_value=sizenames
-           iparam=widget_info(widget_info(ev.top,find='massparam'),/droplist_select)
-           isize=widget_info(widget_info(ev.top,find='minsize'),/droplist_select)
+        (uname eq 'normoptions'): BEGIN
+           widget_control,widget_info(ev.top,find='normoptions'),get_value=vals
+           (*pinfo).xlog=vals[0]
+           (*pinfo).ylogpsd=vals[1]
+           (*pinfo).ylogmsd=vals[2]
+           soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
+        END
+        ;====================================================================================================
+        (uname eq 'massparam_t1') or (uname eq 'minsize_t1') or (uname eq 'massparam_t5') or (uname eq 'minsize_t5'): BEGIN
+           ;There are two tabs with these droplists, so need to make sure getting info from the right one
+           ;Default with tab1
+           widget_control,widget_info(ev.top,find='massparam_t1'),get_value=paramnames
+           widget_control,widget_info(ev.top,find='minsize_t1'),get_value=sizenames
+           iparam=widget_info(widget_info(ev.top,find='massparam_t1'),/droplist_select)
+           isize=widget_info(widget_info(ev.top,find='minsize_t1'),/droplist_select)
+           ;Update if uname is from tab5
+           IF uname eq 'massparam_t5' THEN iparam=widget_info(widget_info(ev.top,find='massparam_t5'),/droplist_select)
+           IF uname eq 'minsize_t5' THEN isize=widget_info(widget_info(ev.top,find='minsize_t5'),/droplist_select)
 
            ;Adjust mass/size param
            ;Note: may be small differences from original due to declutter application
@@ -439,11 +466,12 @@ PRO soda2_browse_event, ev
            ;Update bulk properties
            recompute_bulk, p1, pop, pinfo, bulkerror=bulkerror
 
-           ;Update the droplist on error
-           IF bulkerror THEN BEGIN
-              widget_control,widget_info(ev.top,find='minsize'),get_value=paramlist
-              widget_control,widget_info(ev.top,find='minsize'),set_droplist_select=where(paramlist eq 'None')
-           ENDIF
+           ;Update all the droplists
+           IF bulkerror THEN isize=0   ;Set the size parameter to smallest value if it exceeded the maximum bin size
+           widget_control,widget_info(ev.top,find='massparam_t1'),set_droplist_select=iparam
+           widget_control,widget_info(ev.top,find='massparam_t5'),set_droplist_select=iparam
+           widget_control,widget_info(ev.top,find='minsize_t1'),set_droplist_select=isize
+           widget_control,widget_info(ev.top,find='minsize_t5'),set_droplist_select=isize
 
            soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
         END
@@ -461,8 +489,7 @@ PRO soda2_browse_event, ev
            soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
         END
         ;====================================================================================================
-
-        (uname eq 'declutter'): BEGIN
+        (uname eq 'declutter_t1') or (uname eq 'declutter_t5'): BEGIN
            (*pinfo).declutter = ev.select
 
            ;Reload file to restore conc1d, meanar
@@ -491,15 +518,13 @@ PRO soda2_browse_event, ev
            ;Update bulk properties
            recompute_bulk, p1, pop, pinfo
 
-           ;Update the time bar window
-           wset,(*pinfo).wt
-           plot,smooth(alog10((*p1).nt),5,/nan),xsty=5,ysty=5,pos=[0,0,1,1],yr=[0.2,8],/yl
-           (*pinfo).bmp=tvrd()     ;The raw plot
+           ;Set both declutter buttons to correct value
+           widget_control,widget_info(ev.top,find='declutter_t1'),set_value=(*pinfo).declutter
+           widget_control,widget_info(ev.top,find='declutter_t5'),set_value=(*pinfo).declutter
 
            soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
        END
        ;====================================================================================================
-
        (uname eq 'toggle_adjustrange'): BEGIN
           ;Toggle the color range option, so z-colors auto-adjust to the current time selection
           IF (*pinfo).adjustrange eq 1 THEN (*pinfo).adjustrange = 0 ELSE (*pinfo).adjustrange = 1
@@ -565,8 +590,16 @@ PRO soda2_browse, fn
     tab=widget_tab(base,uname='tab',sensitive=0,uvalue=[screen_x, screen_y])
 
     ;Tab 1
-    drawbase=widget_base(tab,row=1,title='Distributions',uname='tab1')
-    plot1=widget_draw(drawbase,xsize=screen_x,ysize=screen_y,uname='w1',/button_events,/wheel_events)
+    drawbase1=widget_base(tab,column=1,title='Distributions',uname='tab1')
+    plot1=widget_draw(drawbase1,xsize=screen_x,ysize=screen_y,uname='w1',/button_events,/wheel_events)
+    vals=['Log-X', 'Log-Y(PSD)', 'Log-Y(MSD)']
+    normoptions=cw_bgroup(drawbase1, vals, uname='normoptions', /row, /nonexclusive, uval=vals, set_value=[1,1,0])
+    drawbase1b=widget_base(drawbase1,row=1)
+    massparamlist=['Brown/Francis','CRYSTAL','Heymsfield 2010','Water']
+    tab1_massparam=widget_droplist(drawbase1b,uname='massparam_t1',value=massparamlist,title='MassParam')
+    minsizelist = ['None','50','100','200','1000']
+    tab1_minsize=widget_droplist(drawbase1b,uname='minsize_t1',value=minsizelist,title='MinSize')
+    tab1_declutter=cw_bgroup(drawbase1b, 'Declutter', uname='declutter_t1', /row, /nonexclusive, set_value=[0])
 
     ;Tab 2
     drawbase2=widget_base(tab,column=1,title='Particles',uname='tab2')
@@ -597,12 +630,11 @@ PRO soda2_browse, fn
     widget_control,ts_type2,set_droplist_select=1
     ts_units=widget_droplist(drawbase5b,uname='ts_units',value=['Hours','Seconds'],title='X-units',/frame)
     reset_range=widget_button(drawbase5b,uname='reset_range',value=' Reset Range ',/frame)
-
     drawbase5c=widget_base(drawbase5,row=1)
-    massparamlist=['Brown/Francis','CRYSTAL','Heymsfield 2010','Water']
-    dd_massparam=widget_droplist(drawbase5c,uname='massparam',value=massparamlist,title='MassParam')
-    dd_minsize=widget_droplist(drawbase5c,uname='minsize',value=['None','50','100','200','1000'],title='MinimumSize')
-    tog_declutter=cw_bgroup(drawbase5c, 'Declutter', uname='declutter', /row, /nonexclusive, uval='Declutter', set_value=[0])
+    tab5_massparam=widget_droplist(drawbase5c,uname='massparam_t5',value=massparamlist,title='MassParam')
+    tab5_minsize=widget_droplist(drawbase5c,uname='minsize_t5',value=minsizelist,title='MinSize')
+    tab5_declutter=cw_bgroup(drawbase5c, 'Declutter', uname='declutter_t5', /row, /nonexclusive, set_value=[0])
+
 
     ;Time series bar
     tsbase=widget_base(base,row=1)
@@ -613,14 +645,16 @@ PRO soda2_browse, fn
     timeID=widget_text(timebarbase,uname='time',value='',xsize=8,/editable,sensitive=0)
     timeformatID=widget_button(timebarbase,uname='timeformat',value=' HMS ',sensitive=0)
     pngID=widget_button(timebarbase,uname='png',value=' Create PNG ',sensitive=0)
-    infoID=widget_label(timebarbase,uname='filedisplay',value='',xsize=300,ysize=25)
+
+    infoID=widget_label(timebarbase,uname='filedisplay',value='',xsize=350,ysize=25,/align_right)
 
     loadct,39    ;A color table that works for Linux....
     tvlct,r,g,b,/get
     r[1]=220 & g[1]=220 & b[1]=220  ;add a grey color
     r[2]=100 & g[2]=100 & b[2]=250  ;add three blue shades for images
     r[3]=000 & g[3]=000 & b[3]=200  ;add three blue shades for images
-    r[4]=000 & g[4]=000 & b[4]=000  ;add three blue shades for images
+    r[4]=000 & g[4]=000 & b[4]=050  ;add three blue shades for images
+    r[5]=000 & g[5]=180 & b[5]=000  ;add a dark green for plots
     tvlct,r,g,b
     !p.background=255
     !p.color=0

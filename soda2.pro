@@ -570,9 +570,9 @@ PRO soda2
 
     subbase4b=widget_base(subbase4,row=1)
     cd,current=currentdir
-    outdirID=cw_field(subbase4b,/string,  title='Output directory: ',uname='outdir',xsize=45,value=currentdir+path_sep())
+    outdirID=cw_field(subbase4b,/string,  title='Output directory: ',uname='outdir',xsize=42,value=currentdir+path_sep())
     browse2=widget_button(subbase4b,value='Select...',uname='findoutdir')
-    filetagID=cw_field(subbase4b, /string, title='Tag: ', uname='filetag', xsize=6)
+    filetagID=cw_field(subbase4b, /string, title='Tag: ', uname='filetag', xsize=7)
 
     process = WIDGET_BUTTON(base, value='BEGIN PROCESSING', uname='process')
 

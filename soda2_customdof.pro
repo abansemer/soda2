@@ -67,11 +67,9 @@ PRO plot_customdof, pinfo
    wset,(*pinfo).plotid
    !p.background=255
    !p.color=0
-   numbins = n_elements((*pinfo).endbins)-1
-   numbins = (*pinfo).newnumbins
-   ;midbins = (float((*pinfo).endbins[0:numbins-1])+(*pinfo).endbins[1:numbins])/2.0
 
    ;Make accurate stairstep plot
+   numbins = (*pinfo).newnumbins
    stairdof = fltarr(numbins*2)
    stairbins = fltarr(numbins*2)
    FOR i=0, numbins-1 DO BEGIN

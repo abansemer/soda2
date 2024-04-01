@@ -16,6 +16,7 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
    color5=215 ;orange
    color6=110 ;light blue
    color7=45  ;purple
+   color8=5   ;dark green (custom added in soda2_browse)
 
    sizerange=[min((*p1).midbins), max((*p1).midbins)]
    arrange=[0,1]
@@ -27,25 +28,84 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
       ;---------------Distributions--------------------------
       ;------------------------------------------------------
       0:BEGIN
-         spec=(*p1).spec2d[i,*,*]
-         IF max(spec) gt 10 THEN plotarray=alog10(spec)>1 ELSE plotarray=spec
-         contour,plotarray,(*p1).midbins,armidbins,/cell,nlevels=40,position=[0.4,0.4,0.95,0.95],$
-            /xl,/xs,/ys,xr=sizerange,yr=arrange,title='Image Counts'
-         plot,(*p1).midbins,(*p1).conc1d[i,*],/xl,/yl,/xs,xr=sizerange,yr=[1e4,1e12],position=[0.4,0.07,0.95,0.35],/noerase,$
-             xtit='Diameter (um)',ytit='Concentration (#/m!u4!n)',/nodata
-         oplot,(*p1).midbins,(*p1).conc1d[i,*],color=color1
-         plot,total((*p1).spec2d[i,*,*],2),armidbins,/ys,yr=arrange,position=[0.07,0.4,0.35,0.95],/noerase,$
-             xtit='Count',ytit='Area Ratio',/nodata
-         oplot,total((*p1).spec2d[i,*,*],2),armidbins,color=color1
+         ;---Normalize plots if needed
+         IF (*pinfo).xlog eq 1 THEN BEGIN
+            conc1=lognormalize((*p1).conc1d[i,*], (*p1).op.endbins)
+            msd1=lognormalize((*p1).msdnorm[i,*], (*p1).op.endbins)
+            concunit='(#/m3/dlogD)'
+            msdunit='(g/m3/dlogD)'
+         ENDIF ELSE BEGIN
+            conc1=(*p1).conc1d[i,*]
+            msd1=(*p1).msdnorm[i,*]
+            concunit='(m!u-4!n)'
+            msdunit='(g/m!u4!n)'
+         ENDELSE
 
-         xyouts,0.07,0.30,'N!dT!n(#/L):',/norm & xyouts,0.2,0.30,strtrim(string((*p1).nt[i]/1.0e3,form='(f10.1)'),2),/normal
-         xyouts,0.07,0.27,'IWC(g/m!u3!n):',/norm & xyouts,0.2,0.27,strtrim(string((*p1).iwc[i],form='(f7.4)'),2),/normal
-         xyouts,0.07,0.24,'MeanD(um):',/norm & xyouts,0.2,0.24,strtrim(string((*p1).mnd[i],form='(f7.1)'),2),/normal
-         xyouts,0.07,0.21,'MMD(um):',/norm & xyouts,0.2,0.21,strtrim(string((*p1).dmedianmass[i],form='(f7.1)'),2),/normal
-         xyouts,0.07,0.18,'MVD(um):',/norm & xyouts,0.2,0.18,strtrim(string((*p1).mvd[i],form='(f7.1)'),2),/normal
-         xyouts,0.07,0.12,'Accepted:',/norm & xyouts,0.2,0.12,strtrim(string((*p1).count_accepted[i]),2),/normal
-         xyouts,0.07,0.09,'Rejected:',/norm & xyouts,0.2,0.09,strtrim(string((*p1).count_rejected_total[i]),2),/normal
-         xyouts,0.07,0.06,'Missed:',/norm & xyouts,0.2,0.06,strtrim(string((*p1).count_missed[i]),2),/normal
+         ;---Set axis ranges
+         ;All plots X-range
+         IF (*pinfo).xlog eq 1 THEN padfactor=1.5 ELSE padfactor=1.1
+         xrange=[min((*p1).midbins)/padfactor, max((*p1).midbins)*padfactor]
+
+         ;PSD Y-range
+         IF (*pinfo).ylogpsd eq 1 THEN BEGIN
+            yrangeconc=[1e4,1e14]
+            IF (*pinfo).xlog eq 1 THEN yrangeconc=[1e2,1e10]  ;Lognormalized
+         ENDIF ELSE yrangeconc=[0, max(conc1)*1.1]
+
+         ;MSD Y-range
+         IF (*pinfo).ylogmsd eq 1 THEN BEGIN
+            yrangemsd=[1e1,1e5]
+            IF (*pinfo).xlog eq 1 THEN yrangemsd=[1e-3,1e1]  ;Lognormalized
+         ENDIF ELSE yrangemsd=[0, max(msd1)*1.1]
+
+         ;---Get mean area ratio
+         meanar=(*p1).meanar[i,*]
+         bad=where(meanar eq 0, nbad)
+         IF nbad gt 0 THEN meanar[bad]=!values.f_nan
+
+         ;---Make accurate stairstep lines
+         numbins = n_elements((*p1).op.endbins)-1
+         stairconc = fltarr(numbins*2)
+         stairmsd = fltarr(numbins*2)
+         stairar = fltarr(numbins*2)
+         stairbins = fltarr(numbins*2)
+         FOR is=0, numbins-1 DO BEGIN
+            stairconc[is*2:(is*2)+1] = conc1[is]
+            stairar[is*2:(is*2)+1] = meanar[is]
+            stairmsd[is*2:(is*2)+1] = msd1[is]
+            stairbins[is*2] = (*p1).op.endbins[is]
+            stairbins[(is*2)+1] = (*p1).op.endbins[is+1]
+         ENDFOR
+
+         ;---Left side plot (*p1).midbins, conc1
+         plot, stairbins, stairconc, xlog=(*pinfo).xlog, ylog=(*pinfo).ylogpsd, /nodata, xtit='Diameter (microns)', $
+            ytit='Concentration '+concunit, xr=xrange, /xs, yr=yrangeconc, position=[0.1,0.45,0.48,0.95], charsize=1
+         oplot,stairbins, stairconc, color=color1, thick=2
+
+         ;---Right side plot, MSD and MMD
+         plot, stairbins, stairmsd, xlog=(*pinfo).xlog, ylog=(*pinfo).ylogmsd, /nodata, xtit='Diameter (microns)', $
+            ytit='Mass '+msdunit, xr=xrange, /xs, yr=yrangemsd, position=[0.57,0.45,0.95,0.95], /noerase, charsize=1
+         oplot, stairbins, stairmsd, color=color5, thick=2
+         oplot, [(*p1).dmedianmass[i], (*p1).dmedianmass[i]], [1e-10, 1e10], line=1, thick=1
+
+         ;---Area ratio plot
+         plot, stairbins, stairar, yr=[0,1.01], position=[0.57,0.07,0.95,0.35], charsize=1, /noerase,$
+             xtit='Diameter', ytit='Mean Area Ratio', /nodata, xr=xrange, /xs, xlog=(*pinfo).xlog, /ys
+         oplot, stairbins, stairar, color=color8, thick=2
+
+         ;---Display numeric data
+         savesize=!p.charsize  ;Make these a little easier to read
+         !p.charsize=1.2
+         xyouts,0.07,0.30,'N!dT!n(#/L):',/norm & xyouts,0.17,0.30,string((*p1).nt[i]/1.0e3,form='(f0.1)'),/normal
+         xyouts,0.07,0.26,'IWC(g/m!u3!n):',/norm & xyouts,0.17,0.26,string((*p1).iwc[i],form='(f0.3)'),/normal
+         xyouts,0.07,0.22,'LWC(g/m!u3!n):',/norm & xyouts,0.17,0.22,string((*p1).lwc[i],form='(f0.3)'),/normal
+         xyouts,0.07,0.18,'MeanD(um):',/norm & xyouts,0.17,0.18,string((*p1).mnd[i],form='(f0.1)'),/normal
+         xyouts,0.07,0.14,'MMD(um):',/norm & xyouts,0.17,0.14,string((*p1).dmedianmass[i],form='(f0.1)'),/normal
+         xyouts,0.07,0.10,'MVD(um):',/norm & xyouts,0.17,0.10,string((*p1).mvd[i],form='(f0.1)'),/normal
+         xyouts,0.30,0.22,'Accepted:',/norm & xyouts,0.4,0.22,string((*p1).count_accepted[i],form='(i0)'),/normal
+         xyouts,0.30,0.18,'Rejected:',/norm & xyouts,0.4,0.18,string((*p1).count_rejected_total[i],form='(i0)'),/normal
+         xyouts,0.30,0.14,'Missed:',/norm & xyouts,0.4,0.14,string((*p1).count_missed[i],form='(i0)'),/normal
+         !p.charsize=savesize
       END
 
       ;------------------------------------------------------
@@ -118,7 +178,8 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
          oplot,(*p1).intmidbins,tothist/max(tothist)*!y.crange[1]*0.8,color=color3,line=2,thick=1
          oplot,(*p1).intmidbins,(*p1).intspec_all[i,*],color=color1
          oplot,(*p1).intmidbins,(*p1).intspec_accepted[i,*],color=color2
-         legend_old,['All Particles','Accepted Particles','Entire Flight (Scaled)'],line=[0,0,2],color=[color1,color2,color3],box=0,charsize=1.0
+         legend_old,['All Particles','Accepted Particles','Entire Flight (Scaled)'],line=[0,0,2], $
+            color=[color1,color2,color3],box=0,charsize=1.0
 
          IF (*p1).sodaversion eq 2 THEN BEGIN
             tothist=total((*p1).dhist,1)
@@ -197,7 +258,8 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
                   oplot,x,(*p1).mnd[a:b],color=color1
                   oplot,x,(*p1).dmedianmass[a:b],color=color2
                   oplot,x,(*p1).mvd[a:b],color=color3
-                  legend_old,['Mean','Median Mass','Median Volume'],line=0,thick=2,color=[color1,color2,color3],box=0,/top,/right,charsize=1
+                  legend_old,['Mean','Median Mass','Median Volume'],line=0,thick=2,color=[color1,color2,color3],$
+                     box=0,/top,/right,charsize=1
                END
                 'Rejection Codes':BEGIN
                   IF (b-a) lt 50 THEN psym=0 ELSE psym=1   ;Plot symbols if there is a lot of data, otherwise lines
@@ -240,7 +302,8 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
                   IF ss[1] eq 3 THEN colorarray=[color1, color2, color3]  ;Make clearer when only 3
                   plot,x,(*p1).house.volts[a:b,0],ytitle='Diode Volts',yr=[0,maxy],/ys,/nodata
                   FOR i=0, ss[1]-1 DO oplot, x, (*p1).house.volts[a:b,i], color=colorarray[i]
-                  legend_old,string((*p1).house.diodes, format='(i3)'),line=0,color=colorarray[0:ss[1]-1],box=1,/bottom,/right,/clear,charsize=1.0,thick=2
+                  legend_old,string((*p1).house.diodes, format='(i3)'),line=0,color=colorarray[0:ss[1]-1],box=1,$
+                     /bottom,/right,/clear,charsize=1.0,thick=2
                END
               'Probe Temperature':BEGIN
                   ;Set for SPEC probes for now, may need to eventually adjust
@@ -252,13 +315,15 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
                   miny=-20 & maxy=40
                   plot,x,(*p1).house.temp[a:b,0],ytitle='Temperature (C)',yr=[miny,maxy],/ys,/nodata
                   FOR i=0, n_elements(temps2plot)-1 DO oplot, x, (*p1).house.temp[a:b,temps2plot[i]], color=colorarray[i]
-                  legend_old,(*p1).house.tempid[temps2plot],line=0,color=colorarray[0:n_elements(temps2plot)-1],box=1,/bottom,/right,/clear,charsize=1.0,thick=2
+                  legend_old,(*p1).house.tempid[temps2plot],line=0,color=colorarray[0:n_elements(temps2plot)-1],box=1,$
+                     /bottom,/right,/clear,charsize=1.0,thick=2
                END
                'Probe Settings':BEGIN
                   ;1D2D probe settings
                   IF (*pop).probetype eq '1D2D' THEN BEGIN
                      colorarray=[color7, color5, color4, color2, color1, color3]  ;Put these in a rainbow order array
-                     plot,x,(*p1).house.leftreject[a:b],ytitle='Status',yr=[-0.1,1.2],/ys,/nodata,yticks=1,ytickv=[0,1],ytickname=['Off','On']
+                     plot,x,(*p1).house.leftreject[a:b],ytitle='Status',yr=[-0.1,1.2],/ys,/nodata,yticks=1, $
+                        ytickv=[0,1],ytickname=['Off','On']
                      oplot,x,((*p1).house.smallreject[a:b]<1)+0.1,color=colorarray[0]
                      oplot,x,((*p1).house.largereject[a:b]<1)+0.08,color=colorarray[1]
                      oplot,x,(*p1).house.leftreject[a:b]+0.06,color=colorarray[2]
@@ -277,7 +342,8 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
                       wh = where(h/total(h) gt 0.01, nwh)   ;Get range that contains at least 1% of particles
                       IF nwh gt 1 THEN zrange = [min(wh)+1, max(wh)+2]  ;max+2 gives best-looking results
                    ENDIF
-                   contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/yl,/ys,yr=sizerange,zr=zrange,c_colors=c_colors ;min_val=max(conc)-10,
+                   contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/yl,/ys,yr=sizerange, $
+                      zr=zrange,c_colors=c_colors ;min_val=max(conc)-10,
 
                    barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
                    barposy=[1.01,1.04]*(!y.window[1]-!y.window[0]) + !y.window[0]
@@ -287,7 +353,8 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
                       position=[barposx[0],barposy[0],barposx[1],barposy[1]],$
                       xtickname=string(zrange, form='(i2)') ,xstyle=5,ystyle=5,zr=zrange,/noerase,noclip=1,c_colors=c_colors
                    !x=xsave
-                   xyouts, barposx, barposy[1]+0.01, ['10!u'+strtrim(string(zrange[0]),2)+'!n','10!u'+strtrim(string(zrange[1]),2)+'!n'],/norm,align=0.5
+                   xyouts, barposx, barposy[1]+0.01, /norm,align=0.5, $
+                      ['10!u'+strtrim(string(zrange[0]),2)+'!n','10!u'+strtrim(string(zrange[1]),2)+'!n']
                    xyouts, mean(barposx), barposy[1]+0.01, 'Concentration (m!u-4!n)',/norm,align=0.5
                END
                'Color Area Ratio':BEGIN
@@ -295,7 +362,8 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
                    zrange=[0,0.8]
                    bartitle='Area Ratio'
                    IF (*pop).smethod eq 'fastcircle_aspectratio' THEN bartitle = 'Aspect Ratio'
-                   contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/yl,/ys,yr=sizerange,zr=zrange,c_colors=c_colors
+                   contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/yl,/ys,yr=sizerange, $
+                      zr=zrange,c_colors=c_colors
 
                    barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
                    barposy=[1.01,1.04]*(!y.window[1]-!y.window[0]) + !y.window[0]
@@ -312,7 +380,8 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
                    conc=(*p1).meanaspr[a:b,*]
                    zrange=[0,0.9]
                    bartitle='Aspect Ratio'
-                   contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/yl,/ys,yr=sizerange,zr=zrange,c_colors=c_colors
+                   contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/yl,/ys,yr=sizerange, $
+                      zr=zrange,c_colors=c_colors
 
                    barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
                    barposy=[1.01,1.04]*(!y.window[1]-!y.window[0]) + !y.window[0]
@@ -333,7 +402,8 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
                      conc=alog10(conc)
                      zrange=alog10(zrange)
                    ENDIF
-                   contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/ys,/yl,yr=sizerange,zr=zrange,c_colors=c_colors ;min_val=max(conc)-10,
+                   contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/ys,/yl,yr=sizerange, $
+                      zr=zrange,c_colors=c_colors ;min_val=max(conc)-10,
 
                    barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
                    barposy=[1.01,1.04]*(!y.window[1]-!y.window[0]) + !y.window[0]
@@ -343,14 +413,16 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
                       position=[barposx[0],barposy[0],barposx[1],barposy[1]],$
                       xtickname=string(zrange, form='(i2)') ,xstyle=5,ystyle=5,zr=zrange,/noerase,noclip=1,c_colors=c_colors
                    !x=xsave
-                   xyouts, barposx, barposy[1]+0.01, [string(zrange[0], form='(f4.1)'),string(zrange[1],form='(f4.1)')],/norm,align=0.5
+                   xyouts, barposx, barposy[1]+0.01, [string(zrange[0], form='(f4.1)'),string(zrange[1], $
+                      form='(f4.1)')],/norm,align=0.5
                    xyouts, mean(barposx), barposy[1]+0.01, 'Mass (g/m!u3!n/dlogD)',/norm,align=0.5
                END
                'Color Orientation':BEGIN
                    conc=(*p1).orientation_index[a:b,*]
                    zrange=[0,0.4]
                    bartitle='Orientation Index'
-                   contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/yl,/ys,yr=sizerange,zr=zrange,c_colors=c_colors
+                   contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/yl,/ys,yr=sizerange, $
+                      zr=zrange,c_colors=c_colors
 
                    barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
                    barposy=[1.01,1.04]*(!y.window[1]-!y.window[0]) + !y.window[0]
@@ -367,7 +439,8 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
                    conc=(*p1).intspec_all[a:b,*]
                    zrange=[0,max(conc)]
                    intrange=[min((*p1).intmidbins),max((*p1).intmidbins)]
-                   contour,conc,x,(*p1).intmidbins,/cell,nlevels=nlevels,ytitle='Interarrival Time (s)',/yl,/ys,yr=intrange,zr=zrange,c_colors=c_colors
+                   contour,conc,x,(*p1).intmidbins,/cell,nlevels=nlevels,ytitle='Interarrival Time (s)',/yl,/ys, $
+                      yr=intrange,zr=zrange,c_colors=c_colors
 
                    barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
                    barposy=[1.01,1.04]*(!y.window[1]-!y.window[0]) + !y.window[0]
@@ -384,7 +457,8 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
                    conc=(*p1).intspec_accepted[a:b,*]
                    zrange=[0,max(conc)]
                    intrange=[min((*p1).intmidbins),max((*p1).intmidbins)]
-                   contour,conc,x,(*p1).intmidbins,/cell,nlevels=nlevels,ytitle='Interarrival Time Accepted Particles (s)',/yl,/ys,yr=intrange,zr=zrange,c_colors=c_colors
+                   contour,conc,x,(*p1).intmidbins,/cell,nlevels=nlevels,ytitle='Interarrival Time Accepted Particles (s)',$
+                      /yl,/ys,yr=intrange,zr=zrange,c_colors=c_colors
 
                    barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
                    barposy=[1.01,1.04]*(!y.window[1]-!y.window[0]) + !y.window[0]
@@ -408,8 +482,6 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
                    barposy=([1.01,1.04])*(!y.window[1]-!y.window[0]) + !y.window[0]
                    bar=findgen(nlevels+1)/nlevels*(zrange[1]-zrange[0])+zrange[0]
                    xsave=!x
-                   ;k=0.002
-                   ;polyfill,[barposx[0]-k,barposx[1]+k,barposx[1]+k,barposx[0]-k],[barposy[0]-k,barposy[0]-k,barposy[1]+k,barposy[1]+k],/norm,color=255
                    contour,[[bar],[bar]],findgen(nlevels+1),[0,1],/cell,nlevels=nlevels,$
                       position=[barposx[0],barposy[0],barposx[1],barposy[1]],$
                       xstyle=5,ystyle=5,zr=zrange,/noerase,noclip=0,c_colors=c_colors,$
@@ -417,7 +489,6 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
                    !x=xsave
                    xyouts, barposx, barposy[1]+0.01, strtrim(string(zrange, form='(i5)'),2),/norm,align=0.5
                    xyouts, mean(barposx), barposy[1]+0.01, 'Diode Shadow Counts',/norm,align=0.5
-                   ;plots,[barposx[0],barposx[1],barposx[1],barposx[0]],[barposy[0],barposy[0],barposy[1],barposy[1]],/norm
                END
                ELSE:dummy=0
             ENDCASE
