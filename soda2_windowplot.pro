@@ -43,8 +43,9 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
 
          ;---Set axis ranges
          ;All plots X-range
-         IF (*pinfo).xlog eq 1 THEN padfactor=1.5 ELSE padfactor=1.1
-         xrange=[min((*p1).midbins)/padfactor, max((*p1).midbins)*padfactor]
+         binwidth1 = (*p1).op.endbins[1] - (*p1).op.endbins[0]   ;Width of first bin
+         IF (*pinfo).xlog eq 1 THEN xrange=[min((*p1).op.endbins)/1.1, max((*p1).op.endbins)*1.1] ELSE $
+            xrange=[min((*p1).op.endbins)-binwidth1/2.0, max((*p1).op.endbins)+binwidth1/2.0]>0
 
          ;PSD Y-range
          IF (*pinfo).ylogpsd eq 1 THEN BEGIN
@@ -63,35 +64,26 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
          bad=where(meanar eq 0, nbad)
          IF nbad gt 0 THEN meanar[bad]=!values.f_nan
 
-         ;---Make accurate stairstep lines
-         numbins = n_elements((*p1).op.endbins)-1
-         stairconc = fltarr(numbins*2)
-         stairmsd = fltarr(numbins*2)
-         stairar = fltarr(numbins*2)
-         stairbins = fltarr(numbins*2)
-         FOR is=0, numbins-1 DO BEGIN
-            stairconc[is*2:(is*2)+1] = conc1[is]
-            stairar[is*2:(is*2)+1] = meanar[is]
-            stairmsd[is*2:(is*2)+1] = msd1[is]
-            stairbins[is*2] = (*p1).op.endbins[is]
-            stairbins[(is*2)+1] = (*p1).op.endbins[is+1]
-         ENDFOR
+         ;---Make stairstep lines
+         stairconc = stairsteps(conc1, (*p1).op.endbins)
+         stairmsd = stairsteps(msd1, (*p1).op.endbins)
+         stairar = stairsteps(meanar, (*p1).op.endbins)
 
          ;---Left side plot (*p1).midbins, conc1
-         plot, stairbins, stairconc, xlog=(*pinfo).xlog, ylog=(*pinfo).ylogpsd, /nodata, xtit='Diameter (microns)', $
+         plot, stairconc.x, stairconc.y, xlog=(*pinfo).xlog, ylog=(*pinfo).ylogpsd, /nodata, xtit='Diameter (microns)', $
             ytit='Concentration '+concunit, xr=xrange, /xs, yr=yrangeconc, position=[0.1,0.45,0.48,0.95], charsize=1
-         oplot,stairbins, stairconc, color=color1, thick=2
+         oplot, stairconc.x, stairconc.y, color=color1, thick=2
 
          ;---Right side plot, MSD and MMD
-         plot, stairbins, stairmsd, xlog=(*pinfo).xlog, ylog=(*pinfo).ylogmsd, /nodata, xtit='Diameter (microns)', $
+         plot, stairmsd.x, stairmsd.y, xlog=(*pinfo).xlog, ylog=(*pinfo).ylogmsd, /nodata, xtit='Diameter (microns)', $
             ytit='Mass '+msdunit, xr=xrange, /xs, yr=yrangemsd, position=[0.57,0.45,0.95,0.95], /noerase, charsize=1
-         oplot, stairbins, stairmsd, color=color5, thick=2
-         oplot, [(*p1).dmedianmass[i], (*p1).dmedianmass[i]], [1e-10, 1e10], line=1, thick=1
+         oplot, stairmsd.x, stairmsd.y, color=color5, thick=2
+         oplot, [(*p1).dmedianmass[i], (*p1).dmedianmass[i]], [1e-10, 1e10], line=2, thick=1
 
          ;---Area ratio plot
-         plot, stairbins, stairar, yr=[0,1.01], position=[0.57,0.07,0.95,0.35], charsize=1, /noerase,$
-             xtit='Diameter', ytit='Mean Area Ratio', /nodata, xr=xrange, /xs, xlog=(*pinfo).xlog, /ys
-         oplot, stairbins, stairar, color=color8, thick=2
+         plot, stairar.x, stairar.y, yr=[0,1.01], position=[0.57,0.07,0.95,0.35], charsize=1, /noerase,$
+             xtit='Diameter (microns)', ytit='Mean Area Ratio', /nodata, xr=xrange, /xs, xlog=(*pinfo).xlog, /ys
+         oplot, stairar.x, stairar.y, color=color8, thick=2
 
          ;---Display numeric data
          savesize=!p.charsize  ;Make these a little easier to read
