@@ -33,7 +33,14 @@ PRO soda2_browse_event, ev
             ;Reset pinfo
             info={i:0L,i1:0L,i2:0L,b1i:-1L,fn:fn,gotfile:0,timeformat:1,declutter:0,wid:wid,wt:wt,$
                bmp:bytarr(float(screen_x),50),outdir:outdir,rawdir:'',show_correction:1,panelstart:0,$
-               showdividers:0,adjustrange:0,acoeff:0.00294,bcoeff:1.9,minsize:0,xlog:1,ylogpsd:1,ylogmsd:0}
+               showdividers:0,autorange:0,acoeff:0.00294,bcoeff:1.9,minsize:0,xlog:0,ylogpsd:0,ylogmsd:0}
+
+            ;Get current plotting options from GUI
+            widget_control,widget_info(ev.top,find='normoptions'),get_value=normoptions
+            info.xlog=normoptions[0]
+            info.ylogpsd=normoptions[1]
+            info.ylogmsd=normoptions[2]
+            info.autorange=normoptions[3]
 
             ;Restore files, set pointers to the restored data
             restore, fn
@@ -169,7 +176,6 @@ PRO soda2_browse_event, ev
             widget_control,widget_info(ev.top,find='wt'),sensitive=1
             widget_control,widget_info(ev.top,find='properties'),sensitive=1
             widget_control,widget_info(ev.top,find='color_invert'),sensitive=1
-            widget_control,widget_info(ev.top,find='toggle_adjustrange'),sensitive=1
             widget_control,widget_info(ev.top,find='newbrowser'),sensitive=1
             widget_control,widget_info(ev.top,find='filedisplay'),set_value=file_basename(fn[0])
 
@@ -373,6 +379,14 @@ PRO soda2_browse_event, ev
            wset,(*pinfo).wid[tabnum]
            image=tvrd(/true)
 
+           ;Truncate the white space at the top of the particle image panels, ignore if in dark mode
+           IF (tabnum eq 1) and (!p.background eq 255) THEN BEGIN
+              ysize = (size(image,/dim))[2]
+              mincolor = min(image[0,*,*],dim=2)   ;Compute minimum color
+              topedge = min(where(mincolor[100:*] eq 255) + 110) < (ysize-1)  ;Ignore first 100 points, find top edge+10
+              image = image[*, *, 0:topedge]
+           ENDIF
+
            tempop = *pop   ;Create a temporary op since will change the time for correct filename
            tempop.starttime = (*p1).time[(*pinfo).i]  ;Time at blue bar for file naming
 
@@ -421,6 +435,7 @@ PRO soda2_browse_event, ev
            (*pinfo).xlog=vals[0]
            (*pinfo).ylogpsd=vals[1]
            (*pinfo).ylogmsd=vals[2]
+           (*pinfo).autorange=vals[3]
            soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
         END
         ;====================================================================================================
@@ -524,13 +539,6 @@ PRO soda2_browse_event, ev
 
            soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
        END
-       ;====================================================================================================
-       (uname eq 'toggle_adjustrange'): BEGIN
-          ;Toggle the color range option, so z-colors auto-adjust to the current time selection
-          IF (*pinfo).adjustrange eq 1 THEN (*pinfo).adjustrange = 0 ELSE (*pinfo).adjustrange = 1
-          soda2_windowplot, ev.top, p1, pinfo, pop, pmisc
-       END
-
        ELSE: dummy=0
     ENDCASE
 END
@@ -579,12 +587,10 @@ PRO soda2_browse, fn
     ;Main widget
     base = WIDGET_BASE(COLUMN=1,title='Browse Processed Data',MBar=menubarID)
     fileID=widget_button(menubarID, value='File', /menu,uname='base') ;uvalue=pinfo,
-    plotID=widget_button(menubarID, value='Plot', /menu,uname='base') ;uvalue=pinfo,
     loadID=widget_button(fileID, value='Load...',uname='load')
     newbrowserID=widget_button(fileID, value='Open new browser',uname='newbrowser',sensitive=0)
     propID=widget_button(fileID, value='Properties',uname='properties',sensitive=0)
-    colorID=widget_button(plotID, value='Invert colors',uname='color_invert',sensitive=0)
-    rangeadjustID=widget_button(plotID, value='Toggle color range auto-adjust',uname='toggle_adjustrange',sensitive=0)
+    colorID=widget_button(fileID, value='Invert colors',uname='color_invert',sensitive=0)
     quitID=widget_button(fileID, value='Quit',uname='quit')
 
     tab=widget_tab(base,uname='tab',sensitive=0,uvalue=[screen_x, screen_y])
@@ -592,8 +598,8 @@ PRO soda2_browse, fn
     ;Tab 1
     drawbase1=widget_base(tab,column=1,title='Distributions',uname='tab1')
     plot1=widget_draw(drawbase1,xsize=screen_x,ysize=screen_y,uname='w1',/button_events,/wheel_events)
-    vals=['Log-X', 'Log-Y(PSD)', 'Log-Y(MSD)']
-    normoptions=cw_bgroup(drawbase1, vals, uname='normoptions', /row, /nonexclusive, uval=vals, set_value=[1,1,0])
+    vals=['Log-X', 'Log-Y(PSD)', 'Log-Y(MSD)', 'AutoRange']
+    normoptions=cw_bgroup(drawbase1, vals, uname='normoptions', /row, /nonexclusive, uval=vals, set_value=[1,1,0,0])
     drawbase1b=widget_base(drawbase1,row=1)
     massparamlist=['Brown/Francis','CRYSTAL','Heymsfield 2010','Water']
     tab1_massparam=widget_droplist(drawbase1b,uname='massparam_t1',value=massparamlist,title='MassParam')

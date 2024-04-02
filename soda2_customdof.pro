@@ -68,19 +68,13 @@ PRO plot_customdof, pinfo
    !p.background=255
    !p.color=0
 
-   ;Make accurate stairstep plot
+   ;Make stairstep plot
    numbins = (*pinfo).newnumbins
-   stairdof = fltarr(numbins*2)
-   stairbins = fltarr(numbins*2)
-   FOR i=0, numbins-1 DO BEGIN
-      stairdof[i*2:(i*2)+1] = (*pinfo).newdof[i]
-      stairbins[i*2] = (*pinfo).newendbins[i]
-      stairbins[(i*2)+1] = (*pinfo).newendbins[i+1]
-   ENDFOR
-   plot, stairbins, stairdof/1e4, xtit='Diameter (um)', ytit='Depth of Field (cm)', title='Current DoF', psym=-6, $
+   stairdof = stairsteps((*pinfo).newdof[0:numbins-1], (*pinfo).newendbins[0:numbins])
+   plot, stairdof.x, stairdof.y/1e4, xtit='Diameter (um)', ytit='Depth of Field (cm)', title='Current DoF', psym=-6, $
       symsize=0.5, thick=1, yr=[0, (*pinfo).armwidth*1.1], /ysty
-   oplot, stairbins, fltarr(n_elements(stairbins))+(*pinfo).armwidth, color=color2, line=2, thick=2
-   oplot, stairbins, stairdof/1e4, color=color1, thick=1
+   oplot, stairdof.x, fltarr(numbins)+(*pinfo).armwidth, color=color2, line=2, thick=2
+   oplot, stairdof.x, stairdof.y/1e4, color=color1, thick=1
    legend_old,['Depth of Field', 'Arm Width'], line=[0,2], box=0, color=[color1, color2], /bottom, /right, charsize=1.0, thick=2
 END
 

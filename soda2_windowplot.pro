@@ -37,8 +37,8 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
          ENDIF ELSE BEGIN
             conc1=(*p1).conc1d[i,*]
             msd1=(*p1).msdnorm[i,*]
-            concunit='(m!u-4!n)'
-            msdunit='(g/m!u4!n)'
+            concunit='(#/m3/m)'
+            msdunit='(g/m3/m)'
          ENDELSE
 
          ;---Set axis ranges
@@ -49,15 +49,28 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
 
          ;PSD Y-range
          IF (*pinfo).ylogpsd eq 1 THEN BEGIN
-            yrangeconc=[1e4,1e14]
-            IF (*pinfo).xlog eq 1 THEN yrangeconc=[1e2,1e10]  ;Lognormalized
-         ENDIF ELSE yrangeconc=[0, max(conc1)*1.1]
+            yrangepsd=[1e4,1e14]
+            IF (*pinfo).xlog eq 1 THEN yrangepsd=[1e2,1e10]  ;Lognormalized
+         ENDIF ELSE yrangepsd=[0, max(conc1)*1.1]
 
          ;MSD Y-range
          IF (*pinfo).ylogmsd eq 1 THEN BEGIN
             yrangemsd=[1e1,1e5]
             IF (*pinfo).xlog eq 1 THEN yrangemsd=[1e-3,1e1]  ;Lognormalized
          ENDIF ELSE yrangemsd=[0, max(msd1)*1.1]
+
+         ;Get tight axes if auto-range is enabled
+         IF (*pinfo).autorange eq 1 THEN BEGIN
+            wconc=where((conc1 gt 0) and (finite(conc1) eq 1), ng)
+            IF ng gt 1 THEN BEGIN  ;Make sure there are at least two good points to begin with
+               xrange=[min((*p1).op.endbins), (*p1).op.endbins[max(wconc)+1]+binwidth1/2.0]
+               yrangepsd=[min(conc1[wconc]), max(conc1[wconc])]
+               yrangemsd=[min(msd1[wconc]), max(msd1[wconc])]
+               ;If ylog is enabled then make sure the min/max ranges differ
+               IF ((*pinfo).ylogpsd eq 1) and (yrangepsd[0] eq yrangepsd[1]) THEN yrangepsd[0]=yrangepsd[0]*5
+               IF ((*pinfo).ylogmsd eq 1) and (yrangemsd[0] eq yrangemsd[1]) THEN yrangemsd[0]=yrangemsd[0]*5
+            ENDIF
+         ENDIF
 
          ;---Get mean area ratio
          meanar=(*p1).meanar[i,*]
@@ -71,7 +84,7 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
 
          ;---Left side plot (*p1).midbins, conc1
          plot, stairconc.x, stairconc.y, xlog=(*pinfo).xlog, ylog=(*pinfo).ylogpsd, /nodata, xtit='Diameter (microns)', $
-            ytit='Concentration '+concunit, xr=xrange, /xs, yr=yrangeconc, position=[0.1,0.45,0.48,0.95], charsize=1
+            ytit='Concentration '+concunit, xr=xrange, /xs, yr=yrangepsd, position=[0.1,0.45,0.48,0.95], charsize=1
          oplot, stairconc.x, stairconc.y, color=color1, thick=2
 
          ;---Right side plot, MSD and MMD
@@ -328,14 +341,16 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
                END
                'Color Concentration':BEGIN
                    conc=alog10((*p1).conc1d[a:b,*] > 1)
-                   zrange=fix([3,max(alog10((*p1).conc1d),/nan)]) ;was [4,12]
-                   IF (*pinfo).adjustrange eq 1 THEN BEGIN
+                   wc = where(((*p1).conc1d gt 0) and (finite((*p1).conc1d) eq 1))
+                   medianlog = round(median(alog10((*p1).conc1d[wc])))
+                   zrange = [medianlog-2, medianlog+4]  ;Six orders of mag, was [4,12]
+                   IF (*pinfo).autorange eq 1 THEN BEGIN
                       h = histogram(conc, min=1, max=12)    ;min=1 to avoid zeros, added back in zrange assignment
                       wh = where(h/total(h) gt 0.01, nwh)   ;Get range that contains at least 1% of particles
-                      IF nwh gt 1 THEN zrange = [min(wh)+1, max(wh)+2]  ;max+2 gives best-looking results
+                      IF nwh gt 1 THEN zrange = [min(wh)+1, max(wh)+2]
                    ENDIF
                    contour,conc,x,(*p1).midbins,/cell,nlevels=nlevels,ytitle='Diameter (um)',/yl,/ys,yr=sizerange, $
-                      zr=zrange,c_colors=c_colors ;min_val=max(conc)-10,
+                      zr=zrange,/zs,c_colors=c_colors ;min_val=max(conc)-10,
 
                    barposx=[0.3,0.7]*(!x.window[1]-!x.window[0]) + !x.window[0]
                    barposy=[1.01,1.04]*(!y.window[1]-!y.window[0]) + !y.window[0]
@@ -343,7 +358,7 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
                    xsave=!x  ;Needed so clicking in plot works later
                    contour,[[bar],[bar]],findgen(nlevels+1),[0,1],/cell,nlevels=nlevels,$
                       position=[barposx[0],barposy[0],barposx[1],barposy[1]],$
-                      xtickname=string(zrange, form='(i2)') ,xstyle=5,ystyle=5,zr=zrange,/noerase,noclip=1,c_colors=c_colors
+                      xtickname=string(zrange, form='(i2)') ,xstyle=5,ystyle=5,zr=zrange,/zs,/noerase,noclip=1,c_colors=c_colors
                    !x=xsave
                    xyouts, barposx, barposy[1]+0.01, /norm,align=0.5, $
                       ['10!u'+strtrim(string(zrange[0]),2)+'!n','10!u'+strtrim(string(zrange[1]),2)+'!n']
