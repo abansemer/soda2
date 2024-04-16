@@ -72,44 +72,66 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
             ENDIF
          ENDIF
 
-         ;---Get mean area ratio
+         ;---Get mean area/aspect/orientation ratio
          meanar=(*p1).meanar[i,*]
          bad=where(meanar eq 0, nbad)
          IF nbad gt 0 THEN meanar[bad]=!values.f_nan
+
+         meanaspr=(*p1).meanaspr[i,*]
+         bad=where(meanaspr eq 0, nbad)
+         IF nbad gt 0 THEN meanaspr[bad]=!values.f_nan
+
+         meanoi=(*p1).orientation_index[i,*]
+         bad=where(meanoi eq 0, nbad)
+         IF nbad gt 0 THEN meanoi[bad]=!values.f_nan
 
          ;---Make stairstep lines
          stairconc = stairsteps(conc1, (*p1).op.endbins)
          stairmsd = stairsteps(msd1, (*p1).op.endbins)
          stairar = stairsteps(meanar, (*p1).op.endbins)
+         stairaspr = stairsteps(meanaspr, (*p1).op.endbins)
+         stairoi = stairsteps(meanoi, (*p1).op.endbins)
+         imin = min(where(stairconc.x ge (*pinfo).minsize)) > 0
 
          ;---Left side plot (*p1).midbins, conc1
          plot, stairconc.x, stairconc.y, xlog=(*pinfo).xlog, ylog=(*pinfo).ylogpsd, /nodata, xtit='Diameter (microns)', $
             ytit='Concentration '+concunit, xr=xrange, /xs, yr=yrangepsd, position=[0.1,0.45,0.48,0.95], charsize=1
-         oplot, stairconc.x, stairconc.y, color=color1, thick=2
+         oplot, stairconc.x, stairconc.y, color=color1, thick=1, line=3
+         oplot, stairconc.x[imin:*], stairconc.y[imin:*], color=color1, thick=2
 
          ;---Right side plot, MSD and MMD
          plot, stairmsd.x, stairmsd.y, xlog=(*pinfo).xlog, ylog=(*pinfo).ylogmsd, /nodata, xtit='Diameter (microns)', $
             ytit='Mass '+msdunit, xr=xrange, /xs, yr=yrangemsd, position=[0.57,0.45,0.95,0.95], /noerase, charsize=1
-         oplot, stairmsd.x, stairmsd.y, color=color5, thick=2
+         oplot, stairmsd.x, stairmsd.y, color=color5, thick=1, line=3
+         oplot, stairmsd.x[imin:*], stairmsd.y[imin:*], color=color5, thick=2
          oplot, [(*p1).dmedianmass[i], (*p1).dmedianmass[i]], [1e-10, 1e10], line=2, thick=1
 
          ;---Area ratio plot
          plot, stairar.x, stairar.y, yr=[0,1.01], position=[0.57,0.07,0.95,0.35], charsize=1, /noerase,$
-             xtit='Diameter (microns)', ytit='Mean Area Ratio', /nodata, xr=xrange, /xs, xlog=(*pinfo).xlog, /ys
-         oplot, stairar.x, stairar.y, color=color8, thick=2
+             xtit='Diameter (microns)', ytit='Particle Shape', /nodata, xr=xrange, /xs, xlog=(*pinfo).xlog, /ys
+         oplot, stairoi.x, stairoi.y, color=color4, thick=1, line=3
+         oplot, stairoi.x[imin:*], stairoi.y[imin:*], color=color4, thick=2
+         oplot, stairaspr.x, stairaspr.y, color=color6, thick=1, line=3
+         oplot, stairaspr.x[imin:*], stairaspr.y[imin:*], color=color6, thick=2
+         oplot, stairar.x, stairar.y, color=color8, thick=1, line=3
+         oplot, stairar.x[imin:*], stairar.y[imin:*], color=color8, thick=2
+         legend_old, ['Aspect Ratio','Area Ratio','Orientation'], line=[0,0,0], thick=[2,2,2], $
+            color=[color6,color8,color4], box=0, charsize=1.0, pos=[0.55, 0.38], /norm, /horizontal
 
          ;---Display numeric data
          savesize=!p.charsize  ;Make these a little easier to read
          !p.charsize=1.2
-         xyouts,0.07,0.30,'N!dT!n(#/L):',/norm & xyouts,0.17,0.30,string((*p1).nt[i]/1.0e3,form='(f0.1)'),/normal
-         xyouts,0.07,0.26,'IWC(g/m!u3!n):',/norm & xyouts,0.17,0.26,string((*p1).iwc[i],form='(f0.3)'),/normal
-         xyouts,0.07,0.22,'LWC(g/m!u3!n):',/norm & xyouts,0.17,0.22,string((*p1).lwc[i],form='(f0.3)'),/normal
-         xyouts,0.07,0.18,'MeanD(um):',/norm & xyouts,0.17,0.18,string((*p1).mnd[i],form='(f0.1)'),/normal
-         xyouts,0.07,0.14,'MMD(um):',/norm & xyouts,0.17,0.14,string((*p1).dmedianmass[i],form='(f0.1)'),/normal
-         xyouts,0.07,0.10,'MVD(um):',/norm & xyouts,0.17,0.10,string((*p1).mvd[i],form='(f0.1)'),/normal
-         xyouts,0.30,0.22,'Accepted:',/norm & xyouts,0.4,0.22,string((*p1).count_accepted[i],form='(i0)'),/normal
-         xyouts,0.30,0.18,'Rejected:',/norm & xyouts,0.4,0.18,string((*p1).count_rejected_total[i],form='(i0)'),/normal
-         xyouts,0.30,0.14,'Missed:',/norm & xyouts,0.4,0.14,string((*p1).count_missed[i],form='(i0)'),/normal
+         x = 0.07  & dx = 0.1 & y = 0.10  & dy = 0.04 ;Bottom-left corner of display area
+         xyouts,x,y+6*dy,'N!dT!n(#/L):',/norm & xyouts,x+dx,y+6*dy,string((*p1).nt[i]/1.0e3,form='(f0.1)'),/normal
+         xyouts,x,y+5*dy,'IWC(g/m!u3!n):',/norm & xyouts,x+dx,y+5*dy,string((*p1).iwc[i],form='(f0.3)'),/normal
+         xyouts,x,y+4*dy,'LWC(g/m!u3!n):',/norm & xyouts,x+dx,y+4*dy,string((*p1).lwc[i],form='(f0.3)'),/normal
+         xyouts,x,y+3*dy,'dBZ:',/norm & xyouts,x+dx,y+3*dy,string((*p1).dbz[i],form='(f0.1)'),/normal
+         xyouts,x,y+2*dy,'MeanD(um):',/norm & xyouts,x+dx,y+2*dy,string((*p1).mnd[i],form='(f0.1)'),/normal
+         xyouts,x,y+1*dy,'MMD(um):',/norm & xyouts,x+dx,y+dy,string((*p1).dmedianmass[i],form='(f0.1)'),/normal
+         xyouts,x,y+0*dy,'MVD(um):',/norm & xyouts,x+dx,y+0*dy,string((*p1).mvd[i],form='(f0.1)'),/normal
+         xyouts,x+0.2,y+4*dy,'Accepted:',/norm & xyouts,x+0.2+dx,y+4*dy,string((*p1).count_accepted[i],form='(i0)'),/normal
+         xyouts,x+0.2,y+3*dy,'Rejected:',/norm & xyouts,x+0.2+dx,y+3*dy,string((*p1).count_rejected_total[i],form='(i0)'),/normal
+         xyouts,x+0.2,y+2*dy,'Missed:',/norm & xyouts,x+0.2+dx,y+2*dy,string((*p1).count_missed[i],form='(i0)'),/normal
          !p.charsize=savesize
       END
 

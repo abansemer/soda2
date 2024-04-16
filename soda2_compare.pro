@@ -232,10 +232,11 @@ PRO soda2_compare, fn1, fn2, fn3=fn3, crossover=crossover, binstart=binstart
    loadct,39    ;A color table that works for Linux....
    tvlct,r,g,b,/get
    ;Load these to maintain color table for soda2_browse, if running concurrently
-   r[1]=220 & g[1]=220 & b[1]=220  ;add a grey color
-   r[2]=100 & g[2]=100 & b[2]=250  ;add three blue shades for images
-   r[3]=000 & g[3]=000 & b[3]=200  ;add three blue shades for images
-   r[4]=000 & g[4]=000 & b[4]=000  ;add three blue shades for images
+   r[1]=220 & g[1]=220 & b[1]=220  ;Add a grey color (background)
+   r[2]=100 & g[2]=100 & b[2]=250  ;Level 1 shadow (light blue)
+   r[3]=000 & g[3]=000 & b[3]=200  ;Level 2 shadow (dark blue)
+   r[4]=200 & g[4]=000 & b[4]=200  ;Level 3 shadow (purple)
+   r[5]=000 & g[5]=180 & b[5]=000  ;Dark green for plots
    tvlct,r,g,b
    !p.background=255
    !p.color=0

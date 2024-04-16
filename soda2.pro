@@ -502,7 +502,7 @@ PRO soda2
     subbase3a=widget_base(subbase3,row=1)
     subbase3b=widget_base(subbase3,row=1)
     addpthfile=cw_bgroup(subbase3a,['Select...','Clear'], uname='findpthfile',/row,label_left='TAS data (dat/ASCII):')
-    pthfile=widget_text(subbase3a,uname='pthfile',/editable,xsize=50,/all_events)
+    pthfile=widget_text(subbase3a,uname='pthfile',/editable,xsize=45,/all_events)
     subbase3c=widget_base(subbase3,row=1)
     tas=cw_field(subbase3c,/int, title='or use fixed TAS of (m/s):',uname='tas', value='0', xsize=4)
     vals=['Apply stretch correction']
@@ -519,7 +519,7 @@ PRO soda2
     date=cw_field(subbase2d,/string,       title='Date (mmddyyyy)',uname='date',xsize=10,value='01012000',/column)
     starttime=cw_field(subbase2d,/string,  title='Start Time (hhmmss)',uname='starttime',value='000000',xsize=10,/column)
     stoptime=cw_field(subbase2d,/string,   title='Stop Time (hhmmss)',uname='stoptime',value='240000',xsize=10,/column)
-    rate=cw_field(subbase2d,/float, title='Rate (s):', uname='rate', xsize=5, value=5.0, /column)
+    rate=cw_field(subbase2d,/float, title='Interval (s)', uname='rate', xsize=5, value=5.0, /column)
 
     subbase2b=widget_base(subbase2,row=1)
     specs=soda2_probespecs()

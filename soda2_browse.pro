@@ -475,6 +475,7 @@ PRO soda2_browse_event, ev
               '50':(*pinfo).minsize=50
               '100':(*pinfo).minsize=100
               '200':(*pinfo).minsize=200
+              '500':(*pinfo).minsize=500
               '1000':(*pinfo).minsize=1000
            ENDCASE
 
@@ -603,13 +604,13 @@ PRO soda2_browse, fn
     drawbase1b=widget_base(drawbase1,row=1)
     massparamlist=['Brown/Francis','CRYSTAL','Heymsfield 2010','Water']
     tab1_massparam=widget_droplist(drawbase1b,uname='massparam_t1',value=massparamlist,title='MassParam')
-    minsizelist = ['None','50','100','200','1000']
+    minsizelist = ['None','50','100','200','500','1000']
     tab1_minsize=widget_droplist(drawbase1b,uname='minsize_t1',value=minsizelist,title='MinSize')
     tab1_declutter=cw_bgroup(drawbase1b, 'Declutter', uname='declutter_t1', /row, /nonexclusive, set_value=[0])
 
     ;Tab 2
     drawbase2=widget_base(tab,column=1,title='Particles',uname='tab2')
-    plot2=widget_draw(drawbase2, x_scroll_size=screen_x+10, y_scroll_size=screen_y, xsize=screen_x, ysize=2000, $
+    plot2=widget_draw(drawbase2, x_scroll_size=screen_x+10, y_scroll_size=screen_y, xsize=screen_x, ysize=5000, $
        uname='w2',/button_events,/wheel_events)
     widget_control, plot2, set_draw_view=[0, 0]
     drawbase2b=widget_base(drawbase2,row=1,/base_align_center)
@@ -641,7 +642,6 @@ PRO soda2_browse, fn
     tab5_minsize=widget_droplist(drawbase5c,uname='minsize_t5',value=minsizelist,title='MinSize')
     tab5_declutter=cw_bgroup(drawbase5c, 'Declutter', uname='declutter_t5', /row, /nonexclusive, set_value=[0])
 
-
     ;Time series bar
     tsbase=widget_base(base,row=1)
     tsID=widget_draw(tsbase,xsize=screen_x,ysize=50,uname='wt',/button_events,/motion_events,/wheel_events,sensitive=0,frame=3)
@@ -656,11 +656,11 @@ PRO soda2_browse, fn
 
     loadct,39    ;A color table that works for Linux....
     tvlct,r,g,b,/get
-    r[1]=220 & g[1]=220 & b[1]=220  ;add a grey color
-    r[2]=100 & g[2]=100 & b[2]=250  ;add three blue shades for images
-    r[3]=000 & g[3]=000 & b[3]=200  ;add three blue shades for images
-    r[4]=000 & g[4]=000 & b[4]=050  ;add three blue shades for images
-    r[5]=000 & g[5]=180 & b[5]=000  ;add a dark green for plots
+    r[1]=220 & g[1]=220 & b[1]=220  ;Add a grey color (background)
+    r[2]=100 & g[2]=100 & b[2]=250  ;Level 1 shadow (light blue)
+    r[3]=000 & g[3]=000 & b[3]=200  ;Level 2 shadow (dark blue)
+    r[4]=200 & g[4]=000 & b[4]=200  ;Level 3 shadow (purple)
+    r[5]=000 & g[5]=180 & b[5]=000  ;Dark green for plots
     tvlct,r,g,b
     !p.background=255
     !p.color=0

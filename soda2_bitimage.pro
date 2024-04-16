@@ -54,6 +54,7 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
 
          ;Stretch HVPS1
          IF (*pop).probetype eq 'HVPS1' and (n_elements(bitimage) gt 256) THEN BEGIN
+            ;IF (divider ne 0) THEN bitimage[*, (p.startline-1)>0] = 1
             s = size(bitimage, /dim)
             stretch = (*pop).yres/(*pop).res
             bitimage=congrid(bitimage,s[0],s[1]*stretch)
@@ -74,7 +75,7 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
    free_lun,lun
    ;Adjust to color table for mono probes
    IF rejectbuffer eq 0 THEN BEGIN
-      IF (*pop).probetype ne 'CIPG' THEN bitimage=bitimage*2
+      IF (max(bitimage) lt 3) THEN bitimage=bitimage*2
    ENDIF
 
    return,{time:b.time, bitimage:bitimage, rejectbuffer:rejectbuffer, error:0}

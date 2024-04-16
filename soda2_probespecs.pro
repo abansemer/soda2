@@ -1251,7 +1251,7 @@ FUNCTION soda2_probespecs, name=name, id=id, fn=fn
    x.tau=0.020e-6
    x.firstsliceskip=0
    x.dofthreshold=0.0
-   x.dofconst=3.0
+   x.dofconst=8.0
    x.wavelength=0.660e-6
    x.seatag=[10000, 10001]  ;[ImageTag, TASfactorTag]
    all=[all,x]
@@ -1271,7 +1271,7 @@ FUNCTION soda2_probespecs, name=name, id=id, fn=fn
    x.tau=0.020e-6
    x.firstsliceskip=0
    x.dofthreshold=0.0
-   x.dofconst=3.0
+   x.dofconst=8.0
    x.wavelength=0.660e-6
    x.seatag=[11000, 11001]  ;[ImageTag, TASfactorTag]
    all=[all,x]

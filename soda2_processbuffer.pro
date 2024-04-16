@@ -403,8 +403,9 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
              ENDFOR
           ENDIF
           stretch=fltarr(num_images)+1.0  ;Not implemented yet for this probe, assume no stretch
-          inttime=dblarr(num_images)   ;Not yet implemented for this probe
           clocktas=fltarr(num_images)+buffer.tas
+          inttime=time_sfm-[(*pmisc).lastclock, time_sfm[0:num_images-2]]
+          (*pmisc).lastclock=time_sfm[num_images-1]
           restore_slice=0  ;May want to change for certain tests
           missed=0
        END
