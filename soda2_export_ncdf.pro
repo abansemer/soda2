@@ -10,10 +10,8 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
    IF n_elements(noskip) eq 0 THEN noskip=0 ;Option to write everything in the sav file, even with unknown attributes
    !quiet=1  ;Suppress annoying messages from ncdf routines
 
-   ;-----------Create new file instead-----------------
-
-   suffix=''   ;Suffix for netcdf tags, not used here
-   ;Create the file
+   ;-----------Create new file-----------------
+   ;Create the file, erasing existing one if it exists
    id=ncdf_create(outfile[0],/clobber)
 
    tags=tag_names(data)
@@ -25,14 +23,15 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
       ;This is for numbins
       name='Vector'+strtrim(string(n_elements(data.op.endbins)-1),2)
       ydimid_size=ncdf_dimdef(id,name,n_elements(data.op.endbins)-1)
-      ;This is for endbins
-      name='Vector'+strtrim(string(n_elements(data.op.endbins)),2)
-      dimid_endbins=ncdf_dimdef(id,name,n_elements(data.op.endbins))
    END
    ;This is for interarrival
    IF total(tags eq 'INTMIDBINS') THEN BEGIN
       name='Vector'+strtrim(string(n_elements(data.intmidbins)),2)
       ydimid_int=ncdf_dimdef(id,name,n_elements(data.intmidbins))
+   ENDIF
+   IF total(tags eq 'INTENDBINS') THEN BEGIN
+      name='Vector'+strtrim(string(n_elements(data.intendbins)),2)
+      ydimid_intend=ncdf_dimdef(id,name,n_elements(data.intendbins))
    ENDIF
    ;This is for area ratio
    IF total(tags eq 'ARENDBINS') THEN BEGIN
@@ -54,7 +53,6 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
 
    ;Create global attributes
    ncdf_attput,id,'Source','SODA-2 OAP Processing Software',/global
-   ;ncdf_attput,id,'Conventions', 'NCAR-RAF/nimbus', /global
    ncdf_attput,id,'DateCreated',systime(),/global
    ncdf_attput,id,'FlightDate',flightdate[0],/global
    IF total(tags eq 'DATE_PROCESSED') THEN ncdf_attput,id,'DateProcessed',data.date_processed,/global
@@ -64,8 +62,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
          ncdf_attput,id,opnames[i],data.op.(i)[0],/global
    ENDFOR
 
-
-
+   ;Write time data
    attname=['long_name','units']
    attvalue=['Elapsed time','seconds since '+date.year+'-'+date.month+'-'+date.day+' '+starttime+' +0000']
    timeid=ncdf_vardef(id,'elapsed_time',xdimid,/double)
@@ -79,17 +76,13 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
    utcid=ncdf_vardef(id,'utc_time',xdimid,/double)
    FOR k=0,n_elements(attname)-1 DO ncdf_attput,id,utcid,attname[k],attvalue[k]
 
-
    ncdf_control,id,/endef                ;put in data mode
    ncdf_varput,id,utcid,data.time
    ncdf_varput,id,baseid,data.time[0]+days1970*86400l
    ncdf_varput,id,timeid,data.time-data.time[0]
    ncdf_control,id,/redef                ;return to define mode
 
-
-
    ;-------Write data to file, start with main structure tags------------------------
-
    FOR j=0,n_elements(tags)-1 DO BEGIN
       ;Write each variable
       skiptag=0
@@ -98,7 +91,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
       attvalue=['Unknown','Unknown']
       unitadjust=1.0
       currentdata=data.(j)
-      tagname=tags[j]+suffix
+      tagname=tags[j]
 
       CASE tags[j] OF
          'SA':BEGIN
@@ -137,12 +130,16 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
             tagname='COUNTS'
          END
          'INTSPEC_ALL':BEGIN
-               attvalue={a1:'Particle Count Per Interarrival Bin, All Particles',a2:'#'}
+               attname=['long_name','units','Bin_endpoints','Bin_units']
+               attvalue={a0:'Particle Count Per Interarrival Bin, All Particles',a1:'#',$
+                  a2:data.intendbins,a3:'seconds'}
                dims=[ydimid_int,xdimid]
                ;currentdata=transpose(currentdata)
          END
          'INTSPEC_ACCEPTED':BEGIN
-               attvalue={a1:'Particle Count Per Interarrival Bin, Accepted Particles',a2:'#'}
+               attname=['long_name','units','Bin_endpoints','Bin_units']
+               attvalue={a0:'Particle Count Per Interarrival Bin, Accepted Particles',a1:'#',$
+                  a2:data.intendbins,a3:'seconds'}
                dims=[ydimid_int,xdimid]
                ;currentdata=transpose(currentdata)
          END
@@ -153,6 +150,10 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
          'INTMIDBINS':BEGIN
                attvalue={a1:'Interarrival Bin Mid-points',a2:'s'}
                dims=ydimid_int
+         END
+         'INTENDDBINS':BEGIN
+               attvalue={a1:'Interarrival Bin End-points',a2:'s'}
+               dims=ydimid_intend
          END
          ELSE:BEGIN
             skiptag=1
@@ -217,7 +218,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
       attname=['long_name','units']
       unitadjust=1.0
       currentdata=bulk.(j)
-      tagname=tags[j]+suffix
+      tagname=tags[j]
 
       CASE tags[j] OF
          'LWC':BEGIN
@@ -326,7 +327,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
             attname=['long_name','units']
             unitadjust=1.0
             currentdata=pth.(j)
-            tagname=tags[j]+suffix
+            tagname=tags[j]
 
             CASE tags[j] OF
                'TAS':attvalue={a1:'True air speed',a2:'m/s'}
