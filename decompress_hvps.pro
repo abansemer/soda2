@@ -16,13 +16,13 @@ FUNCTION decompress_hvps, cimage
 
    slice_time=double(4.0e-6) ; the length of time that each slice takes (clock max is 250kHz)
                      ; we will assume that the clock is maxxed out (tas must be less than 50 m/s otherwise)
-   image=bytarr(256,2100)  ; this will hold the decompressed image
-   time=lonarr(1000)   ; hold the time (number of blank slices since last particle) for each particle
-   overflow=0l   ; holds the accumulated overflow time for this buffer
-   slice=0  ; 'y' position in the image array
+   image=bytarr(256,10000)  ; this will hold the decompressed image
+   time=lonarr(10000)   ; hold the time (number of blank slices since last particle) for each particle
+   overflow=0L   ; holds the accumulated overflow time for this buffer
+   slice=0L  ; 'y' position in the image array
    diode=0   ; 'x' position in the image array
-   particle_num=0  ;  counts the number of particles in the image (based on finding time words)
-   particle_index=intarr(1000)  ; holds the 'y' index of the last slice of each particle
+   particle_num=0L  ;  counts the number of particles in the image (based on finding time words)
+   particle_index=lonarr(10000)  ; holds the 'y' index of the last slice of each particle
    i=-1  ; position (in words) within the compressed image
 
    ;Ignore all data until the start of the first slice is found
@@ -38,6 +38,7 @@ FUNCTION decompress_hvps, cimage
             overflow=overflow+counter
             ;print,counter,i
          ENDIF ELSE BEGIN  ; number of blank slices count (occurs after each particle)
+            slice++     ;Add an extra slice for spacing between particles
             time[particle_num]=counter
             particle_index[particle_num]=slice
             particle_num=particle_num+1
@@ -48,7 +49,7 @@ FUNCTION decompress_hvps, cimage
          num_shaded=ishft((cimage[i] and '3f80'x),-7)  ; bits 7-13
          IF (cimage[i] and '4000'x) ne 0 THEN startslice=1 ELSE startslice=0
          IF startslice THEN BEGIN  ; start of a slice
-            slice=slice+1  ;move pointers to the beginning of the next slice
+            slice++    ;move pointers to the beginning of the next slice
             diode=0
             IF (num_shaded eq 0) and (num_clear eq 0) THEN BEGIN
                diode=127
