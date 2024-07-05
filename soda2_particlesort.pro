@@ -1,4 +1,5 @@
-PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id, pbpprops, reprocessed_time=reprocessed_time
+PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id, pbpprops, $
+   image, image_offset, reprocessed_time=reprocessed_time
    ;Sorts particle-by-particle data into the various accumulation arrays.
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
@@ -175,7 +176,7 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
    END
 
    ;Print particles if flagged, netCDF version is now default
-   IF op.ncdfparticlefile eq 1 THEN BEGIN
+   IF op.ncdfparticlefile ge 1 THEN BEGIN
       varid=ncdf_varid(ncdf_id,'time')
       ncdf_varput,ncdf_id,varid,truetime[0:istop],count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'probetime')
@@ -248,6 +249,20 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       ncdf_varput,ncdf_id,varid,x[0:istop].particlecounter,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'rejectionflag')
       ncdf_varput,ncdf_id,varid,rejectionflag,count=numparticles,offset=ncdf_offset
+   ENDIF
+
+   IF op.ncdfparticlefile eq 2 THEN BEGIN
+      varid=ncdf_varid(ncdf_id,'starty')
+      ncdf_varput,ncdf_id,varid,x[0:istop].startline,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'stopy')
+      ncdf_varput,ncdf_id,varid,x[0:istop].stopline,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'startx')  ;Just fill with zeros.  For compatibility with CPI pbp images.
+      ncdf_varput,ncdf_id,varid,intarr(numparticles),count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'stopx')   ;Just fill with array width.  For compatibility with CPI pbp images.
+      ncdf_varput,ncdf_id,varid,intarr(numparticles)+(size(image, /dim))[0]-1,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'image')
+      print, 'Writing Images...'
+      ncdf_varput, ncdf_id, varid, image, count=size(image, /dim), offset=[0, image_offset]
    ENDIF
 
    ;ASCII particle file

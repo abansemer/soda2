@@ -17,7 +17,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
    ;Define the structure to return for bad buffers
    nullbuffer= {diam:0,probetime:0,reftime:0,ar:0, rawtime:0, aspr:0, rejectbuffer:1,bitimage:0,$
                 allin:0,streak:0,zd:0,dhist:0,nslices:0,missed:0,overloadflag:0,dofflag:0b,particlecounter:0L, $
-                inttime:0d, clocktas:0.0, startline:0}
+                inttime:0d, clocktas:0.0, startline:0UL, stopline:0UL}
 
    CASE 1 OF
       ;-----------------------------------------------------------------------------------------------
@@ -57,10 +57,6 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           stopline=(sync_ind-1) > 0
           stopline=stopline>startline            ;Avoid occasional error with bad sync lines
 
-          ;IF (*pmisc).lastbufftime eq 0 THEN $  ;For the first buffer only, when lastbufftime not available
-          ;   truetime=buffer.time - (timelines[num_images-1] - timelines)/double(12.0e6) $
-          ;ELSE truetime=(*pmisc).lastbufftime + (timelines - timelines[0])/double(12.0e6)
-          ;time_sfm=(timelines[num_images-1] - timelines)/double(12.0e6)
           clockHz=12.0e6
           IF (*pop).probetype eq 'F2DC_v2' THEN clockHz=1e8/3d ;was 33.0e6, now 33.33333e6, found by trial and error SPICULE
           time_sfm=timelines/double(clockHz)
@@ -70,7 +66,6 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           restore_slice=0   ;These probes do not skip the first slice
           missed=0
           particle_count=intarr(num_images)  ;No counter
-          ;dof=bytarr(num_images)+1  ;Dofs are automatically rejected by requiring timeline AAAAAA.  There is a flipped bit in there if want to use them.
 
           ;Set up remainder for the next buffer
           nremainder=bufflength-max(sync_ind)
@@ -271,8 +266,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           num_images=(*pmisc).nimages
           IF num_images eq 0 THEN return, nullbuffer
           bitimage=bytarr(128,1)
-          startline=intarr(num_images)
-          stopline=intarr(num_images)
+          startline=ulonarr(num_images)
+          stopline=ulonarr(num_images)
           inttime=dblarr(num_images)
           overload=bytarr(num_images)
           particle_count=uintarr(num_images)
@@ -297,7 +292,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
                1: x=tvcpi_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid)  ;Also Fast2DS
                2: x=hvps4_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid)
             ENDCASE
-            IF x.error eq 0 THEN BEGIN
+            IF (x.error eq 0) and (max(size(x.image, /dim)) lt 1000) THEN BEGIN
                bitimage=[[bitimage],[x.image]]
                startline[c]=slicecount
                slicecount=slicecount+(size(x.image,/dim))[1]
@@ -334,8 +329,11 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           stretch=stretch[0:c-1]
           inttime=inttime[0:c-1]
           clocktas=clocktas[0:c-1]
+          startline=startline[0:c-1]
+          stopline=stopline[0:c-1]
 
           IF num_images eq 0 THEN return, nullbuffer
+          IF max(stopline) gt 10000 THEN return, nullbuffer
 
           ;This is the time that -should- match the buffer time
           ;There tends to be ~4 buffers in a row with the same time stamp.
@@ -388,23 +386,25 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           dof=bytarr(num_images)+1  ;Assume all are good to start
           n50=fltarr(num_images)    ;Save for later like main 1D2D
           n75=fltarr(num_images)
+
+          ;Set greythresh to level2 if it is not already for 1D2D or grey probes, can be missed easily in the TXT data
+          IF (max(bitimage) ge 2) and ((*pop).greythresh eq 0) THEN (*pop).greythresh=1
+
           ;Figure out dofreject for greyscale or 1D2D criteria
-          IF (*pop).dofreject ne 0 THEN BEGIN
-             FOR i=0,num_images-1 DO BEGIN
-                thisimage = bitimage[*, startline[i]:stopline[i]]
-                dummy=where(thisimage ge 2, num50)
-                dummy=where(thisimage eq 3, num75)
-                n50[i]=num50
-                n75[i]=num75
-                IF (*pop).dofreject eq 1 THEN IF num75 eq 0 THEN dof[i]=0  ;No level-3 pixels
-                IF (*pop).dofreject eq 2 THEN IF float(num75)/num50 lt 0.5 THEN dof[i]=0  ;"Mode3" for SEA-1D2D
-                ;Set greythresh if it is not already, can be missed easily in the TXT data
-                IF (num50 gt 0) and ((*pop).greythresh eq 0) THEN (*pop).greythresh=1
-             ENDFOR
-          ENDIF
+          FOR i=0,num_images-1 DO BEGIN
+             thisimage = bitimage[*, startline[i]:stopline[i]]
+             dummy=where(thisimage ge 2, num50)
+             IF (*pop).greythresh eq 0 THEN dummy=where(thisimage eq 1, num50)  ;For mono probes
+             dummy=where(thisimage eq 3, num75)
+             n50[i]=num50
+             n75[i]=num75
+             IF (*pop).dofreject eq 1 THEN IF num75 eq 0 THEN dof[i]=0  ;No level-3 pixels
+             IF (*pop).dofreject eq 2 THEN IF float(num75)/num50 lt 0.5 THEN dof[i]=0  ;"Mode3" for SEA-1D2D
+          ENDFOR
+
           stretch=fltarr(num_images)+1.0  ;Not implemented yet for this probe, assume no stretch
           clocktas=fltarr(num_images)+buffer.tas
-          inttime=time_sfm-[(*pmisc).lastclock, time_sfm[0:num_images-2]]
+          inttime=time_sfm-[(*pmisc).lastclock, time_sfm[0:num_images-2]] ;Could also get directly from buffer.inttime
           (*pmisc).lastclock=time_sfm[num_images-1]
           restore_slice=0  ;May want to change for certain tests
           missed=0

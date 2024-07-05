@@ -102,6 +102,11 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
    dhist=lonarr(numrecords,op.numdiodes)
    activetime_sea=dblarr(numrecords)
    date=soda2_parsedate(op.date)
+   maxslices=10000000   ;Maximum image length to keep in local memory before writing to netCDF
+   image=bytarr(op.numdiodes, maxslices)
+   image_offset_local=0ULL
+   image_offset=0ULL
+   slices_written=0ULL
 
    ;Set up the particle structure.
    num2process=10000000L ;Limit to reduce memory consumption
@@ -109,7 +114,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
                areasize:0.0, arearatio:0.0, arearatiofilled:0.0, aspectratio:0.0, area:0.0, areafilled:0.0, xpos:0.0, ypos:0.0,$
                allin:0b, centerin:0b, edgetouch:0b, probetas:0.0, aircrafttas:0.0, zd:0.0, sizecorrection:0.0, missed:0.0, $
                overloadflag:0b, orientation:0.0, perimeterarea:0.0, dofflag:0b, particlecounter:0L, oned:0.0, twod:0.0, $
-               area75:0.0, numregions:0b}
+               area75:0.0, numregions:0b, startline:0ull, stopline:0ull}
    x=replicate(basestruct, num2process)
 
 
@@ -124,18 +129,19 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
       suffix=(strsplit(op.pth,'.',/extract))[-1]
       ;IDL sav files
       IF (suffix eq 'dat') or (suffix eq 'sav') THEN BEGIN
-         restore,op.pth
+         restore, op.pth
          IF total(d.time - data.time) ne 0 THEN BEGIN
             print, 'PTH time does not match, using nearest point.'
             good=where((data.tas gt 0) and (data.tas lt 400) and (data.time ge op.starttime) and (data.time le op.stoptime), ngood)
             IF ngood eq 0 THEN stop, 'Time mismatch for TAS file.'
             itas=(round(data.time[good])-op.starttime)/op.rate ;find index for each variable
             ;Fill TAS array, don't bother with averaging.  Note use of i:*, which makes sure gaps are filled in for hirate data.
-            FOR i=0,n_elements(good)-1 DO pth_tas[itas[i]:*] = data.tas[good[i]]
+            FOR i=0, n_elements(good)-1 DO pth_tas[itas[i]:*] = data.tas[good[i]]
          ENDIF ELSE BEGIN
             pth_tas=data.tas
          ENDELSE
          got_pth=1
+         pthdat = data
       ENDIF
       ;ASCII or CSV files, assumes time and tas in first two columns
       IF (suffix eq 'txt') or (suffix eq 'csv') THEN BEGIN
@@ -217,7 +223,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
               ['ypos', 'Y-position of particle center (along airflow)', 'pixels', 'float', 'f0.2'],$
               ['allin', 'All-in flag (1=all-in)', 'unitless', 'byte','i0'],$
               ['centerin', 'Center-in flag (1=center-in)', 'unitless', 'byte','i0'],$
-              ['dofflag', 'Depth of field flag from probe (1=accepted)', 'unitless', 'byte','i0'],$
+              ['dofflag', 'Depth of field flag from probe, if available (1=accepted)', 'unitless', 'byte','i0'],$
               ['edgetouch', 'Edge touch (1=left 2=right 3=both)', 'unitless', 'byte','i0'],$
               ['sizecorrection', 'Size correction factor from Korolev 2007 (D_edge/D0). Use to adjust sizes in this file if necessary', 'unitless', 'float', 'f0.2'],$
               ['zd', 'Z position from Korolev correction', 'microns', 'float', 'f0.2'],$
@@ -227,11 +233,11 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
               ['overloadflag', 'Overload flag', 'boolean', 'byte', 'i0'],$
               ['particlecounter', 'Particle counter', 'number', 'long', 'i0'],$
               ['orientation', 'Particle orientation relative to array axis', 'degrees', 'float', 'f0.2'],$
-              ['rejectionflag', 'Particle rejection code (see soda2_reject.pro)', 'unitless', 'byte', 'i0'],$
+              ['rejectionflag', 'Particle rejection code (see soda2_reject.pro for codes)', 'unitless', 'byte', 'i0'],$
               ['numregions', 'Number of connected regions (blobs) in the particle image, if the KEEP_LARGEST option is enabled', 'count', 'byte', 'i0']]
 
-   ;NetCDF PBP
-   IF op.ncdfparticlefile eq 1 THEN BEGIN
+   ;NetCDF PBP setup
+   IF op.ncdfparticlefile ge 1 THEN BEGIN
       fn_ncdf=soda2_filename(op,op.shortname,extension='.pbp.nc')
       file_delete, fn_ncdf, /quiet ;The 'clobber' switch does not work on ncdf_create with netcdf4
       ncdf_id=ncdf_create(fn_ncdf, /netcdf4_format)
@@ -274,6 +280,46 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
          ncdf_attput,ncdf_id,varid,'longname',pbpprops[1,i]
          ncdf_attput,ncdf_id,varid,'units',pbpprops[2,i]
       ENDFOR
+
+      ;Add a few more variables and dimensions if saving images
+      IF op.ncdfparticlefile eq 2 THEN BEGIN
+         diodedimid = ncdf_dimdef(ncdf_id, 'Diode', /unlimited)  ;make both dimensions for the image unlimited, or errors result
+         slicedimid = ncdf_dimdef(ncdf_id, 'Slice', /unlimited)
+         ;Start/stop slice indexes
+         varid = ncdf_vardef(ncdf_id, 'starty', xdimid, /ulong, gzip=5)
+         ncdf_attput, ncdf_id,varid, 'longname', 'Index of start slice (y-position) in image array'
+         ncdf_attput, ncdf_id,varid, 'units', 'unitless'
+         varid = ncdf_vardef(ncdf_id, 'stopy', xdimid, /ulong, gzip=5)
+         ncdf_attput, ncdf_id, varid, 'longname', 'Index of stop slice (y-position) in image array'
+         ncdf_attput, ncdf_id, varid, 'units', 'unitless'
+         varid = ncdf_vardef(ncdf_id, 'startx', xdimid, /ulong, gzip=5)
+         ncdf_attput, ncdf_id,varid, 'longname', 'Index of start diode (x-position) in image array'
+         ncdf_attput, ncdf_id,varid, 'units', 'unitless'
+         varid = ncdf_vardef(ncdf_id, 'stopx', xdimid, /ulong, gzip=5)
+         ncdf_attput, ncdf_id, varid, 'longname', 'Index of stop diode (x-position) in image array'
+         ncdf_attput, ncdf_id, varid, 'units', 'unitless'
+         ;Image array
+         imageid = ncdf_vardef(ncdf_id, 'image', [diodedimid, slicedimid], /ubyte, gzip=8, chunk=[op.numdiodes, 1024])
+         ncdf_attput, ncdf_id, imageid, 'longname', 'Particle images'
+         ncdf_attput, ncdf_id, imageid, 'units', 'unitless'
+      END
+
+      ;Add a few more variables if lat, lon, alt, t are available
+      IF n_elements(pthdat) gt 0 THEN BEGIN
+         varid = ncdf_vardef(ncdf_id, 'lat', xdimid, /double, gzip=5)
+         ncdf_attput, ncdf_id,varid, 'longname', 'Latitude'
+         ncdf_attput, ncdf_id,varid, 'units', 'degrees'
+         varid = ncdf_vardef(ncdf_id, 'lon', xdimid, /double, gzip=5)
+         ncdf_attput, ncdf_id, varid, 'longname', 'Longitude'
+         ncdf_attput, ncdf_id, varid, 'units', 'degrees'
+         varid = ncdf_vardef(ncdf_id, 'alt', xdimid, /double, gzip=5)
+         ncdf_attput, ncdf_id, varid, 'longname', 'GPS altitude'
+         ncdf_attput, ncdf_id, varid, 'units', 'meters'
+         varid = ncdf_vardef(ncdf_id, 't', xdimid, /double, gzip=5)
+         ncdf_attput, ncdf_id, varid, 'longname', 'Temperature'
+         ncdf_attput, ncdf_id, varid, 'units', 'degrees Celsius'
+      ENDIF
+
       ncdf_control,ncdf_id,/endef                ;put in data mode
    ENDIF
 
@@ -487,6 +533,15 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
             x[istart:istop].dofflag=p.dofflag
             x[istart:istop].orientation=p.orientation
 
+            IF op.ncdfparticlefile eq 2 THEN BEGIN
+               nslices = (size(p.bitimage, /dim))[1]   ;Recompute, can be different than p.nslices
+               image[*, image_offset_local:image_offset_local+nslices-1] = p.bitimage
+               x[istart:istop].startline = p.startline+image_offset
+               x[istart:istop].stopline = p.stopline+image_offset
+               image_offset += nslices        ;Full offset of full image array
+               image_offset_local += nslices  ;Offset of current image array, written periodically to netCDF
+            ENDIF
+
             ;Feedback to user
             percentcomplete=fix(float(i-firstbuff)/(lastbuff-firstbuff)*100)
             IF percentcomplete ne lastpercentcomplete THEN BEGIN
@@ -497,19 +552,22 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
          ENDIF ELSE BEGIN
             numbuffsrejected[timeindex]=numbuffsrejected[timeindex]+1
          ENDELSE
-         IF (istop+500) gt num2process THEN BEGIN
+         IF ((istop+500) gt num2process) or ((image_offset_local+10000) gt maxslices) THEN BEGIN
             ;Memory limit reached, process particles and reset arrays
-            soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id, pbpprops
+            soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id, pbpprops, $
+               image[*, 0:image_offset_local-1], slices_written
             ncdf_offset=ncdf_offset + istop + 1
             istop=-1L
+            slices_written += image_offset_local
+            image_offset_local = 0
          ENDIF
-
       ENDFOR
 
       IF istop lt 0 THEN return
       infoline='Sorting Particles...'
       IF textwidgetid ne 0 THEN widget_control,textwidgetid,set_value=infoline,/append ELSE print,infoline
-      soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id, pbpprops
+      soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id, pbpprops, $
+         image[*, 0:image_offset_local-1], slices_written
       close,1
 
 
@@ -537,7 +595,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
          ;IF gotnt eq 1 THEN x.buffertime=newtime[i*num2process:i*num2process+n_elements(x.buffertime)-1]
          IF (*pop).format eq 'SPEC' THEN reprocessed_time = newtime[i*num2process:i*num2process+n_elements(x.buffertime)-1]
          ncdf_offset = num2process*i
-         soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id, pbpprops, reprocessed_time=reprocessed_time
+         soda2_particlesort, pop, x, d, istop, inewbuffer, lun_pbp, ncdf_offset, ncdf_id, pbpprops, $
+            reprocessed_time=reprocessed_time
 
          percentcomplete=fix(float(i+1)*num2process / n_elements(pbp.time) * 100) < 100
          infoline=strtrim(string(percentcomplete))+'%'
@@ -624,7 +683,20 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
       close,lun_pbp
       infoline=[infoline, fn_pbp]
    ENDIF
-   IF op.ncdfparticlefile eq 1 THEN BEGIN
+   IF op.ncdfparticlefile ge 1 THEN BEGIN
+      ;Add in PTH data if available
+      IF n_elements(pthdat) gt 0 THEN BEGIN
+         varid=ncdf_varid(ncdf_id,'time')
+         ncdf_varget, ncdf_id, varid, ptime
+         varid=ncdf_varid(ncdf_id,'lat')
+         ncdf_varput, ncdf_id, varid, interpol(pthdat.lat, pthdat.time, ptime)
+         varid=ncdf_varid(ncdf_id,'lon')
+         ncdf_varput, ncdf_id, varid, interpol(pthdat.lon, pthdat.time, ptime)
+         varid=ncdf_varid(ncdf_id,'alt')
+         ncdf_varput, ncdf_id, varid, interpol(pthdat.galt, pthdat.time, ptime)
+         varid=ncdf_varid(ncdf_id,'t')
+         ncdf_varput, ncdf_id, varid, interpol(pthdat.t, pthdat.time, ptime)
+      ENDIF
       ncdf_close,ncdf_id
       infoline=[infoline, fn_ncdf]
    ENDIF

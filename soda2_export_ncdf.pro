@@ -112,10 +112,6 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
             attvalue={a0:'Particle Concentration Per Bin, Normalized by Bin Width',a1:'#/m4',$
 			         a2:data.op.endbins,a3:'micrometers'}
             dims=[xdimid, ydimid_size]
-            ;Pad first bin with zeros transpose, and reform to 3-dimensions
-            ;conc=fltarr(n_elements(data.time),n_elements(data.op.endbins))
-            ;conc[*,1:*]=data.conc1d
-            ;currentdata=reform(transpose(conc),n_elements(data.op.endbins),1,n_elements(data.time))
             tagname='CONCENTRATION'
          END
          'SPEC1D':BEGIN
@@ -123,25 +119,19 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
             attvalue={a0:'Particle Count Per Bin',a1:'#',$
                         a2:data.op.endbins,a3:'micrometers'}
             dims=[xdimid, ydimid_size]
-            ;Pad first bin with zeros, transpose, and reform to 3-dimensions
-            ;spec=fltarr(n_elements(data.time),n_elements(data.op.endbins))
-            ;spec[*,1:*]=data.spec1d
-            ;currentdata=reform(transpose(spec),n_elements(data.op.endbins),1,n_elements(data.time))
             tagname='COUNTS'
          END
          'INTSPEC_ALL':BEGIN
                attname=['long_name','units','Bin_endpoints','Bin_units']
                attvalue={a0:'Particle Count Per Interarrival Bin, All Particles',a1:'#',$
                   a2:data.intendbins,a3:'seconds'}
-               dims=[ydimid_int,xdimid]
-               ;currentdata=transpose(currentdata)
+               dims=[xdimid, ydimid_int]
          END
          'INTSPEC_ACCEPTED':BEGIN
                attname=['long_name','units','Bin_endpoints','Bin_units']
                attvalue={a0:'Particle Count Per Interarrival Bin, Accepted Particles',a1:'#',$
                   a2:data.intendbins,a3:'seconds'}
-               dims=[ydimid_int,xdimid]
-               ;currentdata=transpose(currentdata)
+               dims=[xdimid, ydimid_int]
          END
          'MIDBINS':BEGIN
             attvalue={a1:'Size Bin Mid-points',a2:'um'}

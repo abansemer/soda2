@@ -405,7 +405,7 @@ PRO soda2_event, ev
                subformat:probe.subformat, probetype:probe.probetype, res:xres, yres:yres, dofconst:dofconst, $
                endbins:endbins, arendbins:arendbins, rate:rate, smethod:smethod, pth:pthfile[0], asciipsdfile:asciipsdfile, $
                savfile:savfile, inttime_reject:inttime_reject, eawmethod:eawmethod, stuckbits:stuckbits, juelichfilter:juelichfilter, water:water,$
-               fixedtas:fixedtas, outdir:outdir[0], filetag:filetag, project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
+               fixedtas:fixedtas, outdir:outdir[0], filetag:filetag[0], project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
                numdiodes:probe.numdiodes, probeid:probe.probeid, shortname:probe.shortname, greythresh:probe.greythresh, $
                wavelength:probe.wavelength, seatag:seatag, ncdfparticlefile:ncdfparticlefile, particlefile:particlefile, $
                stretchcorrect:stretchcorrect[0], keeplargest:keeplargest, apply_psc:apply_psc, dofreject:dofreject, $
