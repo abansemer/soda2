@@ -51,13 +51,14 @@ PRO soda2_event, ev
             widget_control,id,set_value=checkboxarray
 
             ;--------Output checkboxes
-            checkboxarray=[0,0,0,0]
+            checkboxarray=[0,0,0,0,0,0]
             id=widget_info(ev.top,find='outputflags')
             widget_control,id,get_uvalue=values
-            IF op.savfile THEN checkboxarray[where(values eq 'IDL(sav)')]=1
+            IF op.savfile THEN checkboxarray[where(values eq 'SODA(dat)')]=1
             IF op.asciipsdfile THEN checkboxarray[where(values eq 'PSD(ASCII)')]=1
-            IF op.ncdfparticlefile THEN checkboxarray[where(values eq 'ParticleFile(netCDF)')]=1
-            IF op.particlefile THEN checkboxarray[where(values eq 'ParticleFile(CSV)')]=1
+            IF op.ncdfparticlefile eq 1 THEN checkboxarray[where(values eq 'PBP(netCDF)')]=1
+            IF op.ncdfparticlefile eq 2 THEN checkboxarray[where(values eq 'Images(netCDF)')]=1
+            IF op.particlefile THEN checkboxarray[where(values eq 'PBP(CSV)')]=1
             widget_control,id,set_value=checkboxarray
 
             ;--------Filenames
@@ -303,11 +304,13 @@ PRO soda2_event, ev
             id=widget_info(ev.top,find='outputflags')
             widget_control,id,get_uvalue=values
             widget_control,id,get_value=iadv
-            IF iadv[where(values eq 'IDL(sav)')] eq 1 THEN savfile=1 ELSE savfile=0
+            ncdfparticlefile=0
+            IF iadv[where(values eq 'SODA(dat)')] eq 1 THEN savfile=1 ELSE savfile=0
             IF iadv[where(values eq 'PSD(ASCII)')] eq 1 THEN asciipsdfile=1 ELSE asciipsdfile=0
-            IF iadv[where(values eq 'ParticleFile(netCDF)')] eq 1 THEN ncdfparticlefile=1 ELSE ncdfparticlefile=0
-            IF iadv[where(values eq 'ParticleFile(CSV)')] eq 1 THEN particlefile=1 ELSE particlefile=0
-            IF iadv[where(values eq 'Housekeeping(sav)')] eq 1 THEN housefile=1 ELSE housefile=0
+            IF iadv[where(values eq 'PBP(netCDF)')] eq 1 THEN ncdfparticlefile=1
+            IF iadv[where(values eq 'PBP(CSV)')] eq 1 THEN particlefile=1 ELSE particlefile=0
+            IF iadv[where(values eq 'Images(netCDF)')] eq 1 THEN ncdfparticlefile=2
+            IF iadv[where(values eq 'House(dat)')] eq 1 THEN housefile=1 ELSE housefile=0
 
             ;--------Probe Details
             id=widget_info(ev.top,find='probetype')
@@ -565,8 +568,8 @@ PRO soda2
     IF compact ne 1 THEN dummy=widget_label(subbase4,value='---Output Options---',/align_left)
 
     subbase4a=widget_base(subbase4,row=1)
-    vals=['IDL(sav)','PSD(ASCII)','ParticleFile(netCDF)','ParticleFile(CSV)','Housekeeping(sav)']
-    outputflags=cw_bgroup(subbase4a,vals,uname='outputflags',/row,/nonexclusive,uval=vals,set_value=[1,0,0])
+    vals=['SODA(dat)','PSD(ASCII)','PBP(netCDF)','PBP(CSV)','Images(netCDF)','House(dat)']
+    outputflags=cw_bgroup(subbase4a,vals,uname='outputflags',/row,/nonexclusive,uval=vals,set_value=[1,0,0,0,0,0])
 
     subbase4b=widget_base(subbase4,row=1)
     cd,current=currentdir

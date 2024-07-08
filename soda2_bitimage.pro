@@ -26,12 +26,12 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
             2: im=hvps4_read_frame(lun,framep.ap[c],(*pop).probeid)
          ENDCASE
          slices=n_elements(im.image)/128
-         IF (imsize+slices lt maxslices) THEN bitimage[0:127,imsize:imsize+slices-1]=im.image
+         IF (imsize+slices lt maxslices) THEN bitimage[0:127,imsize:imsize+slices-1]=im.image * 2  ;*2 for color table
 
          ;Add a divider
          IF (divider ne 0) and (imsize+slices lt (maxslices-1)) and (total(im.image) gt 0) THEN BEGIN
             IF divider eq 1 THEN bitimage[0:127,imsize+slices-1]=(indgen(128) mod 4 / 3)*2   ;Dotted line
-            IF divider eq -1 THEN bitimage[*,imsize+slices-1] = -1                           ;White line in soda2_browse
+            IF divider eq -1 THEN bitimage[*,imsize+slices-1] = 254b                         ;White line in soda2_browse
          ENDIF
 
          ;Increment size if there is a valid particle
@@ -49,12 +49,15 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
          rejectbuffer=p.rejectbuffer
          bitimage=p.bitimage
 
+         ;Adjust mono probe for color table
+         IF (max(bitimage) lt 3) THEN bitimage=bitimage*2b
+
          ;Add a divider
-         IF (divider ne 0) THEN bitimage[*, (p.startline-1)>0] = divider  ;-1 makes a white line in soda2_browse.
+         IF (divider eq -1) THEN bitimage[*, (p.startline-1)>0] = 254b  ;makes a white line in soda2_browse.
+         IF (divider eq 1) THEN bitimage[*, (p.startline-1)>0] = 255b   ;makes a black line
 
          ;Stretch HVPS1
          IF (*pop).probetype eq 'HVPS1' and (n_elements(bitimage) gt 256) THEN BEGIN
-            ;IF (divider ne 0) THEN bitimage[*, (p.startline-1)>0] = 1
             s = size(bitimage, /dim)
             stretch = (*pop).yres/(*pop).res
             bitimage=congrid(bitimage,s[0],s[1]*stretch)
@@ -73,11 +76,6 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
    ENDELSE
 
    free_lun,lun
-   ;Adjust to color table for mono probes
-   IF rejectbuffer eq 0 THEN BEGIN
-      IF (max(bitimage) lt 3) THEN bitimage=bitimage*2
-   ENDIF
-
    return,{time:b.time, bitimage:bitimage, rejectbuffer:rejectbuffer, error:0}
 
 END
