@@ -658,6 +658,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
          w = where(blobimage eq i+1)
          roi[w] = 1
          roi_orig = roi
+         bitimage = blobimage  ;To keep blob indexes intact when saving images to PBP files
       ENDIF
 
       ;Adjust the particle for grey probes to the right threshold

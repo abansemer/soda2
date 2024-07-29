@@ -68,6 +68,7 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
             s = size(bitimage, /dim)
             ;Crop a slice if there are an odd number of slices so rebin works
             bitimage = bitimage[*, 0:s[1]/2*2 - 1]
+            bitimage = (bitimage < 1) * 2  ;Remove blob indexes for display, they are kept for PBP files
             stretch = (*pop).yres/(*pop).res
             bitimage=congrid(bitimage,s[0],s[1]*stretch)
          ENDIF
