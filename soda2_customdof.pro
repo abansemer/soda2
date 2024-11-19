@@ -1,8 +1,8 @@
 PRO soda2_customdof_event, ev
    ;GUI for custom DoF routine
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
-   uname = widget_info(ev.id,/uname)
-   widget_control, widget_info(ev.top,find='dofbase'), get_uvalue=pinfo
+   uname = widget_info(ev.id, /uname)
+   widget_control, widget_info(ev.top, find='dofbase'), get_uvalue=pinfo
 
    CASE uname OF
 

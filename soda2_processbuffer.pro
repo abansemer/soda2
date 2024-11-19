@@ -598,8 +598,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           restore_slice = 0
           missed = 0
           dof=bytarr(num_images)+1  ;No dof flag, assume all are good
-          particle_count = intarr(num_images) ;No counter
-          stretch = fltarr(num_images)+1.0    ;Not implemented yet for this probe, assume no stretch
+          particle_count = indgen(num_images)+1 ;No counter, but will keep the blob index in here instead
+          stretch = fltarr(num_images)+1.0      ;Not implemented yet for this probe, assume no stretch
           clocktas = fltarr(num_images) + buffer.tas
           probetas = fltarr(num_images) + buffer.tas
 

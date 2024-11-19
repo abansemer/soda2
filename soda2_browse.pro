@@ -573,7 +573,7 @@ PRO soda2_browse, fn
    ;Main GUI for SODA-2 data browsing
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
-    device,decompose=0,get_screen_size=screen_size     ;Set to 8-bit color
+    device, decompose=0, get_screen_size=screen_size     ;Set to 8-bit color
     device, retain=2
 
     IF !version.os_family eq 'windows' THEN widget_control,default_font='Helvetica*fixed*12'
