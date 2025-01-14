@@ -25,8 +25,8 @@ function fit_poisson,h,dt,minidt,plot=plot
  iy=where(int_t gt minidt and int_t lt 1.0)
  if iy[0] eq -1 then return,{a:[0.0,0.0,0.0]}
 
- a=[0.99,1./(mean(int_t(iy),/nan)),1./(mean(int_t(iy),/nan)/1000.)]
- a1=[1.0,1./(mean(int_t(iy),/nan))]
+ a=[0.99,1./(mean(int_t[iy],/nan)),1./(mean(int_t[iy],/nan)/1000.)]
+ a1=[1.0,1./(mean(int_t[iy],/nan))]
 
  res=lmfit(dt,h2,a,func='fn_poisson',/double,iter=150,converg=dummy)
  ;res=lmfit(dt,h2,a1,func='fn_poisson1',/double,iter=150,converg=dummy)
@@ -35,8 +35,8 @@ function fit_poisson,h,dt,minidt,plot=plot
   poissonfit=fltarr(n_elements(dt))
   ;poissonfit1=fltarr(n_elements(dt))
   for i=0,n_elements(dt)-1 do begin 
-   aa=fn_poisson(dt(i),a)
-   poissonfit(i)=aa(0) 
+   aa=fn_poisson(dt[i],a)
+   poissonfit[i]=aa[0] 
    ;aa1=fn_poisson1(dt(i),a1)
    ;poissonfit1(i)=aa1(0) 
   endfor

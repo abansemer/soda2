@@ -232,7 +232,7 @@ symline = (np ne 0) or (nl ne 0)                        ; FLAG TO PLOT SYM/LINE
  if (nth ne 0) and (nth ne n) and (nth NE 1) then message, $
          'Must have 0, 1 or '+strn+' elements in THICK array.'
 
- if nl EQ 0 then linestyle = intarr(n) else $           D=SOLID
+ if nl EQ 0 then linestyle = intarr(n) else $         ;  D=SOLID
          if nl EQ 1 then linestyle = intarr(n)  + linestyle
  if nth EQ 0 then thick = intarr(n) + 1 else  $
          if nth EQ 1 then thick = intarr(n) + thick

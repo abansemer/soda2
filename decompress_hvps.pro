@@ -9,7 +9,7 @@ FUNCTION decompress_hvps, cimage
 
    IF cimage[0] eq 'CAAA'x THEN BEGIN   ; *** indicates a diagnostic buffer, do not process as image ***
       mask=dec2bin(cimage[2:17]) ;get the mask bits
-      mask=mask(16:31,*)  ; truncate leading zeros (should only be 16 bits on each line)
+      mask=mask[16:31,*]  ; truncate leading zeros (should only be 16 bits on each line)
       ;print,'MASK BUFFER'
       return, {mask:1, maskbits:reform(mask,256,1), particle_index:0, image:0, error:0}
    ENDIF

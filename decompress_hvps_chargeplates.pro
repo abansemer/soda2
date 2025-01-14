@@ -57,7 +57,7 @@ function decompress_hvps_chargeplates,data
    			iy = iy + num_clear + num_occluded
 
    			if (iy gt 15 and iy lt 240 and ix lt tot_np and num_occluded ne 0) then begin
-   				img(ix,iy-num_occluded+1:iy) = 1  ;num_particles
+   				img[ix,iy-num_occluded+1:iy] = 1  ;num_particles
    			endif
 
    			i = i + 1
@@ -66,7 +66,7 @@ function decompress_hvps_chargeplates,data
    		endwhile				;end of a particle
 
    		time_between_particles(num_particles) = double(inter_part_cycles) * period * 1.e-6		;seconds
-         particle_time(num_particles) = total(time_between_particles(0:num_particles))
+         particle_time(num_particles) = total(time_between_particles[0:num_particles])
          rawtime(num_particles) = inter_part_cycles
 
    		num_particles = num_particles + 1

@@ -5,6 +5,6 @@ FUNCTION dec2bin,in
    ;Using unsigned long int for 2d processing
    
    out=bytarr(32,n_elements(in))
-   for i=0,31 do out(31-i,*)=(in and 2UL^i)/2UL^i
+   for i=0,31 do out[31-i,*]=(in and 2UL^i)/2UL^i
    return,out
 END

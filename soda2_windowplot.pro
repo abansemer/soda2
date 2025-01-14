@@ -77,11 +77,11 @@ PRO soda2_windowplot, topid, p1, pinfo, pop, pmisc, noset=noset
          bad=where(meanar eq 0, nbad)
          IF nbad gt 0 THEN meanar[bad]=!values.f_nan
 
-         meanaspr=(*p1).meanaspr[i,*]
+         IF total(tag_names(*p1) eq 'MEANASPR') THEN meanaspr=(*p1).meanaspr[i,*] ELSE meanaspr=meanar*0
          bad=where(meanaspr eq 0, nbad)
          IF nbad gt 0 THEN meanaspr[bad]=!values.f_nan
 
-         meanoi=(*p1).orientation_index[i,*]
+         IF total(tag_names(*p1) eq 'ORIENTATION_INDEX') THEN meanoi=(*p1).orientation_index[i,*] ELSE meanoi=meanar*0
          bad=where(meanoi eq 0, nbad)
          IF nbad gt 0 THEN meanoi[bad]=!values.f_nan
 

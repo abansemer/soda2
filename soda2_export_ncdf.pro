@@ -17,12 +17,20 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
    tags=tag_names(data)
    opnames=tag_names(data.op)
 
+   ;Add endbins to main structure to make code below easier
+   IF (total(opnames eq 'ENDBINS') eq 1) and (total(tags eq 'ENDBINS') eq 0) THEN BEGIN
+      data = create_struct(data, 'endbins', data.op.endbins)
+      tags=tag_names(data)
+   ENDIF
+
    ;Define the x-dimension, should be used in all variables
    xdimid=ncdf_dimdef(id,'Time',n_elements(data.time))
    IF total(opnames eq 'ENDBINS') THEN BEGIN
       ;This is for numbins
       name='Vector'+strtrim(string(n_elements(data.op.endbins)-1),2)
       ydimid_size=ncdf_dimdef(id,name,n_elements(data.op.endbins)-1)
+      name='Vector'+strtrim(string(n_elements(data.op.endbins)),2)
+      ydimid_sizeend=ncdf_dimdef(id,name,n_elements(data.op.endbins))
    END
    ;This is for interarrival
    IF total(tags eq 'INTMIDBINS') THEN BEGIN
@@ -95,54 +103,61 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
 
       CASE tags[j] OF
          'SA':BEGIN
-            attvalue={a1:'Sample Area',a2:'m2'}
+            attvalue={a1:'Sample Area', a2:'m2'}
             dims=ydimid_size
          END
          'COUNT_ACCEPTED':BEGIN
-            attvalue={a1:'Count Accepted',a2:'#'}
+            attvalue={a1:'Count Accepted', a2:'#'}
          END
          'TAS':BEGIN
-            attvalue={a1:'True Air speed used',a2:'m/s'}
+            attvalue={a1:'True Air speed used', a2:'m/s'}
          END
          'ACTIVETIME':BEGIN
-            attvalue={a1:'Probe activity time',a2:'s'}
+            attvalue={a1:'Probe activity time', a2:'s'}
          END
          'CONC1D': BEGIN
-            attname=['long_name','units','Bin_endpoints','Bin_units']
-            attvalue={a0:'Particle Concentration Per Bin, Normalized by Bin Width',a1:'#/m4',$
-			         a2:data.op.endbins,a3:'micrometers'}
+            binwidth = data.op.endbins[1:*] - data.op.endbins
+            attname=['long_name', 'units', 'Bin_endpoints', 'Bin_width', 'Bin_units']
+            attvalue={a0:'Particle Concentration Per Size Bin, Normalized by Bin Width', a1:'#/m4', $
+			         a2:data.op.endbins, a3:binwidth, a4:'micrometers'}
             dims=[xdimid, ydimid_size]
             tagname='CONCENTRATION'
          END
          'SPEC1D':BEGIN
-            attname=['long_name','units','Bin_endpoints','Bin_units']
-            attvalue={a0:'Particle Count Per Bin',a1:'#',$
-                        a2:data.op.endbins,a3:'micrometers'}
+            binwidth = data.op.endbins[1:*] - data.op.endbins
+            attname=['long_name','units', 'Bin_endpoints', 'Bin_width', 'Bin_units']
+            attvalue={a0:'Particle Count Per Size Bin', a1:'#', a2:data.op.endbins, a3:binwidth, a4:'micrometers'}
             dims=[xdimid, ydimid_size]
             tagname='COUNTS'
          END
          'INTSPEC_ALL':BEGIN
-               attname=['long_name','units','Bin_endpoints','Bin_units']
-               attvalue={a0:'Particle Count Per Interarrival Bin, All Particles',a1:'#',$
-                  a2:data.intendbins,a3:'seconds'}
+               binwidth = data.intendbins[1:*] - data.intendbins
+               attname=['long_name', 'units', 'Bin_endpoints', 'Bin_width', 'Bin_units']
+               attvalue={a0:'Particle Count Per Interarrival Bin, All Particles', a1:'#',$
+                  a2:data.intendbins, a3:binwidth, a4:'seconds'}
                dims=[xdimid, ydimid_int]
          END
          'INTSPEC_ACCEPTED':BEGIN
-               attname=['long_name','units','Bin_endpoints','Bin_units']
-               attvalue={a0:'Particle Count Per Interarrival Bin, Accepted Particles',a1:'#',$
-                  a2:data.intendbins,a3:'seconds'}
+               binwidth = data.intendbins[1:*] - data.intendbins
+               attname=['long_name', 'units', 'Bin_endpoints', 'Bin_width', 'Bin_units']
+               attvalue={a0:'Particle Count Per Interarrival Bin, Accepted Particles', a1:'#',$
+                  a2:data.intendbins, a3:binwidth, a4:'seconds'}
                dims=[xdimid, ydimid_int]
          END
          'MIDBINS':BEGIN
-            attvalue={a1:'Size Bin Mid-points',a2:'um'}
+            attvalue={a1:'Size Bin Mid-points', a2:'micrometers'}
             dims=ydimid_size
          END
+         'ENDBINS':BEGIN
+            attvalue={a1:'Size Bin End-points', a2:'micrometers'}
+            dims=ydimid_sizeend
+         END
          'INTMIDBINS':BEGIN
-               attvalue={a1:'Interarrival Bin Mid-points',a2:'s'}
+               attvalue={a1:'Interarrival Bin Mid-points', a2:'s'}
                dims=ydimid_int
          END
          'INTENDDBINS':BEGIN
-               attvalue={a1:'Interarrival Bin End-points',a2:'s'}
+               attvalue={a1:'Interarrival Bin End-points', a2:'s'}
                dims=ydimid_intend
          END
          ELSE:BEGIN
@@ -188,10 +203,10 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
          area100=compute_area(data, binstart=i100)
          area200=compute_area(data, binstart=i200)
 
-         bulk=create_struct(bulkall, 'area', area, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
-              'iwc100', bulk100.iwc, 'area100', area100, 'lwc100', bulk100.lwc, 'nt200', bulk200.nt, 'mnd200', bulk200.mnd, $
-              'mvd200', bulk200.mvd, 'iwc200', bulk200.iwc, 'lwc200', bulk200.lwc, 'area200', area200, 'meanar', $
-              meanar, 'meanaspr', meanaspr)
+         bulk=create_struct(bulkall, 'area', area.area, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
+              'iwc100', bulk100.iwc, 'area100', area100.area, 'lwc100', bulk100.lwc, 'nt200', bulk200.nt, 'mnd200', bulk200.mnd, $
+              'mvd200', bulk200.mvd, 'iwc200', bulk200.iwc, 'lwc200', bulk200.lwc, 'area200', area200.area, 'meanar', $
+              meanar, 'meanaspr', meanaspr, 'asd', area.asd)
       ENDIF ELSE BEGIN
           bulk=create_struct(bulkall, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
                'iwc100', bulk100.iwc, 'lwc100', bulk100.lwc, 'nt200', bulk200.nt, 'mnd200', bulk200.mnd, $
@@ -242,28 +257,28 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
              attvalue={a1:'Projected Particle Area, Particles Larger than 200um in Diameter',a2:'1/m'}
          END
          'MVD':BEGIN
-            attvalue={a1:'Median Volume Diameter',a2:'um'}
+            attvalue={a1:'Median Volume Diameter',a2:'micrometers'}
          END
          'MND':BEGIN
-            attvalue={a1:'Mean Diameter',a2:'um'}
+            attvalue={a1:'Mean Diameter',a2:'micrometers'}
          END
          'NT': BEGIN
             attvalue={a1:'Total Number Concentration, All Particles',a2:'#/m3'}
          END
          'MVD100':BEGIN
-            attvalue={a1:'Median Volume Diameter, Particles Larger than 100um in Diameter',a2:'um'}
+            attvalue={a1:'Median Volume Diameter, Particles Larger than 100um in Diameter',a2:'micrometers'}
          END
          'MND100':BEGIN
-            attvalue={a1:'Mean Diameter, Particles Larger than 100um in Diameter',a2:'um'}
+            attvalue={a1:'Mean Diameter, Particles Larger than 100um in Diameter',a2:'micrometers'}
          END
          'NT100': BEGIN
             attvalue={a1:'Total Number Concentration, Particles Larger than 100um in Diameter',a2:'#/m3'}
          END
          'MVD200':BEGIN
-            attvalue={a1:'Median Volume Diameter, Particles Larger than 200um in Diameter',a2:'um'}
+            attvalue={a1:'Median Volume Diameter, Particles Larger than 200um in Diameter',a2:'micrometers'}
          END
          'MND200':BEGIN
-            attvalue={a1:'Mean Diameter, Particles Larger than 200um in Diameter',a2:'um'}
+            attvalue={a1:'Mean Diameter, Particles Larger than 200um in Diameter',a2:'micrometers'}
          END
          'NT200': BEGIN
             attvalue={a1:'Total Number Concentration, Particles Larger than 200um in Diameter',a2:'#/m3'}
@@ -277,10 +292,26 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
          END
          'MEANASPR':BEGIN
             attname=['long_name','units','Bin_endpoints','Bin_units']
-            attvalue={a0:'Mean Aspect Ratio Per Size Bin',a1:'unitless',$
-                        a2:data.op.endbins,a3:'micrometers'}
+            attvalue={a0:'Mean Aspect Ratio Per Size Bin', a1:'unitless',$
+                        a2:data.op.endbins, a3:'micrometers'}
             dims=[xdimid, ydimid_size]
             tagname='MEAN_ASPECTRATIO'
+         END
+         'ASD':BEGIN
+            binwidth = data.intendbins[1:*] - data.intendbins
+            attname=['long_name', 'units', 'Bin_endpoints', 'Bin_width', 'Bin_units']
+            attvalue={a0:'Projected Area Per Size Bin, Not Normalized by Bin Width', a1:'1/m',$
+                        a2:data.op.endbins, a3:binwidth, a4:'micrometers'}
+            dims=[xdimid, ydimid_size]
+            tagname='ASD'
+         END
+         'MSD':BEGIN
+            binwidth = data.intendbins[1:*] - data.intendbins
+            attname=['long_name', 'units', 'parameterization', 'Bin_endpoints', 'Bin_width', 'Bin_units']
+            attvalue={a0:'Calculated Mass Per Size Bin, Not Normalized by Bin Width', a1:'g/m3', $
+               a2:'Brown and Francis 1995', a3:data.op.endbins, a4:binwidth, a5:'micrometers'}
+            dims=[xdimid, ydimid_size]
+            tagname='MSD'
          END
       ELSE:skiptag=1
       ENDCASE

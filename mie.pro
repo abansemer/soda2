@@ -55,7 +55,7 @@ function mie, wavel, dspec, arspec, k=k,n=n,alpha=alpha
          ri=0.90
          
          ; density of the ice (mixture)
-         r=rhoi(j, i)
+         r=rhoi[j, i]
          
          ; from Matrosov tables normalized backscatter cross sections
          ; at 3 mm 0C (90 ghz) m = 2.81 + 1.31 imaginary part
@@ -63,22 +63,22 @@ function mie, wavel, dspec, arspec, k=k,n=n,alpha=alpha
          ; at 2.0 cm 6.04 + 3.02 imaginary part at 0C
          e=(ri*ei+2.*ri+2.*r*ei-2*r)/(ri*ei+2.*ri-r*ei+r)
          m=complex(sqrt(e))
-         kice_sq(j, i)=abs((m^2-1)/(m^2+2))^2
+         kice_sq[j, i]=abs((m^2-1)/(m^2+2))^2
          refrel=m
 
          ; MAKE SURE YOU KNOW---in Sergey's program units are mm (wavelength) multipy d by 10
-         rad=10.*dspec(j)/2.
+         rad=10.*dspec[j]/2.
          ; wavel is the wavelength in mm
          ; refrel is the complex refrective index of ice
          ; d is particle diameter in mm
          x=2.*3.14159*rad/wavel
          a=abs(complex((refrel^2-1.)/(refrel^2+2.)))^2
-         qext1(j, i)=8./3.*x^4*a
-         qback1(j, i)=4*x^4*a
+         qext1[j, i]=8./3.*x^4*a
+         qback1[j, i]=4*x^4*a
          br, refrel,wavel,rad,qe,qsca,qabs,x,qb,g,forf,back
-         qback(j, i)=qb
-         qext(j, i)=qe
-         ze(j,i)=wavel^4*qback(j,i)*!pi*rad^2/(!pi^5*k2)  ; in mm^6
+         qback[j, i]=qb
+         qext[j, i]=qe
+         ze[j,i]=wavel^4*qback[j,i]*!pi*rad^2/(!pi^5*k2)  ; in mm^6
       endfor
    endfor
    return,{qback1:qback1, qback:qback, qext1:qext1, qext:qext, kice_sq:kice_sq, ze:ze}

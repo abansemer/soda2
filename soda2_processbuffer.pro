@@ -15,8 +15,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
 
 
    ;Define the structure to return for bad buffers
-   nullbuffer= {diam:0,probetime:0,reftime:0,ar:0, rawtime:0, aspr:0, rejectbuffer:1,bitimage:0,$
-                allin:0,streak:0,zd:0,dhist:0,nslices:0,missed:0,overloadflag:0,dofflag:0b,particlecounter:0L, $
+   nullbuffer= {diam:0, probetime:0, reftime:0,ar:0, rawtime:0, aspr:0, rejectbuffer:1, bitimage:0,$
+                allin:0, streak:0, zd:0, dhist:0, nslices:0, missed:0, overloadflag:0, dofflag:0b, particlecounter:0L, $
                 inttime:0d, clocktas:0.0, startline:0UL, stopline:0UL}
 
    CASE 1 OF
@@ -479,10 +479,10 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           ;Misc
           restore_slice = 0
           missed = 0
-          particle_count = intarr(num_images) ;No counter
           dof = pixels75[2:*] < 1             ;Set flag to 'accept' if at least one 75% pixel, flag must be 0 or 1
           n75 = pixels75[2:*]
-          n50 = pixels50[2:*]  ;this can sometimes be slightly different than computed area, but ignore for now
+          n50 = pixels50[2:*]    ;this can sometimes be slightly different than computed area, but ignore for now
+          particle_count = n50   ;No counter, but keep n50_SEA here for troubleshooting
           IF (*pop).dofreject eq 2 THEN BEGIN
              ;Stricter DoF for N75/N50 > 0.5, aka Mode3.  This forces Mode3 even if data recorded in Mode1 or Mode2.
              dof = bytarr(num_images)+1
@@ -602,7 +602,6 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
           stretch = fltarr(num_images)+1.0      ;Not implemented yet for this probe, assume no stretch
           clocktas = fltarr(num_images) + buffer.tas
           probetas = fltarr(num_images) + buffer.tas
-
        END
 
        ELSE: stop, 'Probe type not available'

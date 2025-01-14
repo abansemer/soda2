@@ -22,24 +22,24 @@ pro br, refrel,wavel,rad,qext,qsca,qabs,x,qback,g,forf,back
    nmx=fix(nmx)
    dang=1.570796327/float(nang-1)
    for j = 1, nang do begin
-      theta(j)=(float(j)-1.)*dang
-      amu(j)=cos(theta(j))
+      theta[j]=(float(j)-1.)*dang
+      amu[j]=cos(theta[j])
    endfor
-   d(nmx)=dcomplex(0.0,0.0)
+   d[nmx]=dcomplex(0.0,0.0)
    nn=nmx-1
    for n=1,nn do begin
       rn=nmx-n+1
-      d(nmx-n)=(rn/y)-(1./(d(nmx-n+1)+rn/y))
+      d[nmx-n]=(rn/y)-(1./(d[nmx-n+1]+rn/y))
       ; print, n, rn, nmx, y
    endfor
    for j=1,nang do begin
-      pi0(j)=0.0
-      pi1(j)=1.0
+      pi0[j]=0.0
+      pi1[j]=1.0
    endfor
    nn=2*nang-1
    for j=1,nn do begin
-      s1(j)=dcomplex(0.0,0.0)
-      s2(j)=dcomplex(0.0,0.0)
+      s1[j]=dcomplex(0.0,0.0)
+      s2[j]=dcomplex(0.0,0.0)
    endfor
    psi0=double(cos(dx))
    psi1=double(sin(dx))
@@ -61,10 +61,10 @@ pro br, refrel,wavel,rad,qext,qsca,qabs,x,qback,g,forf,back
    apsi=psi
    chi=(2.*rn-1.)*chi1/x - chi0
    xi=dcomplex(apsi,-chi)
-   an=double((d(n)/refrel+rn/x)*apsi - apsi1)
-   an=an/((d(n)/refrel+rn/x)*xi-xi1)
-   bn=double((refrel*d(n)+rn/x)*apsi - apsi1)
-   bn=bn/((refrel*d(n)+rn/x)*xi - xi1)
+   an=double((d[n]/refrel+rn/x)*apsi - apsi1)
+   an=an/((d[n]/refrel+rn/x)*xi-xi1)
+   bn=double((refrel*d[n]+rn/x)*apsi - apsi1)
+   bn=bn/((refrel*d[n]+rn/x)*xi - xi1)
    qsca=qsca+(2.*rn+1.)*(abs(complex(an))*abs(complex(an))$
    +abs(complex(bn))*abs(complex(bn)))
    ; print, 'x1=', xi
@@ -78,16 +78,16 @@ pro br, refrel,wavel,rad,qext,qsca,qabs,x,qback,g,forf,back
    
    for j=1,nang do begin
       jj=2*nang-j
-      pi(j)=pi1(j)
-      tau(j)=rn*amu(j)*pi(j) - (rn+1.)*pi0(j)
+      pi[j]=pi1[j]
+      tau[j]=rn*amu[j]*pi[j] - (rn+1.)*pi0[j]
       p=(-1.)^(n-1)
-      s1(j)=s1(j)+fn*(an*pi(j)+bn*tau(j))
+      s1[j]=s1[j]+fn*(an*pi[j]+bn*tau[j])
       t=(-1.)^n
-      s2(j)=s2(j)+fn*(an*tau(j)+bn*pi(j))
+      s2[j]=s2[j]+fn*(an*tau[j]+bn*pi[j])
       ;?
       if(j ne jj) then begin
-         s1(jj)=s1(jj) + fn*(an*pi(j)*p+bn*tau(j)*t)
-         s2(jj)=s2(jj) + fn*(an*tau(j)*t+bn*pi(j)*p)
+         s1[jj]=s1[jj] + fn*(an*pi[j]*p+bn*tau[j]*t)
+         s2[jj]=s2[jj] + fn*(an*tau[j]*t+bn*pi[j]*p)
       endif
    endfor
    psi0=psi1
@@ -100,9 +100,9 @@ pro br, refrel,wavel,rad,qext,qsca,qabs,x,qback,g,forf,back
    rn=n
    
    for j=1,nang do begin
-      pi1(j)=((2.*rn-1.)/(rn-1.))*amu(j)*pi(j)
-      pi1(j)=pi1(j)-rn*pi0(j)/(rn-1.)
-      pi0(j)=pi(j)
+      pi1[j]=((2.*rn-1.)/(rn-1.))*amu[j]*pi[j]
+      pi1[j]=pi1[j]-rn*pi0[j]/(rn-1.)
+      pi0[j]=pi[j]
    endfor
    
    xxx=fix(n-1-nstop)
@@ -114,34 +114,34 @@ pro br, refrel,wavel,rad,qext,qsca,qabs,x,qback,g,forf,back
    endif
    
    qsca=(2./(x*x))*qsca
-   qext=(4./(x*x))*float(s1(1))
-   qback=(4./(x*x))*abs(s1(2*nang-1))*abs(s1(2*nang-1))
+   qext=(4./(x*x))*float(s1[1])
+   qback=(4./(x*x))*abs(s1[2*nang-1])*abs(s1[2*nang-1])
    ; print, 'scat', qsca, qext, qback, s1(2*nang-1), nang
    alb=qsca/qext
    qabs=qext-qsca
    otn=rad/wavel
-   s11nor=0.5*(abs(s2(1))^2+abs(s1(1))^2)
+   s11nor=0.5*(abs(s2[1])^2+abs(s1[1])^2)
    nan=2*nang-1
    as=0.0
    ar=0.0
    for j=1,nan do begin
       aj=j
-      s11=0.5*abs(s2(j))*abs(s2(j))
-      s11=s11+0.5*abs(s1(j))*abs(s1(j))
-      s12=0.5*abs(s2(j))*abs(s2(j))
-      s12=s12-0.5*abs(s1(j))*abs(s1(j))
+      s11=0.5*abs(s2[j])*abs(s2[j])
+      s11=s11+0.5*abs(s1[j])*abs(s1[j])
+      s12=0.5*abs(s2[j])*abs(s2[j])
+      s12=s12-0.5*abs(s1[j])*abs(s1[j])
       pol=-s12/s11
-      s33=float(s2(j)*conj(s1(j)))
+      s33=float(s2[j]*conj(s1[j]))
       s33=s33/s11
-      s34=abs(imaginary(s2(j)*conj(s1(j))))
+      s34=abs(imaginary(s2[j]*conj(s1[j])))
       s34=s34/s11
       s11=s11/s11nor
-      su(j)=s11
+      su[j]=s11
       ang=dang*(aj-1.)*57.2958
       ug=dang*(aj-1.)
       if(ug lt 3.11) then ug=ug+.1
-      as=as+0.5*su(j)*sin(ug)*cos(ug)*dang
-      ar=ar+0.5*su(j)*sin(ug)*dang
+      as=as+0.5*su[j]*sin(ug)*cos(ug)*dang
+      ar=ar+0.5*su[j]*sin(ug)*dang
    endfor
    
    g=as/ar
@@ -153,8 +153,8 @@ pro br, refrel,wavel,rad,qext,qsca,qabs,x,qback,g,forf,back
       ang=dang*(aj-1.)*57.2958
       if(ang gt 3.12) then ang=3.12
       if(ang lt 0.02) then ang=0.02
-      forf=forf+(su(j)+su(j+1))/2.*sin(ang)
-      back=back+(su(nang1+j)+su(nang1+1+j))/2.*sin(ang)
+      forf=forf+(su[j]+su[j+1])/2.*sin(ang)
+      back=back+(su[nang1+j]+su[nang1+1+j])/2.*sin(ang)
    endfor
    
    coef=forf+back
