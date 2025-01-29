@@ -231,6 +231,8 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       ncdf_varput,ncdf_id,varid,x[0:istop].ypos,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'numregions')
       ncdf_varput,ncdf_id,varid,x[0:istop].numregions,count=numparticles,offset=ncdf_offset
+      varid=ncdf_varid(ncdf_id,'diodegaps')
+      ncdf_varput,ncdf_id,varid,x[0:istop].diodegaps,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'zd')
       ncdf_varput,ncdf_id,varid,x[0:istop].zd,count=numparticles,offset=ncdf_offset
       varid=ncdf_varid(ncdf_id,'sizecorrection')
@@ -251,6 +253,7 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
       ncdf_varput,ncdf_id,varid,rejectionflag,count=numparticles,offset=ncdf_offset
    ENDIF
 
+   ;Option to include particle images
    IF op.ncdfparticlefile eq 2 THEN BEGIN
       varid=ncdf_varid(ncdf_id,'starty')
       ncdf_varput,ncdf_id,varid,x[0:istop].startline,count=numparticles,offset=ncdf_offset

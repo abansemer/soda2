@@ -114,7 +114,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
                areasize:0.0, arearatio:0.0, arearatiofilled:0.0, aspectratio:0.0, area:0.0, areafilled:0.0, xpos:0.0, ypos:0.0,$
                allin:0b, centerin:0b, edgetouch:0b, probetas:0.0, aircrafttas:0.0, zd:0.0, sizecorrection:0.0, missed:0.0, $
                overloadflag:0b, orientation:0.0, perimeterarea:0.0, dofflag:0b, particlecounter:0L, oned:0.0, twod:0.0, $
-               area75:0.0, numregions:0b, startline:0ull, stopline:0ull}
+               area75:0.0, numregions:0b, diodegaps:0s, startline:0ull, stopline:0ull}
    x=replicate(basestruct, num2process)
 
 
@@ -234,7 +234,8 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
               ['particlecounter', 'Particle counter', 'number', 'long', 'i0'],$
               ['orientation', 'Particle orientation relative to array axis', 'degrees', 'float', 'f0.2'],$
               ['rejectionflag', 'Particle rejection code (see soda2_reject.pro for codes)', 'unitless', 'byte', 'i0'],$
-              ['numregions', 'Number of connected regions (blobs) in the particle image, if the KEEP_LARGEST option is enabled', 'count', 'byte', 'i0']]
+              ['numregions', 'Number of connected regions (blobs) in the particle image, if the KEEP_LARGEST option is enabled', 'count', 'byte', 'i0'],$
+              ['diodegaps', 'Number of unshaded diodes between the first and last shaded diodes', 'count', 'short', 'i0']]
 
    ;NetCDF PBP setup
    IF op.ncdfparticlefile ge 1 THEN BEGIN
@@ -527,6 +528,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
             x[istart:istop].xpos=p.xpos
             x[istart:istop].ypos=p.ypos
             x[istart:istop].numregions=p.numregions
+            x[istart:istop].diodegaps=p.diodegaps
             x[istart:istop].missed=p.missed
             x[istart:istop].particlecounter=p.particlecounter
             x[istart:istop].overloadflag=p.overloadflag

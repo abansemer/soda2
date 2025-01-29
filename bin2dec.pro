@@ -1,4 +1,4 @@
-FUNCTION bin2dec,inp
+FUNCTION bin2dec, inp
    ;FUNCTION to convert decimal to binary.
    ;Also works for 2d arrays, individual numbers are in rows.
    ;Code copied from http://orpheus.nascom.nasa.gov/cds/#SOFTWARE
@@ -17,5 +17,5 @@ FUNCTION bin2dec,inp
    ;  calculate integer
    for i=0,s[0]-1 do out = out + ulong(x[i,*])*2UL^i
 
-   return,out
+   return, out
 END
