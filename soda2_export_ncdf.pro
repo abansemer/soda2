@@ -66,8 +66,8 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
    IF total(tags eq 'DATE_PROCESSED') THEN ncdf_attput,id,'DateProcessed',data.date_processed,/global
    ncdf_attput,id,'TimeInterval',str,/global
    FOR i=0,n_elements(opnames)-1 DO BEGIN
-         IF string(data.op.(i)[0]) eq '' THEN data.op.(i)[0]='none' ;To avoid an ncdf error (empty string)
-         ncdf_attput,id,opnames[i],data.op.(i)[0],/global
+      IF string(data.op.(i)[0]) eq '' THEN data.op.(i)[0]='none' ;To avoid an ncdf error (empty string)
+      ncdf_attput,id,opnames[i],data.op.(i)[0],/global
    ENDFOR
 
    ;Write time data
@@ -119,7 +119,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
             binwidth = data.op.endbins[1:*] - data.op.endbins
             attname=['long_name', 'units', 'Bin_endpoints', 'Bin_width', 'Bin_units']
             attvalue={a0:'Particle Concentration Per Size Bin, Normalized by Bin Width', a1:'#/m4', $
-			         a2:data.op.endbins, a3:binwidth, a4:'micrometers'}
+               a2:data.op.endbins, a3:binwidth, a4:'micrometers'}
             dims=[xdimid, ydimid_size]
             tagname='CONCENTRATION'
          END
@@ -131,18 +131,18 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
             tagname='COUNTS'
          END
          'INTSPEC_ALL':BEGIN
-               binwidth = data.intendbins[1:*] - data.intendbins
-               attname=['long_name', 'units', 'Bin_endpoints', 'Bin_width', 'Bin_units']
-               attvalue={a0:'Particle Count Per Interarrival Bin, All Particles', a1:'#',$
-                  a2:data.intendbins, a3:binwidth, a4:'seconds'}
-               dims=[xdimid, ydimid_int]
+            binwidth = data.intendbins[1:*] - data.intendbins
+            attname=['long_name', 'units', 'Bin_endpoints', 'Bin_width', 'Bin_units']
+            attvalue={a0:'Particle Count Per Interarrival Bin, All Particles', a1:'#',$
+               a2:data.intendbins, a3:binwidth, a4:'seconds'}
+            dims=[xdimid, ydimid_int]
          END
          'INTSPEC_ACCEPTED':BEGIN
-               binwidth = data.intendbins[1:*] - data.intendbins
-               attname=['long_name', 'units', 'Bin_endpoints', 'Bin_width', 'Bin_units']
-               attvalue={a0:'Particle Count Per Interarrival Bin, Accepted Particles', a1:'#',$
-                  a2:data.intendbins, a3:binwidth, a4:'seconds'}
-               dims=[xdimid, ydimid_int]
+            binwidth = data.intendbins[1:*] - data.intendbins
+            attname=['long_name', 'units', 'Bin_endpoints', 'Bin_width', 'Bin_units']
+            attvalue={a0:'Particle Count Per Interarrival Bin, Accepted Particles', a1:'#',$
+               a2:data.intendbins, a3:binwidth, a4:'seconds'}
+            dims=[xdimid, ydimid_int]
          END
          'MIDBINS':BEGIN
             attvalue={a1:'Size Bin Mid-points', a2:'micrometers'}
@@ -153,12 +153,12 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
             dims=ydimid_sizeend
          END
          'INTMIDBINS':BEGIN
-               attvalue={a1:'Interarrival Bin Mid-points', a2:'s'}
-               dims=ydimid_int
+            attvalue={a1:'Interarrival Bin Mid-points', a2:'s'}
+            dims=ydimid_int
          END
          'INTENDDBINS':BEGIN
-               attvalue={a1:'Interarrival Bin End-points', a2:'s'}
-               dims=ydimid_intend
+            attvalue={a1:'Interarrival Bin End-points', a2:'s'}
+            dims=ydimid_intend
          END
          ELSE:BEGIN
             skiptag=1
@@ -176,9 +176,9 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
          IF varid eq -1 THEN varid=ncdf_vardef(id,tagname,dims,/float)
          FOR k=0,n_elements(attname)-1 DO BEGIN
             IF size(attvalue.(k), /TYPE) eq 2 THEN BEGIN
-              ncdf_attput,id,varid,attname[k],attvalue.(k),/LONG
+               ncdf_attput,id,varid,attname[k],attvalue.(k),/LONG
             ENDIF ELSE BEGIN
-              ncdf_attput,id,varid,attname[k],attvalue.(k)
+               ncdf_attput,id,varid,attname[k],attvalue.(k)
             ENDELSE
          ENDFOR
 
@@ -204,13 +204,13 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
          area200=compute_area(data, binstart=i200)
 
          bulk=create_struct(bulkall, 'area', area.area, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
-              'iwc100', bulk100.iwc, 'area100', area100.area, 'lwc100', bulk100.lwc, 'nt200', bulk200.nt, 'mnd200', bulk200.mnd, $
-              'mvd200', bulk200.mvd, 'iwc200', bulk200.iwc, 'lwc200', bulk200.lwc, 'area200', area200.area, 'meanar', $
-              meanar, 'meanaspr', meanaspr, 'asd', area.asd)
+            'iwc100', bulk100.iwc, 'area100', area100.area, 'lwc100', bulk100.lwc, 'nt200', bulk200.nt, 'mnd200', bulk200.mnd, $
+            'mvd200', bulk200.mvd, 'iwc200', bulk200.iwc, 'lwc200', bulk200.lwc, 'area200', area200.area, 'meanar', $
+            meanar, 'meanaspr', meanaspr, 'asd', area.asd)
       ENDIF ELSE BEGIN
-          bulk=create_struct(bulkall, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
-               'iwc100', bulk100.iwc, 'lwc100', bulk100.lwc, 'nt200', bulk200.nt, 'mnd200', bulk200.mnd, $
-               'mvd200', bulk200.mvd, 'iwc200', bulk200.iwc, 'lwc200', bulk200.lwc)
+         bulk=create_struct(bulkall, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
+            'iwc100', bulk100.iwc, 'lwc100', bulk100.lwc, 'nt200', bulk200.nt, 'mnd200', bulk200.mnd, $
+            'mvd200', bulk200.mvd, 'iwc200', bulk200.iwc, 'lwc200', bulk200.lwc)
       ENDELSE
    ENDIF ELSE bulk=data  ;For CDP, FSSP, etc. where the bulk variables are already in the main structure
 
@@ -227,34 +227,34 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
 
       CASE tags[j] OF
          'LWC':BEGIN
-             attvalue={a1:'Liquid Water Content',a2:'gram/m3'}
+            attvalue={a1:'Liquid Water Content',a2:'gram/m3'}
          END
          'LWC100':BEGIN
-             attvalue={a1:'Liquid Water Content, Particles Larger than 100um in Diameter',a2:'gram/m3'}
+            attvalue={a1:'Liquid Water Content, Particles Larger than 100um in Diameter',a2:'gram/m3'}
          END
          'LWC200':BEGIN
-             attvalue={a1:'Liquid Water Content, Particles Larger than 200um in Diameter',a2:'gram/m3'}
+            attvalue={a1:'Liquid Water Content, Particles Larger than 200um in Diameter',a2:'gram/m3'}
          END
          'IWC':BEGIN
-             attname=['long_name','units','parameterization']
-             attvalue={a1:'Ice Water Content',a2:'gram/m3',a3:'Brown and Francis 1995'}
+            attname=['long_name','units','parameterization']
+            attvalue={a1:'Ice Water Content',a2:'gram/m3',a3:'Brown and Francis 1995'}
          END
          'IWC100':BEGIN
-             attname=['long_name','units','parameterization']
-             attvalue={a1:'Ice Water Content, Particles Larger than 100um in Diameter',a2:'gram/m3',a3:'Brown and Francis 1995'}
+            attname=['long_name','units','parameterization']
+            attvalue={a1:'Ice Water Content, Particles Larger than 100um in Diameter',a2:'gram/m3',a3:'Brown and Francis 1995'}
          END
          'IWC200':BEGIN
-             attname=['long_name','units','parameterization']
-             attvalue={a1:'Ice Water Content, Particles Larger than 200um in Diameter',a2:'gram/m3',a3:'Brown and Francis 1995'}
+            attname=['long_name','units','parameterization']
+            attvalue={a1:'Ice Water Content, Particles Larger than 200um in Diameter',a2:'gram/m3',a3:'Brown and Francis 1995'}
          END
          'AREA':BEGIN
-             attvalue={a1:'Projected Particle Area, All Particles',a2:'1/m'}
+            attvalue={a1:'Projected Particle Area, All Particles',a2:'1/m'}
          END
          'AREA100':BEGIN
-             attvalue={a1:'Projected Particle Area, Particles Larger than 100um in Diameter',a2:'1/m'}
+            attvalue={a1:'Projected Particle Area, Particles Larger than 100um in Diameter',a2:'1/m'}
          END
          'AREA200':BEGIN
-             attvalue={a1:'Projected Particle Area, Particles Larger than 200um in Diameter',a2:'1/m'}
+            attvalue={a1:'Projected Particle Area, Particles Larger than 200um in Diameter',a2:'1/m'}
          END
          'MVD':BEGIN
             attvalue={a1:'Median Volume Diameter',a2:'micrometers'}
@@ -286,14 +286,14 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
          'MEANAR':BEGIN
             attname=['long_name','units','Bin_endpoints','Bin_units']
             attvalue={a0:'Mean Area Ratio Per Size Bin',a1:'unitless',$
-                        a2:data.op.endbins,a3:'micrometers'}
+               a2:data.op.endbins,a3:'micrometers'}
             dims=[xdimid, ydimid_size]
             tagname='MEAN_AREARATIO'
          END
          'MEANASPR':BEGIN
             attname=['long_name','units','Bin_endpoints','Bin_units']
             attvalue={a0:'Mean Aspect Ratio Per Size Bin', a1:'unitless',$
-                        a2:data.op.endbins, a3:'micrometers'}
+               a2:data.op.endbins, a3:'micrometers'}
             dims=[xdimid, ydimid_size]
             tagname='MEAN_ASPECTRATIO'
          END
@@ -301,7 +301,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
             binwidth = data.intendbins[1:*] - data.intendbins
             attname=['long_name', 'units', 'Bin_endpoints', 'Bin_width', 'Bin_units']
             attvalue={a0:'Projected Area Per Size Bin, Not Normalized by Bin Width', a1:'1/m',$
-                        a2:data.op.endbins, a3:binwidth, a4:'micrometers'}
+               a2:data.op.endbins, a3:binwidth, a4:'micrometers'}
             dims=[xdimid, ydimid_size]
             tagname='ASD'
          END
@@ -313,7 +313,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
             dims=[xdimid, ydimid_size]
             tagname='MSD'
          END
-      ELSE:skiptag=1
+         ELSE:skiptag=1
       ENDCASE
 
       IF (lite eq 1) and (n_elements(dims) gt 1) THEN skiptag=1
@@ -322,9 +322,9 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
          IF varid eq -1 THEN varid=ncdf_vardef(id,tagname,dims,/float)
          FOR k=0,n_elements(attname)-1 DO BEGIN
             IF size(attvalue.(k), /TYPE) eq 2 THEN BEGIN
-              ncdf_attput,id,varid,attname[k],attvalue.(k),/LONG
+               ncdf_attput,id,varid,attname[k],attvalue.(k),/LONG
             ENDIF ELSE BEGIN
-              ncdf_attput,id,varid,attname[k],attvalue.(k)
+               ncdf_attput,id,varid,attname[k],attvalue.(k)
             ENDELSE
          ENDFOR
 
@@ -386,9 +386,9 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
                IF varid eq -1 THEN varid=ncdf_vardef(id,tagname,dims,/float)
                FOR k=0,n_elements(attname)-1 DO BEGIN
                   IF size(attvalue.(k), /TYPE) eq 2 THEN BEGIN
-                  ncdf_attput,id,varid,attname[k],attvalue.(k),/LONG
+                     ncdf_attput,id,varid,attname[k],attvalue.(k),/LONG
                   ENDIF ELSE BEGIN
-                  ncdf_attput,id,varid,attname[k],attvalue.(k)
+                     ncdf_attput,id,varid,attname[k],attvalue.(k)
                   ENDELSE
                ENDFOR
 
