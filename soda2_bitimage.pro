@@ -22,7 +22,7 @@ FUNCTION soda2_bitimage, fn, pointer, pop, pmisc, divider=divider
       WHILE (c lt framep.n) and (imsize lt maxslices) DO BEGIN
          CASE (*pop).subformat OF
             0: im=spec_read_frame(lun,framep.ap[c],(*pop).probeid)
-            1: im=tvcpi_read_frame(lun,framep.ap[c],(*pop).probeid)
+            1: im=spec_read_frame(lun,framep.ap[c], (*pop).probeid, version=1)
             2: im=hvps4_read_frame(lun,framep.ap[c],(*pop).probeid)
          ENDCASE
          slices=n_elements(im.image)/128

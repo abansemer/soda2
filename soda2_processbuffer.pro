@@ -288,9 +288,9 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
 
             ;Read images
             CASE (*pop).subformat OF
-               0: x=spec_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid)
-               1: x=tvcpi_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid)  ;Also Fast2DS
-               2: x=hvps4_read_frame(1,(*pmisc).imagepointers[i],(*pop).probeid)
+               0: x = spec_read_frame(1, (*pmisc).imagepointers[i], (*pop).probeid)
+               1: x = spec_read_frame(1, (*pmisc).imagepointers[i], (*pop).probeid, version=1)
+               2: x = hvps4_read_frame(1, (*pmisc).imagepointers[i], (*pop).probeid)
             ENDCASE
             IF (x.error eq 0) and (max(size(x.image, /dim)) lt 1000) THEN BEGIN
                bitimage=[[bitimage],[x.image]]
