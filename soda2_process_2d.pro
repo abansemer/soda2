@@ -306,19 +306,27 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
       END
 
       ;Add a few more variables if lat, lon, alt, t are available
-      IF n_elements(pthdat) gt 0 THEN BEGIN
-         varid = ncdf_vardef(ncdf_id, 'lat', xdimid, /double, gzip=5)
-         ncdf_attput, ncdf_id,varid, 'longname', 'Latitude'
-         ncdf_attput, ncdf_id,varid, 'units', 'degrees'
-         varid = ncdf_vardef(ncdf_id, 'lon', xdimid, /double, gzip=5)
-         ncdf_attput, ncdf_id, varid, 'longname', 'Longitude'
-         ncdf_attput, ncdf_id, varid, 'units', 'degrees'
-         varid = ncdf_vardef(ncdf_id, 'alt', xdimid, /double, gzip=5)
-         ncdf_attput, ncdf_id, varid, 'longname', 'GPS altitude'
-         ncdf_attput, ncdf_id, varid, 'units', 'meters'
-         varid = ncdf_vardef(ncdf_id, 't', xdimid, /double, gzip=5)
-         ncdf_attput, ncdf_id, varid, 'longname', 'Temperature'
-         ncdf_attput, ncdf_id, varid, 'units', 'degrees Celsius'
+      IF (n_elements(pthdat) gt 0) THEN BEGIN
+         IF (total(tag_names(pthdat) eq 'LAT') eq 1) THEN BEGIN
+            varid = ncdf_vardef(ncdf_id, 'lat', xdimid, /double, gzip=5)
+            ncdf_attput, ncdf_id,varid, 'longname', 'Latitude'
+            ncdf_attput, ncdf_id,varid, 'units', 'degrees'
+         ENDIF
+         IF (total(tag_names(pthdat) eq 'LON') eq 1) THEN BEGIN
+            varid = ncdf_vardef(ncdf_id, 'lon', xdimid, /double, gzip=5)
+            ncdf_attput, ncdf_id, varid, 'longname', 'Longitude'
+            ncdf_attput, ncdf_id, varid, 'units', 'degrees'
+         ENDIF
+            IF (total(tag_names(pthdat) eq 'GALT') eq 1) THEN BEGIN
+            varid = ncdf_vardef(ncdf_id, 'alt', xdimid, /double, gzip=5)
+            ncdf_attput, ncdf_id, varid, 'longname', 'GPS altitude'
+            ncdf_attput, ncdf_id, varid, 'units', 'meters'
+         ENDIF
+            IF (total(tag_names(pthdat) eq 'T') eq 1) THEN BEGIN
+            varid = ncdf_vardef(ncdf_id, 't', xdimid, /double, gzip=5)
+            ncdf_attput, ncdf_id, varid, 'longname', 'Temperature'
+            ncdf_attput, ncdf_id, varid, 'units', 'degrees Celsius'
+         ENDIF
       ENDIF
 
       ncdf_control,ncdf_id,/endef                ;put in data mode
@@ -687,17 +695,26 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
    ENDIF
    IF op.ncdfparticlefile ge 1 THEN BEGIN
       ;Add in PTH data if available
-      IF n_elements(pthdat) gt 0 THEN BEGIN
+      IF (n_elements(pthdat) gt 0) THEN BEGIN
          varid=ncdf_varid(ncdf_id,'time')
          ncdf_varget, ncdf_id, varid, ptime
-         varid=ncdf_varid(ncdf_id,'lat')
-         ncdf_varput, ncdf_id, varid, interpol(pthdat.lat, pthdat.time, ptime)
-         varid=ncdf_varid(ncdf_id,'lon')
-         ncdf_varput, ncdf_id, varid, interpol(pthdat.lon, pthdat.time, ptime)
-         varid=ncdf_varid(ncdf_id,'alt')
-         ncdf_varput, ncdf_id, varid, interpol(pthdat.galt, pthdat.time, ptime)
-         varid=ncdf_varid(ncdf_id,'t')
-         ncdf_varput, ncdf_id, varid, interpol(pthdat.t, pthdat.time, ptime)
+         ;Check to make sure each tag exists first
+         IF (total(tag_names(pthdat) eq 'LAT') eq 1) THEN BEGIN
+            varid=ncdf_varid(ncdf_id,'lat')
+            ncdf_varput, ncdf_id, varid, interpol(pthdat.lat, pthdat.time, ptime)
+         ENDIF
+         IF (total(tag_names(pthdat) eq 'LON') eq 1) THEN BEGIN
+            varid=ncdf_varid(ncdf_id,'lon')
+            ncdf_varput, ncdf_id, varid, interpol(pthdat.lon, pthdat.time, ptime)
+         ENDIF
+         IF (total(tag_names(pthdat) eq 'GALT') eq 1) THEN BEGIN
+            varid=ncdf_varid(ncdf_id,'alt')
+            ncdf_varput, ncdf_id, varid, interpol(pthdat.galt, pthdat.time, ptime)
+         ENDIF
+         IF (total(tag_names(pthdat) eq 'T') eq 1) THEN BEGIN
+            varid=ncdf_varid(ncdf_id,'t')
+            ncdf_varput, ncdf_id, varid, interpol(pthdat.t, pthdat.time, ptime)
+         ENDIF
       ENDIF
       ncdf_close,ncdf_id
       infoline=[infoline, fn_ncdf]

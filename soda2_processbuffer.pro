@@ -475,6 +475,8 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
          ;Note: The timelines in 1D2D come AFTER the particle itself, so will always start with line 6
          startline = [6, (sync_ind[2:-2]+3)]   ;Don't use the last timeline as a startline, since only empty space after
          stopline  = sync_ind[2:-1]-1
+         IF min(stopline-startline) lt 0 THEN return, nullbuffer  ;Reject buffers with bad sync detections, usually when noise matches sync pattern
+
 
          ;Misc
          restore_slice = 0
@@ -684,7 +686,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
       IF ((*pop).keeplargest ne 0) THEN BEGIN
          IF ((*pop).keeplargest eq 1) THEN blobs=label_blobs(roi, dilate=2)  ;Neighborhood of 2 (original default)
          IF ((*pop).keeplargest eq 2) THEN blobs=label_blobs(roi, dilate=1)  ;Neighborhood of 1 option
-         IF ((*pop).keeplargest eq 3) THEN blobs=label_blobs(roi, dilate=0)  ;No dilation
+         IF ((*pop).keeplargest eq 3) THEN blobs=label_blobs(roi, dilate=0, /all)  ;No dilation, but allow corners with /all
          nblobs=max(blobs)
          numregions[i]=nblobs    ;Keep for PBP output
          IF nblobs gt 1 THEN BEGIN
