@@ -73,21 +73,21 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
    ;Write time data
    attname=['long_name','units']
    attvalue=['Elapsed time','seconds since '+date.year+'-'+date.month+'-'+date.day+' '+starttime+' +0000']
-   timeid=ncdf_vardef(id,'elapsed_time',xdimid,/double)
-   FOR k=0,n_elements(attname)-1 DO ncdf_attput,id,timeid,attname[k],attvalue[k]
+   elapsedtimeid=ncdf_vardef(id,'elapsed_time',xdimid,/double)
+   FOR k=0,n_elements(attname)-1 DO ncdf_attput,id,elapsedtimeid,attname[k],attvalue[k]
 
    attvalue=['Base time','seconds since 01/01/1970']
    baseid=ncdf_vardef(id,'base_time',/double)
    FOR k=0,n_elements(attname)-1 DO ncdf_attput,id,baseid,attname[k],attvalue[k]
 
-   attvalue=['UTC time','seconds from midnight of start date']
-   utcid=ncdf_vardef(id,'utc_time',xdimid,/double)
-   FOR k=0,n_elements(attname)-1 DO ncdf_attput,id,utcid,attname[k],attvalue[k]
+   attvalue=['Time','seconds from midnight of start date']
+   timeid=ncdf_vardef(id,'time',xdimid,/double)
+   FOR k=0,n_elements(attname)-1 DO ncdf_attput,id,timeid,attname[k],attvalue[k]
 
    ncdf_control,id,/endef                ;put in data mode
-   ncdf_varput,id,utcid,data.time
+   ncdf_varput,id,timeid,data.time
    ncdf_varput,id,baseid,data.time[0]+days1970*86400l
-   ncdf_varput,id,timeid,data.time-data.time[0]
+   ncdf_varput,id,elapsedtimeid,data.time-data.time[0]
    ncdf_control,id,/redef                ;return to define mode
 
    ;-------Write data to file, start with main structure tags------------------------
@@ -195,22 +195,41 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
       bulk100=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=i100)
       i200=min(where(data.op.endbins ge 200))
       bulk200=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=i200)
+      IF data.op.res ge 100 THEN BEGIN
+         got_precip = 1  ;Flag for a precip probe (2DP, HVPS, etc)
+         i1000=min(where(data.op.endbins ge 1000))
+         bulk1000=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=i1000)
+      ENDIF ELSE got_precip = 0
       IF total(tags eq 'SPEC2D_ASPR') THEN BEGIN
          armidbins=(data.op.arendbins+data.op.arendbins[1:*])/2.0
          meanar=compute_meanar(data.spec2d,armidbins)
          meanaspr=compute_meanar(data.spec2d_aspr,armidbins)
          area=compute_area(data)
-         area100=compute_area(data, binstart=i100)
-         area200=compute_area(data, binstart=i200)
-
-         bulk=create_struct(bulkall, 'area', area.area, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
-            'iwc100', bulk100.iwc, 'area100', area100.area, 'lwc100', bulk100.lwc, 'nt200', bulk200.nt, 'mnd200', bulk200.mnd, $
-            'mvd200', bulk200.mvd, 'iwc200', bulk200.iwc, 'lwc200', bulk200.lwc, 'area200', area200.area, 'meanar', $
-            meanar, 'meanaspr', meanaspr, 'asd', area.asd)
+         IF got_precip eq 0 THEN BEGIN
+            area100=compute_area(data, binstart=i100)
+            area200=compute_area(data, binstart=i200)
+            bulk=create_struct(bulkall, 'area', area.area, 'meanar', meanar, 'meanaspr', meanaspr, 'asd', area.asd, $
+               'nt100', bulk100.nt, 'mnd100', bulk100.mnd, $
+               'mvd100', bulk100.mvd, 'dmass100', bulk100.dmass, 'iwc100', bulk100.iwc, 'area100', area100.area, $
+               'lwc100', bulk100.lwc, 'nt200', bulk200.nt, 'mnd200', bulk200.mnd, 'mvd200', bulk200.mvd, $
+               'dmass200', bulk200.dmass, 'iwc200', bulk200.iwc, 'lwc200', bulk200.lwc, 'area200', area200.area)
+         ENDIF ELSE BEGIN
+            area1000=compute_area(data, binstart=i1000)
+            bulk=create_struct(bulkall, 'area', area.area, 'meanar', meanar, 'meanaspr', meanaspr, 'asd', area.asd, $
+               'nt1000', bulk1000.nt, 'mnd1000', bulk1000.mnd, $
+               'mvd1000', bulk1000.mvd, 'dmass1000', bulk1000.dmass, 'iwc1000', bulk1000.iwc, 'area1000', area1000.area, $
+               'lwc1000', bulk1000.lwc)
+         ENDELSE
       ENDIF ELSE BEGIN
-         bulk=create_struct(bulkall, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
-            'iwc100', bulk100.iwc, 'lwc100', bulk100.lwc, 'nt200', bulk200.nt, 'mnd200', bulk200.mnd, $
-            'mvd200', bulk200.mvd, 'iwc200', bulk200.iwc, 'lwc200', bulk200.lwc)
+         IF got_precip eq 0 THEN BEGIN
+            bulk=create_struct(bulkall, 'nt100', bulk100.nt, 'mnd100', bulk100.mnd, 'mvd100', bulk100.mvd, $
+               'dmass100', bulk100.dmass, 'iwc100', bulk100.iwc, 'lwc100', bulk100.lwc, 'nt200', bulk200.nt, $
+               'mnd200', bulk200.mnd, 'mvd200', bulk200.mvd, 'dmass200', bulk200.dmass, 'iwc200', bulk200.iwc, $
+               'lwc200', bulk200.lwc)
+         ENDIF ELSE BEGIN
+            bulk=create_struct(bulkall, 'nt1000', bulk1000.nt, 'mnd1000', bulk1000.mnd, 'mvd1000', bulk1000.mvd, $
+               'dmass1000', bulk1000.dmass, 'iwc1000', bulk1000.iwc, 'lwc1000', bulk1000.lwc)
+         ENDELSE
       ENDELSE
    ENDIF ELSE bulk=data  ;For CDP, FSSP, etc. where the bulk variables are already in the main structure
 
@@ -228,12 +247,19 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
       CASE tags[j] OF
          'LWC':BEGIN
             attvalue={a1:'Liquid Water Content',a2:'gram/m3'}
+            IF data.op.water eq 0 THEN skiptag=1
          END
          'LWC100':BEGIN
             attvalue={a1:'Liquid Water Content, Particles Larger than 100um in Diameter',a2:'gram/m3'}
+            IF data.op.water eq 0 THEN skiptag=1
          END
          'LWC200':BEGIN
             attvalue={a1:'Liquid Water Content, Particles Larger than 200um in Diameter',a2:'gram/m3'}
+            IF data.op.water eq 0 THEN skiptag=1
+         END
+         'LWC1000':BEGIN
+            attvalue={a1:'Liquid Water Content, Particles Larger than 1000um in Diameter',a2:'gram/m3'}
+            IF data.op.water eq 0 THEN skiptag=1
          END
          'IWC':BEGIN
             attname=['long_name','units','parameterization']
@@ -247,6 +273,10 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
             attname=['long_name','units','parameterization']
             attvalue={a1:'Ice Water Content, Particles Larger than 200um in Diameter',a2:'gram/m3',a3:'Brown and Francis 1995'}
          END
+         'IWC1000':BEGIN
+            attname=['long_name','units','parameterization']
+            attvalue={a1:'Ice Water Content, Particles Larger than 1000um in Diameter',a2:'gram/m3',a3:'Brown and Francis 1995'}
+         END
          'AREA':BEGIN
             attvalue={a1:'Projected Particle Area, All Particles',a2:'1/m'}
          END
@@ -256,11 +286,17 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
          'AREA200':BEGIN
             attvalue={a1:'Projected Particle Area, Particles Larger than 200um in Diameter',a2:'1/m'}
          END
+         'AREA1000':BEGIN
+            attvalue={a1:'Projected Particle Area, Particles Larger than 1000um in Diameter',a2:'1/m'}
+         END
          'MVD':BEGIN
-            attvalue={a1:'Median Volume Diameter',a2:'micrometers'}
+            attvalue={a1:'Median Volume Diameter, All Particles',a2:'micrometers'}
          END
          'MND':BEGIN
-            attvalue={a1:'Mean Diameter',a2:'micrometers'}
+            attvalue={a1:'Mean Diameter, All Particles',a2:'micrometers'}
+         END
+         'DMASS':BEGIN
+            attvalue={a1:'Mass-weighted Diameter, All Particles',a2:'micrometers'}
          END
          'NT': BEGIN
             attvalue={a1:'Total Number Concentration, All Particles',a2:'#/m3'}
@@ -271,6 +307,9 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
          'MND100':BEGIN
             attvalue={a1:'Mean Diameter, Particles Larger than 100um in Diameter',a2:'micrometers'}
          END
+         'DMASS100':BEGIN
+            attvalue={a1:'Mass-weighted Diameter, Particles Larger than 100um in Diameter',a2:'micrometers'}
+         END
          'NT100': BEGIN
             attvalue={a1:'Total Number Concentration, Particles Larger than 100um in Diameter',a2:'#/m3'}
          END
@@ -280,8 +319,23 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
          'MND200':BEGIN
             attvalue={a1:'Mean Diameter, Particles Larger than 200um in Diameter',a2:'micrometers'}
          END
+         'DMASS200':BEGIN
+            attvalue={a1:'Mass-weighted Diameter, Particles Larger than 200um in Diameter',a2:'micrometers'}
+         END
          'NT200': BEGIN
             attvalue={a1:'Total Number Concentration, Particles Larger than 200um in Diameter',a2:'#/m3'}
+         END
+         'MVD1000':BEGIN
+            attvalue={a1:'Median Volume Diameter, Particles Larger than 1000um in Diameter',a2:'micrometers'}
+         END
+         'MND1000':BEGIN
+            attvalue={a1:'Mean Diameter, Particles Larger than 1000um in Diameter',a2:'micrometers'}
+         END
+         'DMASS1000':BEGIN
+            attvalue={a1:'Mass-weighted Diameter, Particles Larger than 1000um in Diameter',a2:'micrometers'}
+         END
+         'NT1000': BEGIN
+            attvalue={a1:'Total Number Concentration, Particles Larger than 1000um in Diameter',a2:'#/m3'}
          END
          'MEANAR':BEGIN
             attname=['long_name','units','Bin_endpoints','Bin_units']

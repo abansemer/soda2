@@ -4,7 +4,7 @@ PRO soda2_export_event, ev
    uname=widget_info(ev.id,/uname)
 
    CASE uname OF
- 
+
         'addfile': BEGIN ;===========================================================================
             IF ev.value eq 0 THEN BEGIN ;Add a file pressed
                 a=dialog_pickfile(/read,/multiple,path=defaultpath,filter='*.dat',title='Files to Export',dialog_parent=ev.id)
@@ -33,7 +33,7 @@ PRO soda2_export_event, ev
             widget_control,widget_info(ev.top,find='filelist'),get_value=fn
             widget_control,widget_info(ev.top,find='outdir'),get_value=outdir
             IF strmid(outdir, strlen(outdir)-1, 1) ne path_sep() THEN outdir=outdir+path_sep()
-           
+
             widget_control,widget_info(ev.top,find='process'),set_value='Processing...'
             infoline=['Exported files:']
             FOR i=0,n_elements(fn)-1 DO BEGIN
@@ -47,7 +47,12 @@ PRO soda2_export_event, ev
             dummy=dialog_message(infoline,dialog_parent=ev.id,/info)
             widget_control,widget_info(ev.top,find='process'),set_value='EXPORT to netCDF'
         END
-        
+
+        'dummy':BEGIN
+            ;Not active, just a placeholder so this function is included in the 'package' command
+            soda2_export_ncdf_raf, data, outfile=outdir + outfile
+         END
+
         'ascii':BEGIN ;===========================================================================
             ;Collect data from the GUI
 
@@ -55,7 +60,7 @@ PRO soda2_export_event, ev
             widget_control,widget_info(ev.top,find='filelist'),get_value=fn
             widget_control,widget_info(ev.top,find='outdir'),get_value=outdir
             IF strmid(outdir, strlen(outdir)-1, 1) ne path_sep() THEN outdir=outdir+path_sep()
-           
+
             widget_control,widget_info(ev.top,find='ascii'),set_value='Processing...'
             infoline=['Exported files:']
             FOR i=0,n_elements(fn)-1 DO BEGIN
@@ -77,7 +82,7 @@ PRO soda2_export_event, ev
             widget_control,widget_info(ev.top,find='filelist'),get_value=fn
             widget_control,widget_info(ev.top,find='outdir'),get_value=outdir
             IF strmid(outdir, strlen(outdir)-1, 1) ne path_sep() THEN outdir=outdir+path_sep()
-            
+
             FOR i=0,n_elements(fn)-1 DO BEGIN
                IF file_test(fn[i]) THEN BEGIN
                   widget_control,widget_info(ev.top,find='processimages'),set_value='Indexing: '+file_basename(fn[i])
@@ -88,7 +93,7 @@ PRO soda2_export_event, ev
             widget_control,widget_info(ev.top,find='processimages'),set_value='WRITE IMAGES'
         END
 
-        
+
         'quit': WIDGET_CONTROL, ev.TOP, /DESTROY
 
         ELSE: dummy=0
@@ -101,7 +106,7 @@ PRO soda2_export
     IF !version.os_family eq 'unix' THEN widget_control,default_font='-adobe-helvetica-medium-r-normal--12-120-75-75-p-67-iso8859-1' ;use xlsfonts to see more
     ;IF !version.os_family eq 'unix' THEN widget_control,default_font='-adobe-helvetica-bold-r-normal--14-100-100-100-p-82-iso8859-1'
     ;widget_control,default_font='Courier*10'
-    
+
     base = WIDGET_BASE(COLUMN=1,title='Export Data',MBar=menubarID)
 
     fileID=widget_button(menubarID, value='File', /menu)

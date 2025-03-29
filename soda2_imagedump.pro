@@ -24,7 +24,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    IF n_elements(textwidgetid) eq 0 THEN textwidgetid=0
    IF n_elements(writejunk) eq 0 THEN writejunk=1
    IF n_elements(writeempty) eq 0 THEN writeempty=0
-   IF n_elements(numcolumns) eq 0 THEN numcolumns=2
+   IF n_elements(numcolumns) eq 0 THEN numcolumns=-1    ;Use -1 for automatic columns
    IF n_elements(hourly) eq 0 THEN hourly=0
    IF n_elements(naming_convention) eq 0 THEN naming_convention='standard'
    IF n_elements(datestyle) eq 0 THEN datestyle=0  ;1 for YYYYMMDD, otherwise MMDDYYYY
@@ -65,6 +65,13 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
       IF (op.project eq 'IMPACTS') THEN probename+='-P3'  ;Add aircraft ID for both 2DS/HVPS
    ENDIF
    rate=fix(op.rate)
+
+   ;Automatic columns if flagged, based on rate and numdiodes
+   IF numcolumns eq -1 THEN BEGIN
+      numcolumns = 2
+      IF (op.rate eq 1) and (op.numdiodes eq 128) THEN numcolumns = 5
+      IF (op.rate eq 1) and (op.numdiodes eq 64) THEN numcolumns = 3
+   ENDIF
 
    ;Output images using a different rakefix than what is in the op structure (for HIWC PIP, mainly)
    IF n_elements(rakefixtype) ne 0 THEN op.rakefix=rakefixtype
