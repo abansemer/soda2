@@ -1,4 +1,4 @@
-FUNCTION spec_read_frame, lun, fpoint, id, version=version
+FUNCTION spec_read_frame, lun, fpoint, id, version=version, recursioncount=recursioncount
    ;FUNCTION to read in an HVPS3/2DS frame
    ;Send lun and pointer to frame start
    ;'id' is 'H'=Horizontal, 'V'=Vertical
@@ -6,6 +6,7 @@ FUNCTION spec_read_frame, lun, fpoint, id, version=version
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
    IF n_elements(version) eq 0 THEN version = 0  ;0=original 2DS/HVPS, 1=3VCPI/HVPS4/Fast2DS
+   IF n_elements(recursioncount) eq 0 THEN recursioncount = 0  ;Keep track of recursions
 
    point_lun, lun, fpoint
 
@@ -69,12 +70,12 @@ FUNCTION spec_read_frame, lun, fpoint, id, version=version
          timetrunc = counter[0]
       ENDIF
 
-      ;Check for incomplete particle.  Call this function recursively to get the next part
-      IF missingtw THEN BEGIN
+      ;Check for incomplete particle.  Call this function recursively (limited depth) to get the next part
+      IF (missingtw gt 0) and (recursioncount lt 2) THEN BEGIN
          ;Sometimes there are timeword-only buffers where error==1, skip over these
          REPEAT BEGIN
             point_lun, -lun, cpoint
-            q = spec_read_frame(lun, cpoint, id)
+            q = spec_read_frame(lun, cpoint, id, version=version, recursioncount=recursioncount+1)
          ENDREP UNTIL q.error eq 0
          ;Concatenate
          imageraw = [imageraw, q.imageraw]
