@@ -29,7 +29,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    IF n_elements(naming_convention) eq 0 THEN naming_convention='standard'
    IF n_elements(datestyle) eq 0 THEN datestyle=0  ;1 for YYYYMMDD, otherwise MMDDYYYY
    IF n_elements(version) eq 0 THEN version='v01'  ;GHRC default
-   IF n_elements(charsize) eq 0 THEN charsize=1.0
+   IF n_elements(charsize) eq 0 THEN charsize=1.5
 
    IF nofile eq 1 THEN data=file ELSE restore, file
    op=data.op
@@ -100,6 +100,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    ;General setup
    set_plot,'z'
    !p.charsize=charsize
+   timecharsize=1
    n=n_elements(data.time)
 
    wid=strtrim(string(long(op.res*op.numdiodes)),2)  ; buffer width (for header)
@@ -147,11 +148,10 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
 
          ;-------Write image header-------
          xyouts,20,imheight-30, op.date+' '+imagetime+'  Buffer width = '+wid+' microns.',/device,color=1
-         xyouts,20,imheight-50, 'Project: '+op.project+'  Probe: '+probename+ '   Resolution: '+strtrim(string(op.res),2)+' microns',/device,color=1
-         IF hourly ne 0 THEN xyouts,50,imheight-70, 'This image represents one hour of flight time, one panel every '+strtrim(string(rate),2)+' minutes.',/device,color=1 ELSE $
-            xyouts,50,imheight-70, 'This image represents one minute of flight time, one panel every '+strtrim(string(rate),2)+' seconds.',/device,color=1
-         xyouts,50,imheight-90, 'Many more images are not shown.  Contact PI for complete imagery.',/device,color=1
-         ;xyouts,50,imheight-110,'Contacts: Andy Heymsfield (heyms1@ncar.ucar.edu ) or  Aaron Bansemer (bansemer@ucar.edu)',/device,color=1
+         xyouts,20,imheight-60, 'Project: '+op.project+'  Probe: '+probename+ '   Resolution: '+strtrim(string(op.res),2)+' microns',/device,color=1
+         IF hourly ne 0 THEN xyouts,50,imheight-90, 'This image represents one hour of flight time, one panel every '+strtrim(string(rate),2)+' minutes.',/device,color=1 ELSE $
+         xyouts,50,imheight-90, 'This image represents one minute of flight time, one panel every '+strtrim(string(rate),2)+' seconds.',/device,color=1
+         xyouts,50,imheight-120, 'Many more images are not shown.  Contact PI for complete imagery.',/device,color=1
 
          numaccepted = 0 ;Keep track of the number of accepted particles to avoid writing junk
 
@@ -174,7 +174,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
             s=size(finalimage,/dim)
             im2=rotate(finalimage[*,0:(numslices-1)<(s[1]-1)],3)
             ;Place time and image
-            xyouts,xpos-20,ypos+op.numdiodes/2,strtrim(string(sec),2),/device,color=1
+            xyouts,xpos-20,ypos+op.numdiodes/2,strtrim(string(sec),2),/device,color=1,charsize=timecharsize
             tv,bytarr(numslices+2,op.numdiodes+2)+1,xpos-1,ypos-1  ;Black outline
             tv,bytarr(numslices,op.numdiodes),xpos,ypos            ;White center
             IF op.probetype eq 'CIPG' THEN im2=im2+2    ;Shift for color table
@@ -225,8 +225,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
       imwidth=maxwidth+75
       maxind=n_elements(data.time)-1
       device,set_resolution=[imwidth,imheight]
-      timecharsize=1.0
-      IF op.numdiodes eq 64 THEN timecharsize=0.8
+      IF op.numdiodes eq 64 THEN timecharsize=0.8*timecharsize
       remainder=0  ;flag for long buffers
 
       FOR i=framestart,framestop,skip DO BEGIN
