@@ -2,7 +2,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
               all=all, skip=skip, showdividers=showdividers, maxwidth=maxwidth, nofile=nofile,$
               textwidgetid=textwidgetid, writejunk=writejunk, writeempty=writeempty, numcolumns=numcolumns,$
               rakefixtype=rakefixtype, hourly=hourly, datestyle=datestyle, naming_convention=naming_convention, $
-              version=version
+              version=version, charsize=charsize
    ;Make a series of particle image png files from processed OAP data.
    ;Uses the SODA2 '.dat' files to find raw data locations and pointers.
    ;File: the processed SODA2 file for flight of interest
@@ -29,6 +29,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
    IF n_elements(naming_convention) eq 0 THEN naming_convention='standard'
    IF n_elements(datestyle) eq 0 THEN datestyle=0  ;1 for YYYYMMDD, otherwise MMDDYYYY
    IF n_elements(version) eq 0 THEN version='v01'  ;GHRC default
+   IF n_elements(charsize) eq 0 THEN charsize=1.0
 
    IF nofile eq 1 THEN data=file ELSE restore, file
    op=data.op
@@ -98,7 +99,7 @@ PRO soda2_imagedump, file, outdir=outdir, starttime=starttime, stoptime=stoptime
 
    ;General setup
    set_plot,'z'
-   !p.charsize=1.0
+   !p.charsize=charsize
    n=n_elements(data.time)
 
    wid=strtrim(string(long(op.res*op.numdiodes)),2)  ; buffer width (for header)
