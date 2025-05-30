@@ -1,7 +1,9 @@
-PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b, minsize=minsize
+PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b, minsize=minsize, counts=counts
    ;PRO to export an ASCII file with the variables contained in a data structure.
    ;Aaron Bansemer, NCAR, 8/2014
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
+
+   IF n_elements(counts) eq 0 THEN counts = 0  ;Write counts instead of concentration
 
    IF n_elements(minsize) eq 0 THEN BEGIN
       minsize = 100
@@ -49,13 +51,25 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b, minsize=minsize
    ENDIF
 
    ;Open output file
+   IF counts eq 1 THEN BEGIN
+      shortname = 'Count'
+      longname = 'counts'
+      description = 'CountXXX: Particle counts per size bin [#]'
+   ENDIF ELSE BEGIN
+      shortname = 'Conc'
+      longname = 'concentration'
+      description = 'ConcXXX: Particle concentration per size bin, normalized by bin width [#/m4]'
+   ENDELSE
+   IF n_elements(outfile) eq 0 THEN outfile = soda2_filename(data.op, data.op.shortname + '_' + strupcase(longname), ext='.txt', outdir='')
    openw, lun, outfile, /get_lun
 
    ;Write header
    tags = tag_names(data.op)
-   printf, lun, 'Particle size distributions for the ', data.op.probetype, ' probe in ', data.op.project
+   IF counts eq 1 THEN printf, lun, 'Particle counts for the ', data.op.probetype, ' probe in ', data.op.project ELSE $
+      printf, lun, 'Particle size distributions for the ', data.op.probetype, ' probe in ', data.op.project
    date = soda2_parsedate(data.op.date)
-   printf, lun, 'Flight date (mm/dd/yyyy):   '+date.month+'/'+date.day+'/'+date.year
+   IF date.order eq 'mdy' THEN printf, lun, 'Flight date (mm/dd/yyyy):   '+date.month+'/'+date.day+'/'+date.year
+   IF date.order eq 'ymd' THEN printf, lun, 'Flight date (yyyy/mm/dd):   '+date.year+'/'+date.month+'/'+date.day
    printf, lun, 'Processed:   '+data.date_processed
    printf, lun, 'Raw data source:  '+data.op.fn
    printf, lun, 'Sizing method:  '+data.op.smethod
@@ -69,6 +83,10 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b, minsize=minsize
    printf, lun, data.midbins, format='(500f9.2)'
    printf, lun, 'Bin endpoints (microns):'
    printf, lun, data.op.endbins, format='(500f9.2)'
+   doftitle = 'Sample area using a depth of field constant of ' + string(data.op.dofconst, form='(f0.2)') + ' (m^2):'
+   IF max(data.op.customdof) gt 0 THEN doftitle = 'Sample area (m^2) using a custom depth of field constant:'
+   printf, lun, doftitle
+   printf, lun, data.sa, format='(500e9.2)'
    printf, lun, ''
    printf, lun, 'Notes:'
    printf, lun, '   All bulk properties are computed using particles larger than '+minsizestring+' microns in size.'
@@ -97,9 +115,9 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b, minsize=minsize
             masstitle, $
             diamtitle, $
             housetitles, $
-            'ConcXXX: Particle concentration per size bin, normalized by bin width [#/m4]']
+            description]
    shortnames = ['Time', 'Nt', massshortname, diamshortname, houseshortnames, $
-      replicate('Conc', n_elements(data.midbins))+string(findgen(n_elements(data.midbins))+1, format='(i03)')]
+      replicate(shortname, n_elements(data.midbins))+string(findgen(n_elements(data.midbins))+1, format='(i03)')]
 
    ;Header variable list
    printf, lun, 'Variables:'
@@ -119,10 +137,18 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b, minsize=minsize
    IF nbad gt 0 THEN data.conc1d[bad] = 0
 
    ;Write data
+   IF counts eq 1 THEN BEGIN
+      data2write = data.spec1d
+      format = '(500i12)'
+   ENDIF ELSE BEGIN
+      data2write = data.conc1d
+      format = '(500e12.2)'
+   ENDELSE
+
    FOR i = 0, n_elements(data.time)-1 DO BEGIN
       printf, lun, data.time[i], bulk100.nt[i], mass[i], diam[i], form='(i6, 3e12.2, $)'
       FOR j = 0, n_elements(houseformats)-1 DO printf, lun, housedata[i,j], form='('+houseformats[j]+', $)'
-      printf, lun, transpose(data.conc1d[i,*]), form='(500e12.2)'
+      printf, lun, transpose(data2write[i,*]), format=format
    ENDFOR
 
    ;Close the file
