@@ -517,7 +517,7 @@ PRO soda2
    addpthfile=cw_bgroup(subbase3a,['Select...','Clear'], uname='findpthfile',/row,label_left='TAS data (dat/ASCII):')
    pthfile=widget_text(subbase3a,uname='pthfile',/editable,xsize=45,/all_events)
    subbase3c=widget_base(subbase3,row=1)
-   tas=cw_field(subbase3c,/int, title='or use fixed TAS of (m/s):',uname='tas', value='0', xsize=4)
+   tas=cw_field(subbase3c,/float, title='or use fixed TAS of (m/s):',uname='tas', value='0', xsize=10)
    vals=['Apply stretch correction']
    tasadvanced=cw_bgroup(subbase3c,vals,uname='tascheckbox',/row,/nonexclusive,uval=vals,set_value=[0])
 
