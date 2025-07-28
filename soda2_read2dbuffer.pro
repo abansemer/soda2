@@ -25,6 +25,10 @@ FUNCTION soda2_read2dbuffer, lun, pop
         a = {probetype:0b, probenumber:0b, hours:0s, minutes:0s, $
         seconds:0s, year:0s, month:0s, day:0s, tas:0s, milliseconds:0s, $
         overload:0s, image:ulon64arr(512)}
+      IF ((*pop).probetype eq 'HVPS1') THEN $
+        a = {probetype:0b, probenumber:0b, hours:0s, minutes:0s, $
+        seconds:0s, year:0s, month:0s, day:0s, tas:0s, milliseconds:0s, $
+        overload:0s, image:intarr(2048)}
 
 
       IF pointer lt 157 THEN BEGIN    ;skip over the xml tag
