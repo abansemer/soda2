@@ -157,7 +157,7 @@ PRO soda2_browse_event, ev
             wset,wt
             plotline = smooth(data.msd[*,2],1,/nan)  ;Have tried many things... nothing works everywhere
             zerodata = where(plotline eq 0, nzero)
-            IF nzero gt 0 THEN plotline[zerodata]=!values.f_nan  ;Make plot look slightly better
+            IF (nzero gt 0) and (nzero lt n_elements(plotline)) THEN plotline[zerodata]=!values.f_nan  ;Make plot look slightly better
             plot, plotline, xsty=5, ysty=5, pos=[0,0,1,1]
             info.bmp=tvrd()     ;The raw plot
             tsbmp=info.bmp

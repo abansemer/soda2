@@ -6,7 +6,7 @@ FUNCTION fixstuckbits, image, h=h
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
    IF n_elements(h) eq 0 THEN h=total(image,2)
-   
+
    ;Make a padded version of h with 5 extra elements on each side, since median filter can't edge_truncate
    pad=7  ;Be sure to use an odd number, otherwise edge is weird
    h2=lonarr(n_elements(h)+pad*2)
@@ -16,14 +16,6 @@ FUNCTION fixstuckbits, image, h=h
    ;Using sqrt(median(h)) to adjust threshold based on the significance of the histogram
    stuck=where(diff gt 10*sqrt(median(h))) - pad
 
-   ;Display stuck bit IDs, use in soda2_browse
-   ;cgplot,h
-   ;cgoplot,hf[pad:*],color='green'
-   ;cgoplot,stuck,h[stuck],/psym,color='red'
-    
-   ;Old way
-   ;stuck=where((h gt 3*mean(h)) or (h lt 0.1*mean(h)))  ;Stuck bits are on more than 3 times the median or off 1/10th... 3 is a guess for now.
-   
    IF stuck[0] eq -1 THEN return,image  ;No stuck bits found
    image[stuck,*]=0
    newimage=image
@@ -36,5 +28,3 @@ FUNCTION fixstuckbits, image, h=h
    endfor
    return, newimage
 end
-
-

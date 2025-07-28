@@ -433,6 +433,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
 
          ;Decode time and particle information
          ;First index of each triplet contains the time of the particle
+         ;Time stamp refers to the end time of the particle, per email from Lyle 7/2025
          timecounter = (buffer.image[sync_ind] and '0000FFFFFFFFFFFF'x)
 
          ;Second timeline contains probe settings, should usually be the same for all particles

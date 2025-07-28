@@ -83,8 +83,9 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b, minsize=minsize, counts
    printf, lun, data.midbins, format='(500f9.2)'
    printf, lun, 'Bin endpoints (microns):'
    printf, lun, data.op.endbins, format='(500f9.2)'
-   doftitle = 'Sample area using a depth of field constant of ' + string(data.op.dofconst, form='(f0.2)') + ' (m^2):'
-   IF max(data.op.customdof) gt 0 THEN doftitle = 'Sample area (m^2) using a custom depth of field constant:'
+   IF total(tags eq 'DOFCONST') eq 1 THEN dofconst = data.op.dofconst ELSE dofconst = 0
+   doftitle = 'Sample area using a depth of field constant of ' + string(dofconst, form='(f0.2)') + ' (m^2):'
+   IF (total(tags eq 'CUSTOMDOF') eq 1) && (max(data.op.customdof) gt 0) THEN doftitle = 'Sample area (m^2) using a custom depth of field constant:'
    printf, lun, doftitle
    printf, lun, data.sa, format='(500e9.2)'
    printf, lun, ''
