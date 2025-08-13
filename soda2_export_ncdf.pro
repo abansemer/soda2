@@ -195,7 +195,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
       bulk100=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=i100)
       i200=min(where(data.op.endbins ge 200))
       bulk200=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=i200)
-      IF data.op.res ge 100 THEN BEGIN
+      IF (data.op.probetype ne 'MERGED') && (data.op.res ge 100) THEN BEGIN
          got_precip = 1  ;Flag for a precip probe (2DP, HVPS, etc)
          i1000=min(where(data.op.endbins ge 1000))
          bulk1000=compute_bulk_simple(data.conc1d,data.op.endbins,binstart=i1000)
@@ -352,7 +352,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
             tagname='MEAN_ASPECTRATIO'
          END
          'ASD':BEGIN
-            binwidth = data.intendbins[1:*] - data.intendbins
+            binwidth = data.op.endbins[1:*] - data.op.endbins
             attname=['long_name', 'units', 'Bin_endpoints', 'Bin_width', 'Bin_units']
             attvalue={a0:'Projected Area Per Size Bin, Not Normalized by Bin Width', a1:'1/m',$
                a2:data.op.endbins, a3:binwidth, a4:'micrometers'}
@@ -360,7 +360,7 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
             tagname='ASD'
          END
          'MSD':BEGIN
-            binwidth = data.intendbins[1:*] - data.intendbins
+            binwidth = data.op.endbins[1:*] - data.op.endbins
             attname=['long_name', 'units', 'parameterization', 'Bin_endpoints', 'Bin_width', 'Bin_units']
             attvalue={a0:'Calculated Mass Per Size Bin, Not Normalized by Bin Width', a1:'g/m3', $
                a2:'Brown and Francis 1995', a3:data.op.endbins, a4:binwidth, a5:'micrometers'}
