@@ -115,7 +115,6 @@ PRO soda2_customdof, op, pinfo=pinfo, groupleaderid=groupleaderid
 
    ;Start widget
    WIDGET_CONTROL, base, /REALIZE
-   ;XMANAGER, 'soda2_customdof', base, /no_block
    widget_control, widget_info(base, find='wplot'), get_value=plotid
 
    ;Create output structure, will contain separate variables with new bins/dof for use by soda2.pro

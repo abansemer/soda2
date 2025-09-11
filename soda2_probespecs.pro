@@ -978,7 +978,7 @@ FUNCTION soda2_probespecs, name=name, id=id, fn=fn
 
    x=base
    x.probename='Fast 2D-S Horizontal Array'
-   x.shortname='2DS'
+   x.shortname='F2DS'
    x.format='SPEC'
    x.subformat=1
    x.probetype='2DS'
@@ -998,7 +998,7 @@ FUNCTION soda2_probespecs, name=name, id=id, fn=fn
 
    x=base
    x.probename='Fast 2D-S Vertical Array'
-   x.shortname='2DS'
+   x.shortname='F2DS'
    x.format='SPEC'
    x.subformat=1
    x.probetype='2DS'

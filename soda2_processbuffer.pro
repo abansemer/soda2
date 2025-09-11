@@ -416,9 +416,6 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
 
          ;Particle headers use 3 slices, should come in triplicate
          ;First conditional matches '55'x pattern.  Second conditional is to avoid error where '55'x exists with blank slice afterward.
-         ;sync_ind = where(((buffer.image and 'FF00000000000000'x) eq ulong64('5500000000000000'x)) and (buffer.image ne '55FFFFFFFFFFFFFF'x), nsync)
-
-         ;More robust (but slower) approach needed after some errors found in tunnel data
          patternmatch = (buffer.image and 'FF00000000000000'x) eq ulong64('5500000000000000'x)
          sync_ind = []
          FOR i = 0s, n_elements(buffer.image)-4 DO BEGIN
@@ -461,7 +458,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
          reftime = bufferstarttime ; time[-1]    ;The time that should match the starttime on the SEA buffer
 
          ;Update the SEA buffer stoptime, since the start/stop times in the particle headers are more accurate
-         buffer.stoptime = buffer.time + (time[-1] - time[0])
+         buffer.stoptime = buffer.time + (time[1] - time[0])
 
          ;Make image
          image = buffer.image

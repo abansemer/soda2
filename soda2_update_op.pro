@@ -1,6 +1,11 @@
 PRO soda2_update_op, op
    ;Copyright © 2016 University Corporation for Atmospheric Research (UCAR). All rights reserved.
 
+   ;Generate a null structure if 'op' is empty
+   IF n_elements(op) eq 0 THEN BEGIN
+      op = {probetype:'', res:0, endbins:[0,1000], format:'', fn:''}
+   ENDIF
+
    ;Updates the 'op' structure if any new tags are added
    IF total(where(tag_names(op) eq 'GREYTHRESH')) eq -1 THEN op=create_struct(op,'greythresh',0)
    IF total(where(tag_names(op) eq 'PROBEID')) eq -1 THEN op=create_struct(op,'probeid','A0')
@@ -27,6 +32,7 @@ PRO soda2_update_op, op
    IF total(where(tag_names(op) eq 'YRES')) eq -1 THEN op=create_struct(op,'yres',op.res)  ;Default to x, can change with stretchcorrect
    IF total(where(tag_names(op) eq 'IGNOREDEADTIME')) eq -1 THEN op=create_struct(op,'ignoredeadtime',0)  ;for SPEC probes, sometimes overload is suspicious
    IF total(where(tag_names(op) eq 'APPLY_PSC')) eq -1 THEN op=create_struct(op,'apply_psc',0)  ;for applying the Poisson spot correction during reprocessing from PBP files
+   IF total(where(tag_names(op) eq 'APPLY_PSC_SIZELIMIT')) eq -1 THEN op=create_struct(op,'apply_psc_sizelimit',0)  ;Upper size limit for forced PSCs
    IF total(where(tag_names(op) eq 'DOFCONST')) eq -1 THEN op=create_struct(op,'dofconst',0)  ;Depth of field constant, setting to 0 will trigger decision in soda2_samplearea
    IF total(where(tag_names(op) eq 'DOFREJECT')) eq -1 THEN op=create_struct(op,'dofreject',0)  ;Reject based on DoF flag (DMT or NCAR), or Level 3 grey pixel (CIP-G)
    IF total(where(tag_names(op) eq 'STRETCHCORRECT')) eq -1 THEN op=create_struct(op,'stretchcorrect',0)  ;Adjust yres when aircraft TAS and probe TAS mismatch

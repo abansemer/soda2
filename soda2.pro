@@ -11,7 +11,8 @@ PRO soda2_event, ev
          (*pinfo).datpath=file_dirname(a)
          restore,a
          op=data.op
-         soda2_update_op,op
+         soda2_update_op, op
+         (*pinfo).save1 = op.apply_psc_sizelimit  ;Save this to structure since is not part of GUI handles
 
          ;--------Fill in boxes
          widget_control,widget_info(ev.top,find='timeoffset'),set_value=op.timeoffset
@@ -403,7 +404,7 @@ PRO soda2_event, ev
          IF go eq 'No' THEN return
 
          ;Custom DoF check - Create popup window
-         IF (customdof eq  1) THEN BEGIN
+         IF (customdof eq 1) THEN BEGIN
             dofop={endbins:endbins, armwidth:probe.armwidth, res:xres, numdiodes:probe.numdiodes, eawmethod:eawmethod,$
                wavelength:probe.wavelength, dofconst:dofconst, smethod:smethod}
 
@@ -422,6 +423,15 @@ PRO soda2_event, ev
             ENDELSE
          ENDIF ELSE customdofvalues = fltarr(n_elements(endbins)-1)
 
+         ;Forced Poisson spot correction check, get the user-defined threshold
+         IF (apply_psc eq 1) THEN BEGIN
+            soda2_pscthreshold, (*pinfo).save1, pinfo=ppsc, groupleaderid=(*pinfo).groupleader
+            IF (*ppsc).proceedprocessing_flag eq 1 THEN BEGIN
+               apply_psc_sizelimit = (*ppsc).threshold
+            ENDIF ELSE return
+            ptr_free, ppsc  ;This is not released in soda2_pscthreshold
+         ENDIF ELSE apply_psc_sizelimit = 0
+
          ;Can add bindistribution to this structure if desired
          op={fn:fn, date:date[0], starttime:hms2sfm(starttime[0]), stoptime:hms2sfm(stoptime[0]), format:probe.format, $
             subformat:probe.subformat, probetype:probe.probetype, res:xres, yres:yres, dofconst:dofconst, $
@@ -430,8 +440,8 @@ PRO soda2_event, ev
             fixedtas:fixedtas, outdir:outdir[0], filetag:filetag[0], project:project[0], timeoffset:timeoffset, armwidth:probe.armwidth, $
             numdiodes:probe.numdiodes, probeid:probe.probeid, shortname:probe.shortname, greythresh:probe.greythresh, $
             wavelength:probe.wavelength, seatag:seatag, ncdfparticlefile:ncdfparticlefile, particlefile:particlefile, $
-            stretchcorrect:stretchcorrect[0], keeplargest:keeplargest, apply_psc:apply_psc, dofreject:dofreject, $
-            dioderange:probe.dioderange, customdof:customdofvalues}
+            stretchcorrect:stretchcorrect[0], keeplargest:keeplargest, apply_psc:apply_psc, apply_psc_sizelimit:apply_psc_sizelimit, $
+            dofreject:dofreject, dioderange:probe.dioderange, customdof:customdofvalues}
 
          ;Process housekeeping if flagged
          IF (housefile eq 1) and (probe.format eq 'SPEC') THEN BEGIN
@@ -490,7 +500,7 @@ PRO soda2
 
    ;----------Main widget setup-------------------------------------------
    base = WIDGET_BASE(COLUMN=1,title='SODA-2 Optical Array Probe Processor',MBar=menubarID)
-   info={datpath:'', rawpath:'', groupleader:base}
+   info={datpath:'', rawpath:'', groupleader:base, save1:0L}
    pinfo=ptr_new(info)
    fileID=widget_button(menubarID, value='Menu', /menu, uname='base', uvalue=pinfo)
    loadfile=widget_button(fileID, value='Load settings...',uname='loadfile')

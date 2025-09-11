@@ -8,7 +8,7 @@ PRO soda2_merge_event, ev
          a=dialog_pickfile(/read,filter=['*.dat'],dialog_parent=widget_info(ev.top,find='process'))
          IF file_test(a) THEN BEGIN
             widget_control,widget_info(ev.top,find='fn1'),set_value=a
-            
+
             ;Fill in the 2DP and PTH if they can be found
             ;Clear them first...
             widget_control,widget_info(ev.top,find='fn_pth'),set_value=''
@@ -20,7 +20,7 @@ PRO soda2_merge_event, ev
                IF i[0] ne -1 THEN BEGIN
                   widget_control,widget_info(ev.top,find='fn2'),set_value=trythesefiles[i[0]]
                   widget_control,widget_info(ev.top,find='crossover'),set_value=1000
-               ENDIF 
+               ENDIF
             ENDIF
             pos=max([strpos(a,'2D'),strpos(a,'CI'),strpos(a,'PI'),strpos(a,'HV')])
             IF pos ne -1 THEN BEGIN
@@ -36,13 +36,13 @@ PRO soda2_merge_event, ev
          IF file_test(a) THEN BEGIN
             widget_control,widget_info(ev.top,find='fn2'),set_value=a
             widget_control,widget_info(ev.top,find='crossover'),set_value=1000
-         ENDIF   
+         ENDIF
       END
       'browse3':BEGIN
          a=dialog_pickfile(/read,filter=['*.dat'],dialog_parent=widget_info(ev.top,find='process'))
          IF file_test(a) THEN widget_control,widget_info(ev.top,find='fn_pth'),set_value=a
       END
-      'browse4': BEGIN 
+      'browse4': BEGIN
          a=dialog_pickfile(/read,/directory,get_path=a2,dialog_parent=widget_info(ev.top,find='process'))
          IF file_test(a) THEN widget_control,widget_info(ev.top,find='outdir'),set_value=a2
       END
@@ -68,7 +68,7 @@ PRO soda2_merge_event, ev
             widget_control,widget_info(ev.top,find='bcoeff'),set_value=0
          ENDIF
       END
-      'process': BEGIN 
+      'process': BEGIN
          widget_control,widget_info(ev.top,find='fn1'),get_value=fn1
          widget_control,widget_info(ev.top,find='fn2'),get_value=fn2
          widget_control,widget_info(ev.top,find='fn_pth'),get_value=pthfile
@@ -111,7 +111,7 @@ PRO soda2_merge_event, ev
             widget_control,widget_info(ev.top,find='suffix'),set_value=data.op.suffix
          ENDIF
       END
-      
+
       'compare':BEGIN
          widget_control,widget_info(ev.top,find='fn1'),get_value=fn1
          widget_control,widget_info(ev.top,find='fn2'),get_value=fn2
@@ -124,8 +124,8 @@ PRO soda2_merge_event, ev
             widget_control,widget_info(ev.top,find='compare'),set_value='Compare Data'
          ENDELSE
       END
-      
-      'quit': WIDGET_CONTROL, ev.TOP, /DESTROY 
+
+      'quit': WIDGET_CONTROL, ev.TOP, /DESTROY
 
       ELSE: dummy=0
    ENDCASE
@@ -153,12 +153,12 @@ PRO soda2_merge
    browse2=widget_button(filebase2,value='Select...',uname='browse2')
 
    crossoverID=cw_field(xbase,/int, title='Crossover[um]:',uname='crossover',xsize=6,value=0)
-   binstartID=cw_field(xbase,/int, title='Start bin index:',uname='binstart',xsize=2,value=1)
+   binstartID=cw_field(xbase,/int, title='Start bin index:',uname='binstart',xsize=2,value=0)
    suffixID=cw_field(xbase,/string, title='Suffix:',uname='suffix',xsize=6)
 
    pthfileID=cw_field(filebase3,/string, title='PTH file (optional):  ',uname='fn_pth',xsize=60)
    browse2=widget_button(filebase3,value='Select...',uname='browse3')
-   
+
    cd,current=currentdir
    outdirID=cw_field(filebase4,/string,  title='Output dir (optional):',value=currentdir+path_sep(),uname='outdir',xsize=60)
    browse2=widget_button(filebase4,value='Select...',uname='browse4')

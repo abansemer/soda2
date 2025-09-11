@@ -142,10 +142,16 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
                'twod':binningsize=x[iparticles[j]].twod
                ELSE:binningsize=x[iparticles[j]].diam
             ENDCASE
+
             ;Apply poisson-spot correction
-            IF ((*pop).apply_psc eq 1) or ((*pop).water eq 1) THEN BEGIN
-               binningsize /= x[iparticles[j]].sizecorrection
+            apply_psc = 0
+            IF ((*pop).apply_psc eq 1) THEN BEGIN
+               ;First resolve complicated criteria for forced corrections in ice
+               IF ((*pop).apply_psc_sizelimit eq 0) THEN apply_psc = 1   ;Zero means there is no size threshold
+               IF ((*pop).apply_psc_sizelimit gt 0) and (binningsize le (*pop).apply_psc_sizelimit) THEN apply_psc=1
             ENDIF
+            IF (apply_psc eq 1) or ((*pop).water eq 1) THEN binningsize /= x[iparticles[j]].sizecorrection
+
             IF ((*pop).water eq 1) THEN binningar=x[iparticles[j]].arearatiofilled ELSE binningar=x[iparticles[j]].arearatio
             reject=soda2_reject(x[iparticles[j]], interarrival[iparticles[j]], interarrival[nextparticleindex], d.intcutoff[itime], cluster[iparticles[j]], binningsize, pop)
             rejectionflag[iparticles[j]] = reject

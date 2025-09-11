@@ -117,16 +117,17 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
          END
          'CONC1D': BEGIN
             binwidth = data.op.endbins[1:*] - data.op.endbins
-            attname=['long_name', 'units', 'Bin_endpoints', 'Bin_width', 'Bin_units']
+            attname=['long_name', 'units', 'Bin_midpoints', 'Bin_endpoints', 'Bin_width', 'Bin_units']
             attvalue={a0:'Particle Concentration Per Size Bin, Normalized by Bin Width', a1:'#/m4', $
-               a2:data.op.endbins, a3:binwidth, a4:'micrometers'}
+               a2:data.midbins, a3:data.op.endbins, a4:binwidth, a5:'micrometers'}
             dims=[xdimid, ydimid_size]
             tagname='CONCENTRATION'
          END
          'SPEC1D':BEGIN
             binwidth = data.op.endbins[1:*] - data.op.endbins
-            attname=['long_name','units', 'Bin_endpoints', 'Bin_width', 'Bin_units']
-            attvalue={a0:'Particle Count Per Size Bin', a1:'#', a2:data.op.endbins, a3:binwidth, a4:'micrometers'}
+            attname=['long_name','units', 'Bin_midpoints', 'Bin_endpoints', 'Bin_width', 'Bin_units']
+            attvalue={a0:'Particle Count Per Size Bin', a1:'#', a2:data.midbins, a3:data.op.endbins, $
+               a4:binwidth, a5:'micrometers'}
             dims=[xdimid, ydimid_size]
             tagname='COUNTS'
          END
@@ -338,32 +339,32 @@ PRO soda2_export_ncdf, data, outfile=outfile, pthfile=pthfile, lite=lite, noskip
             attvalue={a1:'Total Number Concentration, Particles Larger than 1000um in Diameter',a2:'#/m3'}
          END
          'MEANAR':BEGIN
-            attname=['long_name','units','Bin_endpoints','Bin_units']
-            attvalue={a0:'Mean Area Ratio Per Size Bin',a1:'unitless',$
-               a2:data.op.endbins,a3:'micrometers'}
+            attname=['long_name', 'units', 'Bin_midpoints', 'Bin_endpoints', 'Bin_units']
+            attvalue={a0:'Mean Area Ratio Per Size Bin', a1:'unitless',$
+               a2:data.midbins, a3:data.op.endbins, a4:'micrometers'}
             dims=[xdimid, ydimid_size]
             tagname='MEAN_AREARATIO'
          END
          'MEANASPR':BEGIN
-            attname=['long_name','units','Bin_endpoints','Bin_units']
+         attname=['long_name', 'units', 'Bin_midpoints', 'Bin_endpoints', 'Bin_units']
             attvalue={a0:'Mean Aspect Ratio Per Size Bin', a1:'unitless',$
-               a2:data.op.endbins, a3:'micrometers'}
+            a2:data.midbins, a3:data.op.endbins, a4:'micrometers'}
             dims=[xdimid, ydimid_size]
             tagname='MEAN_ASPECTRATIO'
          END
          'ASD':BEGIN
             binwidth = data.op.endbins[1:*] - data.op.endbins
-            attname=['long_name', 'units', 'Bin_endpoints', 'Bin_width', 'Bin_units']
+            attname=['long_name', 'units', 'Bin_midpoints', 'Bin_endpoints', 'Bin_width', 'Bin_units']
             attvalue={a0:'Projected Area Per Size Bin, Not Normalized by Bin Width', a1:'1/m',$
-               a2:data.op.endbins, a3:binwidth, a4:'micrometers'}
+               a2:data.midbins, a3:data.op.endbins, a4:binwidth, a5:'micrometers'}
             dims=[xdimid, ydimid_size]
             tagname='ASD'
          END
          'MSD':BEGIN
             binwidth = data.op.endbins[1:*] - data.op.endbins
-            attname=['long_name', 'units', 'parameterization', 'Bin_endpoints', 'Bin_width', 'Bin_units']
+            attname=['long_name', 'units', 'parameterization', 'Bin_midpoints', 'Bin_endpoints', 'Bin_width', 'Bin_units']
             attvalue={a0:'Calculated Mass Per Size Bin, Not Normalized by Bin Width', a1:'g/m3', $
-               a2:'Brown and Francis 1995', a3:data.op.endbins, a4:binwidth, a5:'micrometers'}
+               a2:'Brown and Francis 1995', a3:data.midbins, a4:data.op.endbins, a5:binwidth, a6:'micrometers'}
             dims=[xdimid, ydimid_size]
             tagname='MSD'
          END
