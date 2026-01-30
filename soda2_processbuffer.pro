@@ -274,6 +274,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
          rawtime=ulonarr(num_images)       ;Slice counter straight from the data
          clocktas=fltarr(num_images)       ;From the HK data, to get actual clocking speed, important for computing dead time
          stretch=fltarr(num_images)+1.0    ;Stretching factor for yres
+         dof=bytarr(num_images)+1          ;DoF criteria from binary_dof.pro, initialize to accept all
          slicecount=1  ;dummy first slice
          ;freq=double((*pop).res/(1.0e6*buffer.tas))  ; the time interval of each tick in a timeline
          c=0   ;keep an actual count since there are some bad particles in there that will be skipped
@@ -299,6 +300,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
                stopline[c]=slicecount-1
                overload[c]=x.overload
                particle_count[c]=x.particlecount
+               IF (*pop).dofreject eq 3 THEN dof[c]=binary_dof(x.image)  ;Require compact particles
                rawtime[c]=x.time
                clocktas[c]=hk.tas
                ;Compute stretching factor, keep between reasonable values 0.1 to 10
@@ -331,6 +333,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
          clocktas=clocktas[0:c-1]
          startline=startline[0:c-1]
          stopline=stopline[0:c-1]
+         dof=dof[0:c-1]
 
          IF num_images eq 0 THEN return, nullbuffer
          IF max(stopline) gt 10000 THEN return, nullbuffer
@@ -370,7 +373,6 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
          ;particle_count=intarr(num_images)  ;No counter
          (*pmisc).maxsfm=max(time_sfm)
          (*pmisc).lastbufftime=buffer.time
-         dof=bytarr(num_images)+1  ;No dof flag, assume all are good
       END
 
       ((*pop).probetype eq 'TXT'): BEGIN

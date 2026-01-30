@@ -91,6 +91,7 @@ PRO soda2_event, ev
             0:w=where(criteria eq 'Off')
             1:w=where(criteria eq 'One Level3 Pixel')        ;Mode2 rejection N75 > 1
             2:w=where(criteria eq '50% Level3 Pixel Ratio')  ;Mode3 rejection N75/N50 > 0.5
+            3:w=where(criteria eq 'Greyscale Emulation')     ;For monoscale probes
          ENDCASE
          widget_control,id,set_combobox_select=w[0]
 
@@ -308,6 +309,7 @@ PRO soda2_event, ev
             'Off':dofreject=0
             'One Level3 Pixel':dofreject=1
             '50% Level3 Pixel Ratio':dofreject=2
+            'Greyscale Emulation':dofreject=3
          ENDCASE
 
          ;--------Coincidence Criteria
@@ -576,7 +578,7 @@ PRO soda2
 
    subbase5c=widget_base(subbase5,row=1)
    dummy=widget_label(subbase5c,value=' DoF Criteria:',/align_left)
-   dofcriterianames=['Off', 'One Level3 Pixel', '50% Level3 Pixel Ratio']
+   dofcriterianames=['Off', 'One Level3 Pixel', '50% Level3 Pixel Ratio', 'Greyscale Emulation']
    dofcriteria=widget_combobox(subbase5c,value=dofcriterianames,uname='dofcriteria',uvalue=dofcriterianames[0])
    dummy=widget_label(subbase5c,value=' Coincidence:',/align_left)
    coincidencenames=['Off', 'Largest Particle (Default)', 'Largest Particle (Small Dilation)', 'Largest Particle (No Dilation)']

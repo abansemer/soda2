@@ -140,6 +140,11 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
                'xextent':binningsize=x[iparticles[j]].xextent
                'oned':binningsize=x[iparticles[j]].oned
                'twod':binningsize=x[iparticles[j]].twod
+               'hybrid':BEGIN  ;Blended size between Deq and diam for small particles (CAESAR)
+                  areathresh = 25.0  ;Threshold based on particle area where switch from Deq to Diam is complete
+                  weight = ((areathresh-x[iparticles[j]].area)/areathresh) > 0
+                  binningsize = x[iparticles[j]].areasize*weight + x[iparticles[j]].diam*(1-weight)
+               END
                ELSE:binningsize=x[iparticles[j]].diam
             ENDCASE
 
