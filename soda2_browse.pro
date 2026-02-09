@@ -57,7 +57,7 @@ PRO soda2_browse_event, ev
             ;Initial bulk computations
             ;Use water parameterization if processed with 'water' rejection criteria
             widget_control,widget_info(ev.top,find='massparam_t1'),get_value=paramlist
-            IF op.water eq 1 THEN BEGIN
+            IF op.water ge 1 THEN BEGIN
                 info.acoeff=!pi/6
                 info.bcoeff=3.0
                 widget_control,widget_info(ev.top,find='massparam_t1'),set_droplist_select=where(paramlist eq 'Water')

@@ -85,7 +85,7 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
          ;Get interarrival spectrum
          FOR j=0L,n_elements(iparticles)-1 DO BEGIN
             intbin=max(where(d.intendbins le interarrival[iparticles[j]],nw))
-            IF (nw gt 0)  and (intbin lt d.numintbins) THEN d.intspec_all[itime,intbin]=d.intspec_all[itime,intbin]+1
+            IF (nw gt 0)  and (intbin lt d.numintbins) THEN d.intspec_all[itime,intbin]++
          ENDFOR
 
          ;Find cutoff time based on interarrival time, must have 100 particles
@@ -140,11 +140,6 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
                'xextent':binningsize=x[iparticles[j]].xextent
                'oned':binningsize=x[iparticles[j]].oned
                'twod':binningsize=x[iparticles[j]].twod
-               'hybrid':BEGIN  ;Blended size between Deq and diam for small particles (CAESAR)
-                  areathresh = 25.0  ;Threshold based on particle area where switch from Deq to Diam is complete
-                  weight = ((areathresh-x[iparticles[j]].area)/areathresh) > 0
-                  binningsize = x[iparticles[j]].areasize*weight + x[iparticles[j]].diam*(1-weight)
-               END
                ELSE:binningsize=x[iparticles[j]].diam
             ENDCASE
 
@@ -155,9 +150,10 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
                IF ((*pop).apply_psc_sizelimit eq 0) THEN apply_psc = 1   ;Zero means there is no size threshold
                IF ((*pop).apply_psc_sizelimit gt 0) and (binningsize le (*pop).apply_psc_sizelimit) THEN apply_psc=1
             ENDIF
-            IF (apply_psc eq 1) or ((*pop).water eq 1) THEN binningsize /= x[iparticles[j]].sizecorrection
+            IF ((*pop).water ge 1) THEN apply_psc = 1
+            IF (apply_psc eq 1) THEN binningsize /= x[iparticles[j]].sizecorrection
 
-            IF ((*pop).water eq 1) THEN binningar=x[iparticles[j]].arearatiofilled ELSE binningar=x[iparticles[j]].arearatio
+            IF ((*pop).water ge 1) THEN binningar=x[iparticles[j]].arearatiofilled ELSE binningar=x[iparticles[j]].arearatio
             reject=soda2_reject(x[iparticles[j]], interarrival[iparticles[j]], interarrival[nextparticleindex], d.intcutoff[itime], cluster[iparticles[j]], binningsize, pop)
             rejectionflag[iparticles[j]] = reject
             IF reject eq 0 THEN BEGIN
@@ -166,17 +162,17 @@ PRO soda2_particlesort, pop, xtemp, d, istop, inewbuffer, lun_pbp, ncdf_offset, 
                arbin=max(where(op.arendbins lt (binningar<0.99>0.01)),nwa)
                asprbin=max(where(op.arendbins lt (x[iparticles[j]].aspectratio<0.99>0.01)),nwasp)
                obin=(floor(x[iparticles[j]].orientation + 90) / 10) < 17  ;Orientation bin every 10 degrees
-               d.spec2d[itime, sizebin, arbin]=d.spec2d[itime, sizebin, arbin]+1
-               d.spec2d_aspr[itime, sizebin, asprbin]=d.spec2d_aspr[itime, sizebin, asprbin]+1
-               d.spec2d_orientation[itime, sizebin, obin]=d.spec2d_orientation[itime, sizebin, obin] + 1
-               d.count_accepted[itime]=d.count_accepted[itime]+1
-               d.hist3d[sizebin, arbin, asprbin]=d.hist3d[sizebin, arbin, asprbin] + 1
+               d.spec2d[itime, sizebin, arbin]++
+               d.spec2d_aspr[itime, sizebin, asprbin]++
+               d.spec2d_orientation[itime, sizebin, obin]++
+               d.count_accepted[itime]++
+               d.hist3d[sizebin, arbin, asprbin]++
 
                intbin=max(where(d.intendbins le interarrival[iparticles[j]],nw))
-               IF (nw gt 0)  and (intbin lt d.numintbins) THEN d.intspec_accepted[itime,intbin]=d.intspec_accepted[itime,intbin]+1
+               IF (nw gt 0)  and (intbin lt d.numintbins) THEN d.intspec_accepted[itime,intbin]++
 
                zdbin=max(where(d.zdendbins le x[iparticles[j]].zd,nzd))
-               d.zdspec[sizebin,zdbin]=d.zdspec[sizebin,zdbin]+1
+               d.zdspec[sizebin,zdbin]++
             ENDIF ELSE BEGIN
                ireject=where(reject and [1,2,4,8,16,32,64])  ;Gives a list of rejection reasons
                d.count_rejected[itime,ireject[0]]++  ;Increment for each reason

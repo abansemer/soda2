@@ -77,7 +77,7 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b, minsize=minsize, counts
    IF total(tags eq 'RECONSTRUCT') eq 1 THEN printf, lun, 'Partial particle reconstruction:  '+(['off', 'on'])[data.op.reconstruct] ;SODA-1
    IF total(tags eq 'INTTIME_REJECT') eq 1 THEN printf, lun, 'Shattering correction:  '+(['off', 'on'])[data.op.inttime_reject]
    IF total(tags eq 'TIMEREJECT') eq 1 THEN printf, lun, 'Shattering correction:  ' + string(data.op.timereject)  ;SODA-1
-   printf, lun, 'Liquid water processing:  '+(['off', 'on'])[data.op.water]
+   printf, lun, 'Liquid water processing:  '+(['off', 'on', 'strict'])[data.op.water]
    printf, lun, ''
    printf, lun, 'Bin midpoints (microns):'
    printf, lun, data.midbins, format='(500f9.2)'
@@ -91,8 +91,9 @@ PRO soda2_export_ascii, data, outfile=outfile, a=a, b=b, minsize=minsize, counts
    printf, lun, ''
    printf, lun, 'Notes:'
    printf, lun, '   All bulk properties are computed using particles larger than '+minsizestring+' microns in size.'
-   IF data.op.water eq 1 THEN BEGIN
-      printf, lun, '   This file contains "round" particles only, with area ratio > 0.5 and diameter < 6mm.'
+   IF data.op.water ge 1 THEN BEGIN
+      IF data.op.water eq 1 THEN printf, lun, '   This file contains "round" particles only, with area ratio > 0.5 and diameter < 6mm.'
+      IF data.op.water eq 2 THEN printf, lun, '   This file contains "round" particles only, with area ratio > 0.7 and diameter < 6mm.'
       printf, lun, '   The intent is to process liquid drops only, there may be substantial errors in LWC when ice particles are also present.'
       masstitle = 'LWC: Estimated Liquid Water Content [g/m3]'
       massshortname = 'LWC'

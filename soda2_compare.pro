@@ -281,14 +281,14 @@ PRO soda2_compare, fn1, fn2, fn3=fn3, crossover=crossover, binstart=binstart
    IF n_elements(binstart) eq 0 THEN binstart=1
    restore,fn1
    a=0.00294 & b=1.9  ;Default to Brown and Francis
-   IF data.op.water eq 1 THEN BEGIN & a=!pi/6 & b=3.0 & ENDIF  ;Unless processed with water
+   IF data.op.water ge 1 THEN BEGIN & a=!pi/6 & b=3.0 & ENDIF  ;Unless processed with water
    bulk=compute_bulk_simple(data.conc1d,data.op.endbins,ac=a,bc=b,binstart=binstart)
    op2=data.op
    soda2_update_op, op2  ;For back compatibility
    data1=create_struct(data, bulk, 'op2', op2)
    restore,fn2
    a=0.00294 & b=1.9  ;Default to Brown and Francis
-   IF data.op.water eq 1 THEN BEGIN & a=!pi/6 & b=3.0 & ENDIF  ;Unless processed with water
+   IF data.op.water ge 1 THEN BEGIN & a=!pi/6 & b=3.0 & ENDIF  ;Unless processed with water
    bulk=compute_bulk_simple(data.conc1d,data.op.endbins,ac=a,bc=b,binstart=binstart)
    op2=data.op
    soda2_update_op, op2  ;For back compatibility

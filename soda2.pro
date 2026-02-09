@@ -43,9 +43,7 @@ PRO soda2_event, ev
          IF total(where(tag_names(op) eq 'INTTIME_REJECT')) ne -1 THEN IF op.inttime_reject eq 1 THEN checkboxarray[where(values eq 'Shatter Correct')]=1
          ;SODA-1 compatibility:
          IF total(where(tag_names(op) eq 'TIMEREJECT')) ne -1 THEN IF op.timereject eq 'variable' THEN checkboxarray[where(values eq 'Shatter Correct')]=1
-         IF op.water eq 1 THEN checkboxarray[where(values eq 'Water Processing')]=1
          IF op.stuckbits eq 1 THEN checkboxarray[where(values eq 'Stuck Bit Correct')]=1
-         ;IF op.keeplargest eq 1 THEN checkboxarray[where(values eq 'Largest Particle')]=1
          IF op.apply_psc eq 1 THEN checkboxarray[where(values eq 'Force PSC')]=1
          IF total(op.customdof) gt 0 THEN checkboxarray[where(values eq 'Custom DoF Curve')]=1
          widget_control,id,set_value=checkboxarray
@@ -91,7 +89,7 @@ PRO soda2_event, ev
             0:w=where(criteria eq 'Off')
             1:w=where(criteria eq 'One Level3 Pixel')        ;Mode2 rejection N75 > 1
             2:w=where(criteria eq '50% Level3 Pixel Ratio')  ;Mode3 rejection N75/N50 > 0.5
-            3:w=where(criteria eq 'Greyscale Emulation')     ;For monoscale probes
+            3:w=where(criteria eq 'Particle Compactness')     ;For monoscale probes
          ENDCASE
          widget_control,id,set_combobox_select=w[0]
 
@@ -105,6 +103,17 @@ PRO soda2_event, ev
             3:w=where(criteria eq 'Largest Particle (No Dilation)')     ;No dilation
          ENDCASE
          widget_control,id,set_combobox_select=w[0]
+
+         ;--------Water/roundness Criteria
+         id=widget_info(ev.top,find='watermethod')
+         widget_control,id,get_value=criteria  ;See main routine below for values to compare with CASE here
+         CASE op.water OF
+            0:w=where(criteria eq 'Off')
+            1:w=where(criteria eq 'Standard')
+            2:w=where(criteria eq 'Strict')
+         ENDCASE
+         widget_control,id,set_combobox_select=w[0]
+
 
          ;--------Probe type
          id=widget_info(ev.top,find='probetype')
@@ -279,11 +288,8 @@ PRO soda2_event, ev
          widget_control,id,get_uvalue=values
          widget_control,id,get_value=iadv
          IF iadv[where(values eq 'Shatter Correct')] eq 1 THEN inttime_reject=1 ELSE inttime_reject=0
-         ;textfile=iadv[where(values eq 'Create PBP file')]
          IF iadv[where(values eq 'All-In')] eq 1 THEN eawmethod='allin' ELSE eawmethod='centerin'
-         IF iadv[where(values eq 'Water Processing')] eq 1 THEN water=1 ELSE water=0
          IF iadv[where(values eq 'Stuck Bit Correct')] eq 1 THEN stuckbits=1 ELSE stuckbits=0
-         IF iadv[where(values eq 'Largest Particle')] eq 1 THEN keeplargest=1 ELSE keeplargest=0
          IF iadv[where(values eq 'Force PSC')] eq 1 THEN apply_psc=1 ELSE apply_psc=0
          IF iadv[where(values eq 'Custom DoF Curve')] eq 1 THEN customdof=1 ELSE customdof=0
          widget_control,widget_info(ev.top,find='tascheckbox'),get_value=stretchcorrect
@@ -309,7 +315,7 @@ PRO soda2_event, ev
             'Off':dofreject=0
             'One Level3 Pixel':dofreject=1
             '50% Level3 Pixel Ratio':dofreject=2
-            'Greyscale Emulation':dofreject=3
+            'Particle Compactness':dofreject=3
          ENDCASE
 
          ;--------Coincidence Criteria
@@ -321,6 +327,16 @@ PRO soda2_event, ev
             'Largest Particle (Small Dilation)':keeplargest=2
             'Largest Particle (No Dilation)':keeplargest=3
          ENDCASE
+
+         ;--------Round/water Rejection Criteria
+         id=widget_info(ev.top,find='watermethod')
+         watermethodstr=widget_info(id, /combobox_gettext)
+         CASE watermethodstr OF
+            'Off':water=0
+            'Standard':water=1
+            'Strict':water=2
+         ENDCASE
+
 
          ;--------Output Flag Checkboxes
          id=widget_info(ev.top,find='outputflags')
@@ -575,18 +591,21 @@ PRO soda2
    methodnames=['Circle fit','X-size (across array)','Y-size (with airflow)','Area equivalent','Lx (max slice width)', $
       '1D emulation', '2D emulation']
    sizemethod=widget_combobox(subbase5b,value=methodnames,uname='sizemethod',uvalue=methodnames[0])
+   dummy=widget_label(subbase5b,value=' Water Processing:',/align_left)
+   waternames=['Off', 'Standard', 'Strict']
+   watermethod=widget_combobox(subbase5b,value=waternames,uname='watermethod',uvalue=waternames[0],/dynamic)
 
    subbase5c=widget_base(subbase5,row=1)
    dummy=widget_label(subbase5c,value=' DoF Criteria:',/align_left)
-   dofcriterianames=['Off', 'One Level3 Pixel', '50% Level3 Pixel Ratio', 'Greyscale Emulation']
+   dofcriterianames=['Off', 'One Level3 Pixel', '50% Level3 Pixel Ratio', 'Particle Compactness']
    dofcriteria=widget_combobox(subbase5c,value=dofcriterianames,uname='dofcriteria',uvalue=dofcriterianames[0])
    dummy=widget_label(subbase5c,value=' Coincidence:',/align_left)
    coincidencenames=['Off', 'Largest Particle (Default)', 'Largest Particle (Small Dilation)', 'Largest Particle (No Dilation)']
    coincidencemethod=widget_combobox(subbase5c,value=coincidencenames,uname='coincidencemethod',uvalue=coincidencenames[0],/dynamic)
 
    subbase5d=widget_base(subbase5,row=1)
-   vals=['Shatter Correct','All-In','Water Processing','Stuck Bit Correct','Force PSC','Custom DoF Curve']
-   advanced=cw_bgroup(subbase5d,vals,uname='options',row=1,/nonexclusive,uval=vals,set_value=[1,0,0,0,0,0])
+   vals=['Shatter Correct','All-In','Stuck Bit Correct','Force PSC','Custom DoF Curve']
+   advanced=cw_bgroup(subbase5d,vals,uname='options',row=1,/nonexclusive,uval=vals,set_value=[1,0,0,0,0])
 
 
    ;---------Output directory and process button-------------------------

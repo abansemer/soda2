@@ -19,6 +19,10 @@ FUNCTION soda2_reject, a, inttime, nextinttime, cutoff, clustercount, binningsiz
    IF (*pop).water eq 1 THEN BEGIN
       IF (a.arearatiofilled lt 0.40) or ((a.arearatiofilled lt 0.50) and (a.diam gt (*pop).res*10.0)) or (binningsize gt 6000) THEN reject+=32
    ENDIF
+   ;Stricter version
+   IF (*pop).water eq 2 THEN BEGIN
+      IF (a.arearatiofilled lt 0.40) or ((a.arearatiofilled lt 0.70) and (a.diam gt (*pop).res*10.0)) or (binningsize gt 6000) THEN reject+=32
+   ENDIF
 
    ;Irregular-only (non-water) rejection
    IF (*pop).water eq -1 THEN BEGIN
