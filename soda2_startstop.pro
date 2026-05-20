@@ -88,7 +88,37 @@ FUNCTION soda2_startstop, fn
       return, out
    ENDIF
 
-   ;Next check for DMT, SPEC, or NCAR
+   ;Next check for RAF Fast-2DC
+   ;==================================================================
+   point_lun, lun, 0
+   s = bytarr(1000)
+   readu, lun, s
+   pos = strpos(s, '</PMS2D>')
+   init = pos + 9
+   IF pos eq -1 THEN BEGIN   ;New identifier in 2011
+      pos = strpos(s, '</OAP>')
+      init = pos + 7
+   ENDIF
+   IF pos gt 100 THEN BEGIN
+      point_lun, lun, init
+      header = {probetype:0b, probenumber:0b, hour:0s, minute:0s, second:0s, year:0s, month:0s, day:0s}
+      readu, lun, header
+      header = swap_endian(header)
+      out.starttime = julday(header.month, header.day, header.year, header.hour, header.minute, header.second)
+      ;Get stoptime
+      lastpoint = f.size - 4116
+      point_lun, lun, lastpoint
+      readu, lun, header
+      header = swap_endian(header)
+      out.stoptime = julday(header.month, header.day, header.year, header.hour, header.minute, header.second)
+      ;Set format
+      out.format = 'RAF'
+
+      free_lun, lun
+      return, out
+   ENDIF
+
+   ;Next check for DMT and SPEC
    ;==================================================================
    ;Find the buffer size from the position of 'year' data, should typically be 4114 bytes
    point_lun, lun, 0
@@ -114,10 +144,6 @@ FUNCTION soda2_startstop, fn
       4124: BEGIN   ;PACS - Subformat=0
          out.format = 'DMT'
          header={year:0S, month:0S, day:0S, hour:0S, minute:0S, second:0S, millisecond:0S, weekday:0S}
-      END
-      4116: BEGIN
-        ;Placeholder for RAF, not ready yet, need offset for XML header and also an endian swap
-        header={probetype:0b, probenumber:0b, hours:0s, minutes:0s, seconds:0s, year:0s, month:0s, day:0s}
       END
       ELSE: return, badfile
    ENDCASE

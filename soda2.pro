@@ -232,11 +232,12 @@ PRO soda2_event, ev
             stoptime+=timeoffset/86400d
             caldat, starttime, month, startday, year, hour, minute, second
             datestring = string(month, startday, year, format='(i02,i02,i04)')
+            datestring2 = string(year, month, startday, format='(i04,i02,i02)')
             starttimestring = string(hour, minute, second, format='(3i02)')
             caldat, stoptime, month, stopday, year, hour, minute, second
             IF stopday gt startday THEN hour+=24  ;Midnight crossing
             stoptimestring = string(hour, minute, second, format='(3i02)')
-            widget_control,widget_info(ev.top,find='date'),set_value=datestring
+            widget_control,widget_info(ev.top,find='date'),set_value=datestring2
             widget_control,widget_info(ev.top,find='starttime'),set_value=starttimestring
             widget_control,widget_info(ev.top,find='stoptime'),set_value=stoptimestring
 
@@ -557,7 +558,7 @@ PRO soda2
    subbase2d=widget_base(subbase2,row=1)
    autofill=widget_button(subbase2d,   value='Auto-Fill',uname='autofill')
    projectname=cw_field(subbase2d,/string,title='Project Name',uname='project',xsize=10,value='NONE',/column)
-   date=cw_field(subbase2d,/string,       title='Date (mmddyyyy)',uname='date',xsize=10,value='01012000',/column)
+   date=cw_field(subbase2d,/string,       title='Date (yyyymmdd)',uname='date',xsize=10,value='20001231',/column)
    starttime=cw_field(subbase2d,/string,  title='Start Time (hhmmss)',uname='starttime',value='000000',xsize=10,/column)
    stoptime=cw_field(subbase2d,/string,   title='Stop Time (hhmmss)',uname='stoptime',value='240000',xsize=10,/column)
    rate=cw_field(subbase2d,/float, title='Interval (s)', uname='rate', xsize=5, value=5.0, /column)

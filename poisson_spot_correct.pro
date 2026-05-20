@@ -1,8 +1,8 @@
 FUNCTION poisson_spot_correct, img_orig, img_fill, zd=zd
 
 ;****** poisson -- Korolev et al. 1991, Korolev et al. 1998, Korolev 2007   *******//
-; Factors taken from Korolev 2007
-;from Weibke Frey 11/2007
+;Factors taken from Korolev 2007
+;from Wiebke Frey 11/2007
 
 
   Dspot_Dedge=[0.003,0.008,0.017,0.024,0.033,0.04,0.047,0.054,0.062,0.072,0.076,0.088,0.093,0.096,0.101,0.119,0.123,0.127,0.13,0.134,0.139,0.148,0.175,0.18,0.184,0.188,0.192,0.195,0.199,0.202,0.206,0.209, $
