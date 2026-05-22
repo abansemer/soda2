@@ -20,25 +20,18 @@ to image sequences or to netCDF files.  This manual describes the installation, 
 SODA-2.  For more information, please contact the developers or see slide presentation available at
 [this link](https://docs.google.com/presentation/d/1hnSNpKHqdgVn2yw3VFIJwstqrDNJqUf_w8MM2R25LFw/edit?usp=sharing).
 
-
 ## Installation
 SODA-2 requires the Interactive Data Language (IDL) software package, either as a full IDL distribution or the freely
 available IDL Virtual Machine.  
 
 ### Using a full IDL distribution
 1.	Download the latest version of the code from the SODA-2 repository
-   -	**Git**  
-   Issue the command `git clone https://github.com/abansemer/soda2`
-   -	**Direct download**  
-   Go to *https://github.com/abansemer/soda2*, click on the green **Code** button, download the zip file, and unzip into
+   -	**Git:** `git clone https://github.com/abansemer/soda2`
+   -	**Direct download:** Go to <https://github.com/abansemer/soda2>, click on the green `Code` button, download the zip file, and unzip into
    a directory on your local machine.
 2.	Add the code location to the IDL search path using one of the following options
-   - **IDL Desktop Environment**  
-   Add the SODA-2 directory location under *IDL/Settings/IDL/Paths/Insert*.
-   - **Command line**  
-   Modify the *!path* system variable to include the SODA-2 directory location  
-   `IDL> !path = !path + ‘:/my_programs/soda2’`  
-	This command can be run automatically by adding it to the IDL startup script.
+   - **IDL Desktop Environment:** Add the SODA-2 directory location under *IDL/Settings/IDL/Paths/Insert*.
+   - **IDL command line:** Modify the *!path* system variable to include the SODA-2 directory location `IDL> !path = !path + ‘:/my_programs/soda2’`. This command can be run automatically by adding it to the IDL startup script.
 4.	Type `soda2` at the IDL command prompt to start the processing software.
 
 ### Using the IDL Virtual Machine
@@ -56,18 +49,18 @@ the IDL Virtual Machine.  The data processing window appears when the software i
 
 To begin processing data:
 
-#### 1.	Select raw data files
+### 1.	Select raw data files
 In the Raw Data section, click on `Add file...` and select the raw OAP files to be processed. These files are usually
 named *baseYYMMDDhhmmss.2DS* (SPEC instruments), *Imagefile_01CIP.raw* (DMT instruments), or *YYYY-MM-DD-hhmm.sea*
-(SEA).  Multiple files can be selected using the *Shift* or *Ctrl* keys. If the raw data need a time correction, enter
+(SEA).  Multiple files can be selected using the `Shift` or `Ctrl` keys. If the raw data need a time correction, enter
 the offset time in seconds in the `Clock Correction` box.
 
-#### 2.	Enter True Air Speed (TAS)  
+### 2.	Enter True Air Speed (TAS)  
 Enter the source of true air speed for the flight in the `TAS data` box, which is recommended for computing an accurate
 estimate of the probe’s sample volume. Two file formats are supported:  
-   - An ASCII file with time (UTC seconds) in the first column and TAS (meters/second) in the second column.  Space,
+   1. An ASCII file with time (UTC seconds) in the first column and TAS (meters/second) in the second column.  Space,
    tab, or comma delimiters are accepted.
-   - An IDL .sav file, which should have a single structure named *data* containing the variables *time* (in UTC
+   2. An IDL .sav file, which should have a single structure named *data* containing the variables *time* (in UTC
    seconds) and *tas* (in meters/second).  The *time* and *tas* records in this file should match what will be
    entered into the probe options start/stop time fields.   
 
@@ -76,7 +69,7 @@ Enter a fixed TAS or if no other source is available.  The default air speed is 
 Select the `Apply stretch correction` option if the aircraft TAS and the probe slicing TAS were unsynchronized, leading to
 stretched or compressed particles in the airflow direction.
 
-#### 3.	Select probe options
+### 3.	Select probe options
 1.	Click `Auto-Fill` to check the selected raw data files and automatically fill in the date and start/stop
 times.  This also removes incompatible probes from the dropdown list.
 2.	`Project name`  Enter a project name identifier to be saved with the data.  
@@ -89,13 +82,12 @@ will require more memory to store the particle distributions.
 7. Make any necessary adjustments to the `X-resolution`, `Y-resolution`, or `Depth-of-Field constant` based on laboratory
 calibrations.  The SEA tag numbers can also be adjusted here if they do not match the original configuration.
 
-#### 4.	Select processing options
+### 4.	Select processing options
 1.	Adjust the size `Bin edges` values as needed.  
    - The `Default` button will load a recommended bin distribution based on the currently selected probe resolution.  
    - The `Full` button will load a linear distribution of bins centered on the current X-resolution value, one bin for
    each element in the diode array.  
-   - The `x2` button copies the `Full` button, but with twice the number of bins to cover particle sizes up to twice
-   the array width.
+   - The `x2` button copies the `Full` button, but with twice the number of bins to cover particle sizes up to twice the array width.
 
 2.	Select the `Particle sizing method` to be used for constructing the particle size distributions.  
    - `Circle fit (Default)` The diameter of the smallest circle that completely encloses a particle.
@@ -146,7 +138,7 @@ unusually high or low shadow count will be replaced by a neighboring diode.
 10. Check box to enter a `Custom depth-of-field` curve.  A separate dialog will open after clicking the `BEGIN
 PROCESSING` button where the curve can be defined.
 
-#### 5. Select output options
+### 5. Select output options
 1. Check `SODA(dat)` box to save the processed data in an IDL-formatted *.sav* file. This file records all processing
 options, processed data, and housekeeping data, and is required to view data with the IDL browser or to export to other
 data formats.  See the file format section of this document for detailed information about this file.
@@ -163,11 +155,11 @@ may be very large so a short time window defined by the start/stop time fields i
 
 6. Check the `House(dat)` box to save the housekeeping data to an IDL *.sav* file for quick dat quality checks.
 
-7.	`Output directory:`  The directory where all output files will be written.
+7. `Output directory`  The directory where all output files will be written.
 
 8. Enter an optional `Tag` to add an identifier to the filename(s) that will be written.
 
-#### 6. Click `BEGIN PROCESSING` to process the data.  
+### 6. Click `BEGIN PROCESSING` to process the data.  
 
 Processing will take several minutes to hours depending on the amount of data.  Once completed, new files containing the
 processed data will be saved with the following naming conventions:
@@ -195,7 +187,7 @@ Select *Menu/Browse Data* from the main SODA-2 window to load the data browser. 
 ![Data browser screenshot](screenshot_browser.png)
 
 
-#### Navigating through the data:
+### Navigating through the data:
 The first 3 tabs (*Distributions*, *Particles*, and *Timing/Diodes*) display data for a single time period.  To move
 forward in time, left-click anywhere on the main plot.  To move backward in time, right-click on the main plot.  The
 scroll wheel on a mouse may also be used to move forward or backward.  A blue indicator line shows the
@@ -250,7 +242,7 @@ for example:
 
 
 ## Processing Details
-#### Particle Sizing and Sample Area
+### Particle Sizing and Sample Area
 Particles can be measured by several methods, including circle-fit, sizing across the array (x-size), sizing with the
 airflow (y-size), area equivalent sizing, and slice-width sizing (Lx).  
 
@@ -281,7 +273,7 @@ default if the center of the particle is deemed to be within the array.   The sa
 following the center-in method described in Heymsfield and Parrish (1978).  If the user elects to reject partially
 imaged particles (All-in option), the sample area is computed following Equation 4 of the same reference.  
 
-#### Shattering Corrections
+### Shattering Corrections
 Large particles that impact on the forward surface of a probe arm can break into many pieces and then be imaged by the
 probe.  This results in an overestimate of the concentration of small particles.   Since these small particles appear in
 clusters, the time between neighboring particles, or interarrival time, may be used to detect suspected shattering
@@ -289,19 +281,19 @@ events.  SODA-2 corrects for shattering events using the method described in Fie
 at least 100 particles per time period, so it is recommended to use a sufficiently long averaging time (in the `Rate` box
 on the SODA-2 main screen) to ensure that enough particles are available to activate the correction.
 
-#### Particle Rejection Criteria
+### Particle Rejection Criteria
 The particle rejection criteria in SODA-2 serve two purposes, to distinguish between “round” and “irregular” particles
 if water processing is enabled, and to remove image artifacts.  Image artifact rejection is based on the area ratio.
 The rejection criteria details are as follows:
 
-##### Default Processing
+#### Default Processing
 - Area ratio < 0.1
 - Particle size is outside of size-bin range
 - Depth of field criteria not met (if enabled by user with *DoF_reject* setting)
 - Particle center is deemed to be outside the array
 - Particle touches an edge of the array (if enabled by user with *all-in* setting)
 
-##### Water processing
+#### Water processing
 - Area ratio < 0.4
 - Area ratio < 0.5 for particles 10 pixels or larger (0.7 for strict water processing)
 - Size > 6mm
