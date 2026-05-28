@@ -306,7 +306,12 @@ PRO soda2_browse_event, ev
                (*pinfo).i2=i2
                ;Update the time indicator
                IF (*pinfo).timeformat eq 1 THEN texttime=sfm2hms((*p1).time[i]) ELSE texttime=(*p1).time[i]
-               widget_control,widget_info(ev.top,find='time'),set_value=strtrim(string(long(texttime)),2)
+               IF (*pop).rate lt 1 THEN BEGIN
+                 stringformat = '(f0.1)'
+                 IF (*pinfo).timeformat eq 1 THEN $
+                   texttime = double(texttime) + ((*p1).time[i]-long((*p1).time[i]))  ;Add fractional second
+               ENDIF ELSE stringformat = '(i0)'
+               widget_control,widget_info(ev.top,find='time'),set_value=string(texttime, format=stringformat)
 
                ;Update the time plot
                tsbmp=(*pinfo).bmp
@@ -371,7 +376,12 @@ PRO soda2_browse_event, ev
            ENDELSE
            ;Update time
            IF (*pinfo).timeformat eq 1 THEN texttime=sfm2hms((*p1).time[(*pinfo).i]) ELSE texttime=(*p1).time[(*pinfo).i]
-           widget_control,widget_info(ev.top,find='time'),set_value=strtrim(string(long(texttime)),2)
+           IF (*pop).rate lt 1 THEN BEGIN
+             stringformat = '(f0.1)'
+             IF (*pinfo).timeformat eq 1 THEN $
+               texttime = double(texttime) + ((*p1).time[(*pinfo).i]-long((*p1).time[(*pinfo).i]))  ;Add fractional second
+           ENDIF ELSE stringformat = '(i0)'
+           widget_control, widget_info(ev.top,find='time'), set_value=string(texttime, format=stringformat)
         END
         ;====================================================================================================
         uname eq 'png': BEGIN

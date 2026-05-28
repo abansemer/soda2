@@ -657,6 +657,46 @@ FUNCTION soda2_probespecs, name=name, id=id, fn=fn
    all=[all,x]
 
    x=base
+   x.probename='UNIVIE CIP Greyscale'
+   x.shortname='CIP'
+   x.format='DMT'
+   x.subformat=1
+   x.probetype='CIPG'
+   x.probeid=''
+   x.greythresh=2
+   x.res=15
+   x.yres=15
+   x.armwidth=7.0
+   x.numdiodes=64
+   x.tau=0.051e-6
+   x.firstsliceskip=0
+   x.dofthreshold=0.0
+   x.dofconst=3.0
+   x.wavelength=0.658e-6
+   x.seatag=[0]
+   all=[all,x]
+
+   x=base
+   x.probename='UNIVIE PIP Monoscale'
+   x.shortname='PIP'
+   x.format='DMT'
+   x.subformat=1
+   x.probetype='CIP'
+   x.probeid=''
+   x.greythresh=0
+   x.res=100
+   x.yres=100
+   x.armwidth=22.5
+   x.numdiodes=64
+   x.tau=0.051e-6
+   x.firstsliceskip=0
+   x.dofthreshold=0.0
+   x.dofconst=3.0
+   x.wavelength=0.658e-6
+   x.seatag=[0]
+   all=[all,x]
+
+   x=base
    x.probename='NCAR Fast-2DC [C4] (25um)'
    x.shortname='F2DC'
    x.format='RAF'

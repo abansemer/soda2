@@ -26,12 +26,12 @@ available IDL Virtual Machine.
 
 ### Using a full IDL distribution
 1.	Download the latest version of the code from the SODA-2 repository
-   -	**Git:** `git clone https://github.com/abansemer/soda2`
-   -	**Direct download:** Go to <https://github.com/abansemer/soda2>, click on the green `Code` button, download the zip file, and unzip into
+   *	**Git:** `git clone https://github.com/abansemer/soda2`
+   *	**Direct download:** Go to <https://github.com/abansemer/soda2>, click on the green `Code` button, download the zip file, and unzip into
    a directory on your local machine.
 2.	Add the code location to the IDL search path using one of the following options
-   - **IDL Desktop Environment:** Add the SODA-2 directory location under *IDL/Settings/IDL/Paths/Insert*.
-   - **IDL command line:** Modify the *!path* system variable to include the SODA-2 directory location `IDL> !path = !path + ‘:/my_programs/soda2’`. This command can be run automatically by adding it to the IDL startup script.
+   * **IDL Desktop Environment:** Add the SODA-2 directory location under *IDL/Settings/IDL/Paths/Insert*.
+   * **IDL command line:** Modify the *!path* system variable to include the SODA-2 directory location `IDL> !path = !path + ‘:/my_programs/soda2’`. This command can be run automatically by adding it to the IDL startup script.
 4.	Type `soda2` at the IDL command prompt to start the processing software.
 
 ### Using the IDL Virtual Machine
@@ -83,47 +83,47 @@ will require more memory to store the particle distributions.
 calibrations.  The SEA tag numbers can also be adjusted here if they do not match the original configuration.
 
 ### 4.	Select processing options
-1.	Adjust the size `Bin edges` values as needed.  
-   - The `Default` button will load a recommended bin distribution based on the currently selected probe resolution.  
-   - The `Full` button will load a linear distribution of bins centered on the current X-resolution value, one bin for
+1.	Adjust the size `Bin edges` values as needed.
+   * The `Default` button will load a recommended bin distribution based on the currently selected probe resolution.  
+   * The `Full` button will load a linear distribution of bins centered on the current X-resolution value, one bin for
    each element in the diode array.  
-   - The `x2` button copies the `Full` button, but with twice the number of bins to cover particle sizes up to twice the array width.
+   * The `x2` button copies the `Full` button, but with twice the number of bins to cover particle sizes up to twice the array width.
 
-2.	Select the `Particle sizing method` to be used for constructing the particle size distributions.  
-   - `Circle fit (Default)` The diameter of the smallest circle that completely encloses a particle.
-   - `X-Size`  The maximum distance between shadowed pixels across the array.
-   - `Y-Size`  The maximum distance between shadowed pixels along the airflow direction.
-   - `Area equivalent`  The diameter of a circle that has the same area as the imaged particle.
-   - `Lx` The maximum distance between two shadowed pixels on a single slice in the particle image.
-   - `1D emulation` The total number of diodes occluded during particle transit.
-   - `2D emulation` The maximum number of diodes occluded on a single slice during particle transit.
+2.	Select the `Particle sizing method` to be used for constructing the particle size distributions.
+   * `Circle fit (Default)` The diameter of the smallest circle that completely encloses a particle.
+   * `X-Size`  The maximum distance between shadowed pixels across the array.
+   * `Y-Size`  The maximum distance between shadowed pixels along the airflow direction.
+   * `Area equivalent`  The diameter of a circle that has the same area as the imaged particle.
+   * `Lx` The maximum distance between two shadowed pixels on a single slice in the particle image.
+   * `1D emulation` The total number of diodes occluded during particle transit.
+   * `2D emulation` The maximum number of diodes occluded on a single slice during particle transit.
 
 3. Enable `Water Processing` criteria if needed.  This option is intended to improve rejection criteria
    when measuring clouds composed primarily of liquid (non-ice) hydrometeors.
-   - `Off (default)` Do not apply any extra rejection criteria for round particles.
-   - `Standard` Reject particles with area ratio below 0.5.  This also applies the Korolev (2007) correction for
+   * `Off (default)` Do not apply any extra rejection criteria for round particles.
+   * `Standard` Reject particles with area ratio below 0.5.  This also applies the Korolev (2007) correction for
    out-of-focus particles.
-   - `Strict` Reject particles with area ratio below 0.7.  This also applies the Korolev (2007) correction for
+   * `Strict` Reject particles with area ratio below 0.7.  This also applies the Korolev (2007) correction for
    out-of-focus particles.
 
 4. Enable `Depth of Field` (DoF) rejection criteria.  This option applies various algorithms to detect and reject
 out-of-focus particles.
-   - `Off (default)`  Do no apply any extra DoF rejection criteria.
-   - `One Level-3 Pixel`  Require at least one pixel to have the darkest available shadow level.  This applies only
+   * `Off (default)`  Do no apply any extra DoF rejection criteria.
+   * `One Level-3 Pixel`  Require at least one pixel to have the darkest available shadow level.  This applies only
    to probes that record 3-level grayscale images or track the number of dark pixels.
-   - `50% Level-3  Pixel Ratio`  Require that half of the pixels in a paricle have the darkest available shadow
+   * `50% Level-3  Pixel Ratio`  Require that half of the pixels in a paricle have the darkest available shadow
    level.  This applies only to probes that record 3-level grayscale images or track the number of dark pixels.
-   - `Particle Compactness`  Require that small particles are relatively compact, without a significant number of
+   * `Particle Compactness`  Require that small particles are relatively compact, without a significant number of
    stray or unconnected pixels.  This is the only option that works with probes that record pixels at a single 50%
    shadow level.
 
 5. Enable `Coincidence` corrections to handle stray pixels and multiple particles within the same image frame.
-   - `Off (default)` Do not apply any coincidence corrections.  All pixels in a frame are assumed to be from a single
+   * `Off (default)` Do not apply any coincidence corrections.  All pixels in a frame are assumed to be from a single
    cloud particle.
-   - `Largest particle (Default)` Discard any shadowed pixels that are not connected to the largest connected blob,
+   * `Largest particle (Default)` Discard any shadowed pixels that are not connected to the largest connected blob,
    after a 2-pixel dilation.
-   - `Largest particle (Small dilation)` As above, but using a 1-pixel dilation.
-   - `Largest particle (No dilation)` As above, but without any dilation.  
+   * `Largest particle (Small dilation)` As above, but using a 1-pixel dilation.
+   * `Largest particle (No dilation)` As above, but without any dilation.  
 
 6.	Check box to apply a `Shattering Correction` based on particle interarrival times.  The method is described
 in Field et al. (JTECH, 2006).
@@ -449,6 +449,8 @@ line *ncdump* utility.
 | OVERLOADFLAG    | Overload flag [boolean] |
 | PARTICLECOUNTER | Particle counter [number] |
 | ORIENTATION     | Particle orientation relative to array axis [degrees] |
-| REJECTIONFLAG   | Particle rejection code (see soda2_reject.pro) [unitless] |
+| REJECTIONFLAG   | Particle rejection code, reported as the sum of all reason codes (see soda2_reject.pro) [unitless] |
+| NUMREGIONS      | Number of connected regions (blobs) in the particle image, if the KEEP_LARGEST option is enabled |
+| DIODEGAPS       | Number of unshaded diodes between the first and last shaded diodes |
 | ATTRIBUTES      | A sub-structure containing all variable attributes |
 | GLOBAL          | A sub-structure containing all global attributes |
