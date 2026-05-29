@@ -460,7 +460,7 @@ line *ncdump* utility.
 | PARTICLECOUNTER | Particle counter [number] |
 | ORIENTATION     | Particle orientation relative to array axis [degrees] |
 | REJECTIONFLAG   | Particle rejection code, reported as the sum of all reason codes (see soda2_reject.pro) [unitless] |
-| NUMREGIONS      | Number of connected regions (blobs) in the particle image, if the KEEP_LARGEST option is enabled |
-| DIODEGAPS       | Number of unshaded diodes between the first and last shaded diodes |
+| NUMREGIONS      | Number of connected regions (blobs) in the particle image, if the KEEP_LARGEST option is enabled [unitless] |
+| DIODEGAPS       | Number of unshaded diodes between the first and last shaded diodes [unitless] |
 | ATTRIBUTES      | A sub-structure containing all variable attributes |
 | GLOBAL          | A sub-structure containing all global attributes |

@@ -1017,14 +1017,14 @@ FUNCTION soda2_probespecs, name=name, id=id, fn=fn
    all=[all,x]
 
    x=base
-   x.probename='Fast 2D-S Horizontal Array'
+   x.probename='Fast 2D-S Horizontal Array (11um)'
    x.shortname='F2DS'
    x.format='SPEC'
    x.subformat=1
    x.probetype='2DS'
    x.probeid='H'
    x.greythresh=0
-   x.res=10
+   x.res=11
    x.yres=10
    x.armwidth=6.3
    x.numdiodes=128
@@ -1037,14 +1037,14 @@ FUNCTION soda2_probespecs, name=name, id=id, fn=fn
    all=[all,x]
 
    x=base
-   x.probename='Fast 2D-S Vertical Array'
+   x.probename='Fast 2D-S Vertical Array (11um)'
    x.shortname='F2DS'
    x.format='SPEC'
    x.subformat=1
    x.probetype='2DS'
    x.probeid='V'
    x.greythresh=0
-   x.res=10
+   x.res=11
    x.yres=10
    x.armwidth=6.3
    x.numdiodes=128
