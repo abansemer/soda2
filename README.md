@@ -22,24 +22,32 @@ SODA-2.  For more information, please contact the developers or see slide presen
 
 ## Installation
 SODA-2 requires the Interactive Data Language (IDL) software package, either as a full IDL distribution or the freely
-available IDL Virtual Machine.  
+available IDL Virtual Machine.
 
 ### Using a full IDL distribution
-1.	Download the latest version of the code from the SODA-2 repository
-   *	**Git:** `git clone https://github.com/abansemer/soda2`
-   *	**Direct download:** Go to <https://github.com/abansemer/soda2>, click on the green `Code` button, download the zip file, and unzip into
+1. Download the latest version of the code from the SODA-2 repository
+   * **Git:** `git clone https://github.com/abansemer/soda2`
+   * **Direct download:** Go to <https://github.com/abansemer/soda2>, click on the green `Code` button, download the zip file, and unzip into
    a directory on your local machine.
-2.	Add the code location to the IDL search path using one of the following options
+2. Add the code location to the IDL search path using one of the following options
    * **IDL Desktop Environment:** Add the SODA-2 directory location under *IDL/Settings/IDL/Paths/Insert*.
    * **IDL command line:** Modify the *!path* system variable to include the SODA-2 directory location `IDL> !path = !path + ‘:/my_programs/soda2’`. This command can be run automatically by adding it to the IDL startup script.
-4.	Type `soda2` at the IDL command prompt to start the processing software.
+3. Type `soda2` at the IDL command prompt to start the processing software.
 
 ### Using the IDL Virtual Machine
-1.	Install the virtual machine, which is freely available as part of the trial IDL installation at
+1. Install the virtual machine, which is freely available as part of the trial IDL installation at
 <https://www.nv5geospatialsoftware.com/>
-2. Download the compiled version of SODA-2
+2. Download the compiled version of SODA-2 (soda2.sav)
 [here](https://drive.google.com/file/d/13mlf-uNGj3WTu-8RpKG6KbBnVXKpCL8w/view?usp=drive_link).
-3. Double-click on the *soda2.sav* icon.
+3. Launch SODA-2:
+   * **Windows:** Double-click on the *soda2.sav* icon.
+   * **Linux/Mac:** Type `idl -vm='soda2.sav'` from the terminal command line.
+   In case of a "bus error", try disabling hardware rendering:
+
+     ```console
+     cd <idl_install_dir>/idl<xx>/bin/bin.linux.x86_64
+     sudo mv gl_driver.so gl_driver.bak
+     ```
 
 ## Data Processing
 Type `soda2` at the IDL command prompt to start the processing software, or choose the file *soda2.sav* when prompted by
@@ -49,47 +57,47 @@ the IDL Virtual Machine.  The data processing window appears when the software i
 
 To begin processing data:
 
-### 1.	Select raw data files
+### 1. Select raw data files
 In the Raw Data section, click on `Add file...` and select the raw OAP files to be processed. These files are usually
 named *baseYYMMDDhhmmss.2DS* (SPEC instruments), *Imagefile_01CIP.raw* (DMT instruments), or *YYYY-MM-DD-hhmm.sea*
 (SEA).  Multiple files can be selected using the `Shift` or `Ctrl` keys. If the raw data need a time correction, enter
 the offset time in seconds in the `Clock Correction` box.
 
-### 2.	Enter True Air Speed (TAS)  
+### 2. Enter True Air Speed (TAS)
 Enter the source of true air speed for the flight in the `TAS data` box, which is recommended for computing an accurate
 estimate of the probe’s sample volume. Two file formats are supported:  
    1. An ASCII file with time (UTC seconds) in the first column and TAS (meters/second) in the second column.  Space,
    tab, or comma delimiters are accepted.
    2. An IDL .sav file, which should have a single structure named *data* containing the variables *time* (in UTC
    seconds) and *tas* (in meters/second).  The *time* and *tas* records in this file should match what will be
-   entered into the probe options start/stop time fields.   
+   entered into the probe options start/stop time fields.
 
 Enter a fixed TAS or if no other source is available.  The default air speed is 100 m/s.
 
 Select the `Apply stretch correction` option if the aircraft TAS and the probe slicing TAS were unsynchronized, leading to
 stretched or compressed particles in the airflow direction.
 
-### 3.	Select probe options
-1.	Click `Auto-Fill` to check the selected raw data files and automatically fill in the date and start/stop
+### 3. Select probe options
+1. Click `Auto-Fill` to check the selected raw data files and automatically fill in the date and start/stop
 times.  This also removes incompatible probes from the dropdown list.
-2.	`Project name`  Enter a project name identifier to be saved with the data.  
-3.	`Date`  Enter the flight date in format YYYYMMDD or MMDDYYYY, if not entered correctly by Auto-Fill.
+2. `Project name`  Enter a project name identifier to be saved with the data.
+3. `Date`  Enter the flight date in format YYYYMMDD or MMDDYYYY, if not entered correctly by Auto-Fill.
 4. `Start/Stop time`  Enter the time interval to process from the raw data in HHMMSS format.  A shorter time interval
 will save memory and disk space and reduce processing time.
 5. `Rate`  Enter an averaging interval for the time series data.  Intervals shorter than one second are possible but
 will require more memory to store the particle distributions.
-6. `Probe`  Select the probe from the dropdown list. New probes can be added to the list in *soda2_probespecs.pro*.  
+6. `Probe`  Select the probe from the dropdown list. New probes can be added to the list in *soda2_probespecs.pro*.
 7. Make any necessary adjustments to the `X-resolution`, `Y-resolution`, or `Depth-of-Field constant` based on laboratory
 calibrations.  The SEA tag numbers can also be adjusted here if they do not match the original configuration.
 
-### 4.	Select processing options
-1.	Adjust the size `Bin edges` values as needed.
-   * The `Default` button will load a recommended bin distribution based on the currently selected probe resolution.  
+### 4. Select processing options
+1. Adjust the size `Bin edges` values as needed.
+   * The `Default` button will load a recommended bin distribution based on the currently selected probe resolution.
    * The `Full` button will load a linear distribution of bins centered on the current X-resolution value, one bin for
-   each element in the diode array.  
+   each element in the diode array.
    * The `x2` button copies the `Full` button, but with twice the number of bins to cover particle sizes up to twice the array width.
 
-2.	Select the `Particle sizing method` to be used for constructing the particle size distributions.
+2. Select the `Particle sizing method` to be used for constructing the particle size distributions.
    * `Circle fit (Default)` The diameter of the smallest circle that completely encloses a particle.
    * `X-Size`  The maximum distance between shadowed pixels across the array.
    * `Y-Size`  The maximum distance between shadowed pixels along the airflow direction.
@@ -123,9 +131,9 @@ out-of-focus particles.
    * `Largest particle (Default)` Discard any shadowed pixels that are not connected to the largest connected blob,
    after a 2-pixel dilation.
    * `Largest particle (Small dilation)` As above, but using a 1-pixel dilation.
-   * `Largest particle (No dilation)` As above, but without any dilation.  
+   * `Largest particle (No dilation)` As above, but without any dilation.
 
-6.	Check box to apply a `Shattering Correction` based on particle interarrival times.  The method is described
+6. Check box to apply a `Shattering Correction` based on particle interarrival times.  The method is described
 in Field et al. (JTECH, 2006).
 
 7. Check box to apply `All-in`, where particles that touch either edge of the array are rejected.
@@ -153,21 +161,23 @@ may be very large so a short time window defined by the start/stop time fields i
 
 5. Check the `Images(netCDF)` box to save both the PBP data and the particle images to a netCDF file.
 
-6. Check the `House(dat)` box to save the housekeeping data to an IDL *.sav* file for quick dat quality checks.
+6. Check the `House(dat)` box to save the housekeeping data to an IDL *.sav* file for quick dat quality checks (SPEC probes only).
 
 7. `Output directory`  The directory where all output files will be written.
 
 8. Enter an optional `Tag` to add an identifier to the filename(s) that will be written.
 
-### 6. Click `BEGIN PROCESSING` to process the data.  
+### 6. Click `BEGIN PROCESSING` to process the data.
 
 Processing will take several minutes to hours depending on the amount of data.  Once completed, new files containing the
 processed data will be saved with the following naming conventions:
 
-    date_starttime_probetype_tag.dat
-    date_starttime_probetype_tag.txt
-    date_starttime_probetype_tag.pbp.csv
-    date_starttime_probetype_tag.pbp.nc  
+| File type                   | File name |
+| --------                    | ----------- |
+| Primary output file         | date_starttime_probetype_tag.dat |
+| ASCII size distributions    | date_starttime_probetype_tag.txt |
+| Particle-by-particle ASCII  | date_starttime_probetype_tag.pbp.csv |
+| Particle-by-particle netCDF | date_starttime_probetype_tag.pbp.nc |
 
 ## Data Reprocessing
 Settings from a previously processed *.dat* file can be reloaded under the *File/Load* Settings menu option.  Any of the
@@ -218,7 +228,7 @@ dashed line.
 This window displays time series plots of derived parameters and housekeeping data.  Two plotting windows are available,
 and the value to be plotted on each is changed with the drop-down menus.  The start and end times can be adjusted with
 the mouse by click-dragging a box on either the data plots or the reference plot at the bottom of the screen.  The green
- and red indicators on the reference plot show the current range.  
+ and red indicators on the reference plot show the current range.
 
 **Saving plots:**
 Click the `Create PNG` button on any screen to save the current plot(s) to a PNG image.  It will be saved in the
@@ -228,7 +238,7 @@ directory where the processed file is located.
 ## Exporting Data
 The processed data and images can be exported to netCDF or ASCII-CSV (size distributions) and PNG (images) for
 compatibility with Matlab, Python, or other software packages.  Select *Menu/Export Data* from the main SODA-2 window to
- open the data export menu.  Add processed *.dat* files to the list for export.  
+ open the data export menu.  Add processed *.dat* files to the list for export.
 
 NetCDF files will contain particle size distributions, counts, interarrival time distributions, and a variety of
 derived bulk parameters such as IWC, mean diameter, and total area.   See the program *soda2_export_ncdf.pro* for more
@@ -238,13 +248,13 @@ PNG files each contain one minute of  sample images, with one image buffer (roug
 interval that was processed.  Use the command-line version to output all images or to specify start and/or stop times,
 for example:
 
- 	IDL> soda2_imagedump, ‘myfile.dat’, /all, starttime=hms2sfm(130000)
+    IDL> soda2_imagedump, ‘myfile.dat’, /all, starttime=hms2sfm(130000)
 
 
 ## Processing Details
 ### Particle Sizing and Sample Area
 Particles can be measured by several methods, including circle-fit, sizing across the array (x-size), sizing with the
-airflow (y-size), area equivalent sizing, and slice-width sizing (Lx).  
+airflow (y-size), area equivalent sizing, and slice-width sizing (Lx).
 
 The circle-fit method is the default sizing method.  It fits the smallest possible circle around a particle image and
 uses the diameter of that circle as the diameter of the particle.  This method is used for its computational efficiency,
@@ -252,7 +262,7 @@ as well as its ability to produce a reliable comparison of the area of particle 
 ratio” is used for subsequent particle rejection, roundness detection, and may also be used for computing such
 parameters as fall velocity and optical extinction.
 
-The x-size and y-size methods measure the maximum distance between shaded pixels in their respective directions.   
+The x-size and y-size methods measure the maximum distance between shaded pixels in their respective directions.  
 X-size may be useful for spinning disc calibrations, or for any time where the probe's timing did not match the particle
 speed resulting in stretched or compress images in the airflow direction.  Similarly, Lx sizing defines particle size by
 the maximum distance between shaded pixels on any individual slice of a particle (but not of the entire particle).  This
@@ -260,18 +270,18 @@ is used for situations where particles have a skewed appearance from transiting 
 direction.
 
 Area equivalent sizing defines particle size as the diameter of a circle which would have the same shadowed area as the
-particle image.  1D and 2D Emulation sizes replicate legacy instrument sizing methods such as those used by the 260X and 260Y.  
+particle image.  1D and 2D Emulation sizes replicate legacy instrument sizing methods such as those used by the 260X and 260Y.
 
 Under ‘water’ processing a sizing correction is applied following Korolev (JTECH, 2007).  This correction is based on the size
 of the Poisson spot seen when imaging liquid particles, and indicates magnification of a particle due to its position in
 the depth of field.  If a Poisson spot is detected its area is measured and compared to the area of the complete
 particle.  The ratio of these two areas is used to find a correction factor, which reduces the size measurement to its
-expected pre-magnification value.  
+expected pre-magnification value.
 
 In all sizing methods, partially imaged particles which touch either or both ends of the diode array are allowed by
 default if the center of the particle is deemed to be within the array.   The sample area of the probe is computed
 following the center-in method described in Heymsfield and Parrish (1978).  If the user elects to reject partially
-imaged particles (All-in option), the sample area is computed following Equation 4 of the same reference.  
+imaged particles (All-in option), the sample area is computed following Equation 4 of the same reference.
 
 ### Shattering Corrections
 Large particles that impact on the forward surface of a probe arm can break into many pieces and then be imaged by the
