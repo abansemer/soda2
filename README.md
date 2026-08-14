@@ -64,7 +64,7 @@ named *baseYYMMDDhhmmss.2DS* (SPEC instruments), *Imagefile_01CIP.raw* (DMT inst
 the offset time in seconds in the `Clock Correction` box.
 
 ### 2. Enter True Air Speed (TAS)
-Enter the source of true air speed for the flight in the `TAS data` box, which is recommended for computing an accurate
+Enter the source of true air speed for the flight in the `TAS data` box. This step is optional but recommended for computing an accurate
 estimate of the probe’s sample volume. Two file formats are supported:  
    1. An ASCII file with time (UTC seconds) in the first column and TAS (meters/second) in the second column.  Space,
    tab, or comma delimiters are accepted.
@@ -72,7 +72,7 @@ estimate of the probe’s sample volume. Two file formats are supported:
    seconds) and *tas* (in meters/second).  The *time* and *tas* records in this file should match what will be
    entered into the probe options start/stop time fields.
 
-Enter a fixed TAS or if no other source is available.  The default air speed is 100 m/s.
+Enter a fixed TAS if no other source is available.  The default air speed is 100 m/s.
 
 Select the `Apply stretch correction` option if the aircraft TAS and the probe slicing TAS were unsynchronized, leading to
 stretched or compressed particles in the airflow direction.
@@ -118,9 +118,9 @@ calibrations.  The SEA tag numbers can also be adjusted here if they do not matc
 out-of-focus particles.
    * `Off (default)`  Do no apply any extra DoF rejection criteria.
    * `One Level-3 Pixel`  Require at least one pixel to have the darkest available shadow level.  This applies only
-   to probes that record 3-level grayscale images or track the number of dark pixels.
-   * `50% Level-3  Pixel Ratio`  Require that half of the pixels in a paricle have the darkest available shadow
-   level.  This applies only to probes that record 3-level grayscale images or track the number of dark pixels.
+   to probes that record 3-level grayscale images or count the number of dark pixels.
+   * `50% Level-3  Pixel Ratio`  Require that half of the pixels in a particle have the darkest available shadow
+   level.  This applies only to probes that record 3-level grayscale images or count the number of dark pixels.
    * `Particle Compactness`  Require that small particles are relatively compact, without a significant number of
    stray or unconnected pixels.  This is the only option that works with probes that record pixels at a single 50%
    shadow level.
@@ -181,7 +181,7 @@ processed data will be saved with the following naming conventions:
 
 ## Data Reprocessing
 Settings from a previously processed *.dat* file can be reloaded under the *File/Load* Settings menu option.  Any of the
-processing options can then be changed before reprocessing.  The old file will be overwritten unless a new output
+processing options can then be changed before reprocessing.  The old file(s) will be overwritten unless a new output
 directory is selected or a new tag is used.
 
 Alternately, the IDL files can be reprocessed via command-line or script.  Modifications are directly applied to the
@@ -289,7 +289,9 @@ probe.  This results in an overestimate of the concentration of small particles.
 clusters, the time between neighboring particles, or interarrival time, may be used to detect suspected shattering
 events.  SODA-2 corrects for shattering events using the method described in Field, et al. (2006).  This method requires
 at least 100 particles per time period, so it is recommended to use a sufficiently long averaging time (in the `Rate` box
-on the SODA-2 main screen) to ensure that enough particles are available to activate the correction.
+on the SODA-2 main screen) to ensure that enough particles are available to activate the correction.  In general, it is
+recommended to enable this option for probes with a resolution between 10 and 50 microns, and to disable it for probes
+with a resolution larger than 50 microns.
 
 ### Particle Rejection Criteria
 The particle rejection criteria in SODA-2 serve two purposes, to distinguish between “round” and “irregular” particles
@@ -319,7 +321,7 @@ directly for analysis beyond the capabilities of the SODA-2 data browser.
     IDL> restore, 'myfile.dat'
     IDL> help, data
 
-Libraries are available for reading these files directly into Python (scipy.io.readsav) and Matlab.  Once loaded,
+External libraries are available for reading these files into Python (scipy.io.readsav) and Matlab.  Once loaded,
 all data will be available in a structure named *data*.  The structure has a number of tags with processed
 information, and a sub-structure named *data.op* containing processing options.
 
@@ -360,6 +362,8 @@ information, and a sub-structure named *data.op* containing processing options.
 | orientation_index    | Orientation index in a [time, size bin] array |
 | house                | A substructure containing housekeeping data, when available |
 | pbpstartindex        | The index of the first particle in the particle-by-particle files for each time period |
+
+Data processing options sub-structure:
 
 | Processing Option      | Description |
 | --------               | ----------- |
@@ -425,42 +429,52 @@ line *ncdump* utility.
 
 | Variable        | Description |
 | --------        | ----------- |
-| TIME            | UTC time [seconds] |
-| PROBETIME       | Unadjusted probe particle time [seconds] |
-| BUFFERTIME      | Buffer time [seconds] |
-| RAWTIME         | Raw time [slices or seconds] |
-| REFTIME         | Reference time for buffer matching [secnds] |
-| INTTIME         | Interarrival time from previous particle [seconds] |
-| DIAM            | Particle diameter from circle fit. No Poisson spot size corrections applied [microns] |
-| XSIZE           | X-size (across array). No Poisson spot size corrections applied [microns] |
-| YSIZE           | Y-size (along airflow). No Poisson spot size corrections applied [microns] |
-| XEXTENT         | Maximum x-extent (across array) for all individual slices. No Poisson spot size corrections applied [microns] |
-| ONED            | 1-D emulation size. Number of latched pixels. No Poisson spot size corrections applied [microns] |
-| TWOD            | 2-D emulation size. Slice with maximum number of shaded pixels. No Poisson spot size corrections applied [microns] |
-| AREASIZE        | Equivalent area size. No Poisson spot size corrections applied [microns] |
-| AREARATIO       | Area ratio [unitless] |
-| AREARATIOFILLED | Area ratio with particle voids filled [unitless] |
-| ASPECTRATIO     | Aspect ratio [unitless] |
-| AREA            | Number of shaded pixels [pixels] |
-| AREAFILLED      | Number of shaded pixels including voids [pixels] |
-| PERIMETERAREA   | Number of shaded pixels on particle perimeter [pixels] |
-| AREA75          | Number of shaded pixels at the 75% (or grey level-3) shading [pixels] |
-| XPOS            | X-position of particle center (across array) [pixels] |
-| YPOS            | Y-position of particle center (along airflow) [pixels] |
-| ALLIN           | All-in flag (1=all-in) [unitless] |
-| CENTERIN        | Center-in flag (1=center-in) [unitless] |
-| DOFFLAG         | Depth of field flag from probe (1=accepted) [unitless] |
-| EDGETOUCH       | Edge touch (1=left 2=right 3=both) [unitless] |
-| SIZECORRECTION  | Size correction factor from Korolev 2007 (D_edge/D0). Use to adjust sizes in this file if necessary [unitless] |
-| ZD              | Z position from Korolev correction [microns] |
-| MISSED          | Missed particle count [number] |
-| PROBETAS        | True air speed for probe clock [m/s] |
-| AIRCRAFTTAS     | True air speed for aircraft (if available) [m/s] |
-| OVERLOADFLAG    | Overload flag [boolean] |
-| PARTICLECOUNTER | Particle counter [number] |
-| ORIENTATION     | Particle orientation relative to array axis [degrees] |
-| REJECTIONFLAG   | Particle rejection code, reported as the sum of all reason codes (see soda2_reject.pro) [unitless] |
-| NUMREGIONS      | Number of connected regions (blobs) in the particle image, if the KEEP_LARGEST option is enabled [unitless] |
-| DIODEGAPS       | Number of unshaded diodes between the first and last shaded diodes [unitless] |
-| ATTRIBUTES      | A sub-structure containing all variable attributes |
-| GLOBAL          | A sub-structure containing all global attributes |
+| time            | UTC time [seconds] |
+| probetime       | Unadjusted probe particle time [seconds] |
+| buffertime      | Buffer time [seconds] |
+| rawtime         | Raw time [slices or seconds] |
+| reftime         | Reference time for buffer matching [secnds] |
+| inttime         | Interarrival time from previous particle [seconds] |
+| diam            | Particle diameter from circle fit. No Poisson spot size corrections applied [microns] |
+| xsize           | X-size (across array). No Poisson spot size corrections applied [microns] |
+| ysize           | Y-size (along airflow). No Poisson spot size corrections applied [microns] |
+| xextent         | Maximum x-extent (across array) for all individual slices. No Poisson spot size corrections applied [microns] |
+| oned            | 1-D emulation size. Number of latched pixels. No Poisson spot size corrections applied [microns] |
+| twod            | 2-D emulation size. Slice with maximum number of shaded pixels. No Poisson spot size corrections applied [microns] |
+| areasize        | Equivalent area size. No Poisson spot size corrections applied [microns] |
+| arearatio       | Area ratio [unitless] |
+| arearatiofilled | Area ratio with particle voids filled [unitless] |
+| aspectratio     | Aspect ratio [unitless] |
+| area            | Number of shaded pixels [pixels] |
+| areafilled      | Number of shaded pixels including voids [pixels] |
+| perimeterarea   | Number of shaded pixels on particle perimeter [pixels] |
+| area75          | Number of shaded pixels at the 75% (or grey level-3) shading [pixels] |
+| xpos            | X-position of particle center (across array) [pixels] |
+| ypos            | Y-position of particle center (along airflow) [pixels] |
+| allin           | All-in flag (1=all-in) [unitless] |
+| centerin        | Center-in flag (1=center-in) [unitless] |
+| dofflag         | Depth of field flag from probe (1=accepted) [unitless] |
+| edgetouch       | Edge touch (1=left 2=right 3=both) [unitless] |
+| sizecorrection  | Size correction factor from Korolev 2007 (D_edge/D0). Use to adjust sizes in this file if necessary [unitless] |
+| zd              | Z position from Korolev correction [microns] |
+| missed          | Missed particle count [number] |
+| probetas        | True air speed for probe clock [m/s] |
+| aircrafttas     | True air speed for aircraft (if available) [m/s] |
+| overloadflag    | Overload flag [boolean] |
+| particlecounter | Particle counter [number] |
+| orientation     | Particle orientation relative to array axis [degrees] |
+| rejectionflag   | Particle rejection code, reported as the sum of all reason codes (see soda2_reject.pro) [unitless] |
+| numregions      | Number of connected regions (blobs) in the particle image, if the KEEP_LARGEST option is enabled [unitless] |
+| diodegaps       | Number of unshaded diodes between the first and last shaded diodes [unitless] |
+| attributes      | A sub-structure containing all variable attributes |
+| global          | A sub-structure containing all global attributes |
+
+Several additional variables will be available if the option to save particle images was enabled during processing.  These include a two-dimensional byte array where the images are stored, and the coordinates of each individual image within that array.
+
+| Variable        | Description |
+| --------        | ----------- |
+| image           | All particle images arranged into a single two-dimensional byte array [n_diodes, n_recorded_slices] |
+| startx          | Index of each individual particle's start diode (x-position) in the image array|
+| stopx          | Index of each individual particle's stop diode (x-position) in the image array|
+| starty          | Index of each individual particle's start slice (y-position) in the image array|
+| stopy          | Index of each individual particle's stop slice (y-position) in the image array|

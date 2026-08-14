@@ -31,7 +31,8 @@ FUNCTION sea_tagpositions, lun, tag
          startpoint = startpoint+d.dataoffset+d.numberbytes
          point_lun, lun, startpoint
       ENDIF
-   ENDREP until eof(lun)
-   
+      fs = fstat(lun)
+   ENDREP until (fs.cur_ptr + 16) ge fs.size
+
    return, {datapointer:datapointer[0:c-1], timepointer:timepointer[0:c-1]}
 END

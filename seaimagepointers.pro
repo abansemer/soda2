@@ -60,6 +60,8 @@ FUNCTION seaimagepointers, lun, tag
 
          ;Check for file overruns, 16 bytes is for the next datadir
          IF (lastpointer + maxbytes + 16) ge q.size THEN return, {starttime:999999, image:0, eof:1}
+         fs = fstat(lun)
+         IF (fs.cur_ptr + 16) ge fs.size THEN return, {starttime:999999, image:0, eof:1}
       ENDREP UNTIL (buf.tagnumber eq 999)  ;Found next tag
 
       ;Check if no 2d data in this buffer, or size is too small

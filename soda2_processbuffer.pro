@@ -693,7 +693,7 @@ FUNCTION soda2_processbuffer, buffer, pop, pmisc
             blobhist=histogram(blobs, min=1)  ;min=1 skips white space
             dummy=max(blobhist, ilargest)
             good=where(blobs eq (ilargest+1)) ;add 1 here to get index right
-            roi2=roi*0            ;This is a little convoluted since we need to keep original roi in case of grey levels
+            roi2=roi*0            ;This is a little convoluted because we need to keep original roi in case of grey levels
             roi2[good]=roi[good]  ;Transfer the good particle to roi2
             roi=roi2
          ENDIF

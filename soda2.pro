@@ -561,7 +561,7 @@ PRO soda2
    date=cw_field(subbase2d,/string,       title='Date (yyyymmdd)',uname='date',xsize=10,value='20001231',/column)
    starttime=cw_field(subbase2d,/string,  title='Start Time (hhmmss)',uname='starttime',value='000000',xsize=10,/column)
    stoptime=cw_field(subbase2d,/string,   title='Stop Time (hhmmss)',uname='stoptime',value='240000',xsize=10,/column)
-   rate=cw_field(subbase2d,/float, title='Interval (s)', uname='rate', xsize=5, value=5.0, /column)
+   rate=cw_field(subbase2d,/float, title='Interval (s)', uname='rate', xsize=5, value=1.0, /column)
 
    subbase2b=widget_base(subbase2,row=1)
    specs=soda2_probespecs()

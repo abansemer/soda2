@@ -14,7 +14,11 @@ PRO spec_process_hk, op, textwidgetid=textwidgetid, fn_out=fn_out, y=y, nosav=no
    IF (op.subformat ne 0) THEN BEGIN  ;3VCPI/Hawkeye/HVPS4/Fast2DS
       version = 2
       fn = op.fn+'HK'   ;These use separate file for HK data
-      IF file_test(fn) eq 0 THEN stop,'File: '+fn+' not found.'
+      IF file_test(fn) eq 0 THEN BEGIN
+         infoline =  ['Housekeeping file not found: ' + fn, '',  'Place in same directory as ' + op.fn]
+         IF textwidgetid ne 0 THEN dummy=dialog_message(infoline,dialog_parent=textwidgetid,/info) ELSE print,infoline
+         stop
+      ENDIF
       ;Version 2 needs a new index using HK file
       hkindex=spec_index_hk(fn)
       ;Not calling read2dbuffer, so take care of timeoffset here

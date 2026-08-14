@@ -392,7 +392,7 @@ PRO soda2_process_2d, op, textwidgetid=textwidgetid, fn_pbp=fn_pbp, profile=prof
 
    ;Get housekeeping data, if available
    house={op:op}
-   IF op.format eq 'SPEC' THEN spec_process_hk, op, y=y, /nosav, data=house
+   IF op.format eq 'SPEC' THEN spec_process_hk, op, y=y, /nosav, data=house, textwidgetid=textwidgetid
    IF (op.format eq 'SEA') and (op.probetype eq '1D2D') THEN process_hk_1d2d, op, /nosav, data=house
    IF (op.format eq 'SEA') and (op.probetype eq 'CIP') and (n_elements(op.seatag) ge 2) THEN $
       process_cip1d_sea, op, /nowrite, data=house
